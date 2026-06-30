@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Archiv / Převod · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Spis</div>
+    <div class="nav" id="nav"></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px" id="ttl">Dohody – stavy, převod, export</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Nic se nikdy nemaže (spisová služba, ~15 let). Převod jen mezi organizacemi v systému (k datu/času). Export/QR pro odchod mimo systém. Archiv = pouze pro čtení.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Správa');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop)';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1600);}
+let tab='aktivni';
+const A={
+  tab(t){tab=t;render();},
+  setStav(hid,stav){ App.dohodaSetStav(hid,stav); toast('Stav: '+App.DOHODA_STAVY[stav]); render(); },
+  transfer(hid){ const org=prompt('Cílová organizace (v systému):','Spolu dětem, o.p.s.'); if(!org)return; const dt=prompt('Datum a čas převodu:',App.todayISO+' 00:00'); App.dohodaSetStav(hid,'PREVEDENO',{cilOrg:org,kdy:dt}); toast('Naplánován převod → '+org+' k '+dt+' (spis uzamčen)'); render(); },
+  exportZip(hid){ const p=App.transferPayload(hid); const json=JSON.stringify(p,null,2);
+    const a=document.createElement('a'); a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json); a.download='export_'+hid+'.json'; a.click(); toast('Export (min. míra, bez soukromých poznámek) stažen ✓ — v ostré verzi ZIP+dokumenty'); },
+  qr(hid){ const p=App.transferPayload(hid); const payload=btoa(unescape(encodeURIComponent(JSON.stringify(p)))).slice(0,400);
+    const url='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent('DOPRO:'+payload);
+    aiBox('QR předávací protokol', `<p class="muted" style="font-size:13px">Šifrovaný QR (min. převoditelná míra). Nová organizace v našem systému ho naskenuje a založí kartu; mimo systém QR nefunguje (přepíše z papíru).</p><div style="text-align:center"><img src="${url}" style="width:220px;height:220px"/></div>`); },
+  // DETAIL + definice exportu (co se přesně vyexportuje)
+  detail(hid){ const h=App.byId(hid); if(!h)return; const s=App.dohodaStav(hid);
+    const SECT=[['zaklad','Základní údaje dohody',true],['deti','Děti (jméno, věk, typ péče)',true],['pestouni','Pěstouni',true],['respit','Respit (vykázaný / reálný / limit)',true],['spvpp','SPVPP peněženky dětí',true],['vzdelavani','Vzdělávání pěstounů',false],['dokumenty','Seznam dokumentů',false],['historie','Historie dohody (org/KO)',false]];
+    const chk=SECT.map(([k,l,on])=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 0;font-size:14px;cursor:pointer"><input type="checkbox" id="ex-${k}" ${on?'checked':''} style="width:17px;height:17px"> ${l}</label>`).join('');
+    const fmts=[['pdf','PDF'],['xls','Excel'],['csv','CSV'],['md','Markdown'],['xml','XML'],['json','JSON']];
+    aiBox('Export dohody – '+h.name, `
+      <p class="muted" style="font-size:13px;margin-top:0">Vyber, <b>co přesně</b> se vyexportuje. Soukromé poznámky klíčové osoby se nikdy nepřenášejí (min. převoditelná míra).</p>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:6px 12px;margin-bottom:12px">${chk}</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px"><span style="font-size:13px;color:var(--text-2)">Formát:</span>
+        <select id="ex-fmt" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 10px;background:var(--surface)">${fmts.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select>
+        <button class="btn-primary" style="width:auto;padding:9px 16px" onclick="A.doExport(${hid})">Exportovat</button></div>
+      <p class="muted" style="font-size:12px;margin:0">Stav dohody: <b>${App.DOHODA_STAVY[s.stav]}</b> · ${h.kids.length} dětí · KO ${App.workerFull(h.worker)}</p>`); },
+  doExport(hid){ const h=App.byId(hid); if(!h)return; const g=k=>{const e=document.getElementById('ex-'+k);return e&&e.checked;};
+    const fmt=(document.getElementById('ex-fmt')||{}).value||'json'; const tables=[]; const meta={Dohoda:h.name,Mesto:h.city,Stav:App.DOHODA_STAVY[App.dohodaStav(hid).stav],KlicovaOsoba:App.workerFull(h.worker),Export:App.todayISO};
+    if(g('zaklad')) tables.push({name:'Dohoda',head:['Pole','Hodnota'],rows:[['Název',h.name],['Město',h.city],['Počet dětí',h.kids.length],['Klíčová osoba',App.workerFull(h.worker)],['Stav',App.DOHODA_STAVY[App.dohodaStav(hid).stav]]]});
+    if(g('deti')) tables.push({name:'Děti',head:['Jméno','Věk','Typ péče'],rows:h.kids.map(k=>[k.n,k.age!=null?k.age:'',(App.CARE[k.care]||{}).label||k.care||''])});
+    if(g('pestouni')) tables.push({name:'Pěstouni',head:['Jméno','Role'],rows:h.fosters.map(f=>[f.n,f.isFoster?'pěstoun':'člen domácnosti'])});
+    if(g('respit')) tables.push({name:'Respit',head:['Metrika','Hodnota'],rows:[['Vykázaný (dny)',App.respitVykazano(hid)],['Reálný odpočinek (dny)',App.respitRealny(hid)],['Limit (dny)',App.respitLimit(hid)]]});
+    if(g('spvpp')) tables.push({name:'SPVPP',head:['Dítě','Rozpočet','Vyčerpáno','Zůstatek'],rows:h.kids.map(k=>{const w=App.spvppWallet(k.id);return [k.n,w.rozpocet,w.vycerpano,w.rozpocet-w.vycerpano];})});
+    if(g('vzdelavani')) tables.push({name:'Vzdělávání',head:['Pěstoun','Hodiny','Povinnost'],rows:h.fosters.filter(f=>f.isFoster).map(f=>[f.n,f.eduDone,f.req])});
+    if(g('dokumenty')){ const ds=App.allDocs().filter(d=>h.fosters.concat(h.kids).some(p=>p.id===d.eid)); tables.push({name:'Dokumenty',head:['Název','Kategorie','Datum'],rows:ds.map(d=>[d.name,App.DOC_CATS[d.cat]||d.cat||'',d.date])}); }
+    if(g('historie')){ const hh=App.dohodaHist(hid)||[]; tables.push({name:'Historie dohody',head:['Organizace','Klíčová osoba','Od','Do'],rows:hh.map(x=>[x.organizace||'',x.klicovaOsoba||'',x.od||'',x.do||''])}); }
+    if(!tables.length){ toast('Vyber aspoň jednu sekci'); return; }
+    App.exportReport(fmt,{title:'Export_'+h.name.replace(/\s+/g,'_'),meta,tables});
+    const o=document.getElementById('aiBox'); if(o)o.remove(); toast('Export ('+fmt.toUpperCase()+') stažen ✓ — min. míra, bez soukromých poznámek KO'); },
+  /* ===== EXIT / PŘEVOD / NÁVRAT WORKFLOW (WF-1..WF-5) ===== */
+  exitWf(hid){ const h=App.byId(hid); if(!h)return; const e=App.exitData(hid); const pl=App.exitPhaseLabel(hid); const prot=App.exitInProtected(hid);
+    const inq=e.inquiries.map(x=>`<div style="font-size:12px;padding:5px 0;border-top:1px solid var(--border)">${x.do} · ${App.fmtDate(x.at)} · přijal ${x.by}</div>`).join('')||'<div class="muted" style="font-size:12px;padding:4px 0">Žádné dotazy.</div>';
+    const aud=e.audit.slice().reverse().map(a=>`<div style="font-size:11px;color:var(--text-3)">${App.fmtDate(a.at)} ${a.time} · ${a.ev}${a.note?' — '+a.note:''} · ${a.by}</div>`).join('')||'<div class="muted" style="font-size:11px">—</div>';
+    const b=(l,fn,st)=>`<button class="btn-secondary" style="width:auto;margin:0;padding:8px 13px;${st||''}" onclick="${fn}">${l}</button>`;
+    const ka=(l,fn,st)=>`<button class="btn-secondary" style="width:auto;margin:0;padding:5px 9px;font-size:12px;${st||''}" onclick="${fn}">${l}</button>`;
+    const od=App.odmenaStatus(hid);
+    const childActs=(kid,c)=>{ let a=[]; if(c.phase==='active'||c.phase==='boarding'){ a.push(ka('Návrh na převod',"A.childTransfer('"+kid+"')")); a.push(ka('Návrat k bio rodině',"A.childReturnBio('"+kid+"')")); a.push(ka('Zletilost/odchod',"A.childAgeOut('"+kid+"')")); } else if(c.phase==='transfer_proposed'){ a.push(ka('Podpis pěstouna',"A.childSign('"+kid+"')")); a.push(ka('Dokončit převod',"A.childFinal('"+kid+"')",'background:var(--alert-ok);color:#fff;border-color:var(--alert-ok)')); } return a.join('')||'<span class="muted" style="font-size:11px">—</span>'; };
+    const odBlock=`<div style="background:var(--active);border-radius:8px;padding:8px 11px;margin-bottom:12px;font-size:12.5px"><b>Druh PP:</b> ${od.typeLabel} · <b>Odměna pěstouna:</b> <span style="color:${od.eligible?'var(--alert-ok)':'var(--alert-due)'}">${od.eligible?'náleží':'nenáleží'}</span> <span class="muted">— ${od.reason}</span></div>`;
+    const kidBlock=`<div style="font-size:13px;font-weight:600;margin-bottom:4px">Děti – životní cyklus (svěření / převod / návrat / zletilost)</div>${h.kids.length?h.kids.map(k=>{const cpl=App.childPhaseLabel(k.id);const cc=App.childData(k.id);return `<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">${k.n}</b><span class="muted" style="font-size:11px">${k.age} let · ${(App.CARE[k.care]||['','?'])[1]}</span><span style="background:${cpl[1]}1f;color:${cpl[1]};border-radius:11px;padding:1px 8px;font-size:11px;font-weight:600">${cpl[0]}</span></div>${cc.signedBy?'<div class="muted" style="font-size:11px;margin-top:3px">Předávací protokol podepsal: '+cc.signedBy+'</div>':''}<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">${childActs(k.id,cc)}</div></div>`;}).join(''):'<div class="muted" style="font-size:12px">Bez svěřených dětí (dohoda může existovat i bez dítěte – u PPPD náleží odměna).</div>'}`;
+    const wfBlock=`<div style="font-size:13px;font-weight:600;margin:12px 0 4px">Další procesy (WF-6/8/11/12/13)</div><div style="display:flex;gap:6px;flex-wrap:wrap">${e.investigating?ka('Uzavřít šetření (WF-6)','A.clearSuspend('+hid+')','background:var(--alert-ok);color:#fff;border-color:var(--alert-ok)'):ka('Mimořádné pozastavení (WF-6)','A.emergencySuspend('+hid+')','border-color:var(--alert-due);color:var(--alert-due)')}${ka('Úmrtí – zmrazit (WF-8)','A.death('+hid+')')}${ka('Důkazní balíček rodiny (WF-12)','A.evidencePack('+hid+')')}${ka('Změna KO (WF-13)','A.changeKO('+hid+')')}${ka('GDPR žádost (WF-11)','A.gdprReq('+hid+')')}</div>`;
+    const insts=App.workflowInstances(hid); const cwfs=App.customWorkflows();
+    const cwfBlock=`<div style="font-size:13px;font-weight:600;margin:14px 0 4px">Vlastní postup (ad-hoc)</div>${cwfs.length?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><select id="cwf-sel" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px;background:var(--surface)">${cwfs.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</select>${ka('Použít na případ','A.applyWf('+hid+')','border-color:var(--accent);color:var(--accent)')}${ka('Spravovat','A.customWf()')}</div>`:`<div class="muted" style="font-size:12px;margin-bottom:8px">Žádné vlastní workflow. ${ka('Vytvořit','A.customWf()','border-color:var(--accent);color:var(--accent)')}</div>`}${insts.map(inst=>`<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px"><div style="font-weight:600;font-size:13px;margin-bottom:4px">${inst.name}</div>${inst.steps.map((s,i)=>`<label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:2px 0;cursor:pointer"><input type="checkbox" ${s.done?'checked':''} onchange="A.wfToggle(${hid},'${inst.id}',${i})" style="width:16px;height:16px"> <span style="${s.done?'text-decoration:line-through;color:var(--text-3)':''}">${s.label}</span></label>`).join('')}</div>`).join('')}`;
+    let act=[];
+    if(e.phase==='active'){ act.push(b('Navrhnout ukončení','A.proposeExit('+hid+')','border-color:var(--alert-due);color:var(--alert-due)')); act.push(b('Zaevidovat dotaz externí DO','A.logInquiry('+hid+')')); }
+    else if(e.phase==='exit_proposed'){ act.push(b('Schválit ukončení','A.approveExit('+hid+')','background:var(--alert-ok);color:#fff;border-color:var(--alert-ok)')); }
+    else if(e.phase==='exiting'){ act.push(b('Exit pack','A.exitPack('+hid+')')); act.push(b('Předání dat nové DO','A.handover('+hid+')')); act.push(b('Dokončit ukončení (archiv)','A.finalizeExit('+hid+')','background:var(--alert-due);color:#fff;border-color:var(--alert-due)')); act.push(b('Dotaz externí DO','A.logInquiry('+hid+')')); }
+    else if(e.phase==='exited'){ act.push(b('Exit pack','A.exitPack('+hid+')')); act.push(b('Předání dat nové DO','A.handover('+hid+')')); act.push(b('Zaevidovat žádost o návrat','A.proposeReturn('+hid+')')); act.push(b('Dotaz externí DO','A.logInquiry('+hid+')')); }
+    else if(e.phase==='returning'){ act.push(b('Schválit návrat (nová smlouva)','A.approveReturn('+hid+')','background:var(--alert-ok);color:#fff;border-color:var(--alert-ok)')); act.push(b('Odmítnout návrat','A.rejectReturn('+hid+')','border-color:var(--alert-due);color:var(--alert-due)')); }
+    aiBoxWide('Exit & převod – '+h.name, `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span style="background:${pl[1]}1f;color:${pl[1]};border:1px solid ${pl[1]}66;border-radius:20px;padding:3px 12px;font-size:13px;font-weight:600">${pl[0]}</span>${prot?'<span class="muted" style="font-size:12px">Ochranná lhůta do '+App.fmtDate(e.protectedUntil)+'</span>':''}${e.exitDate?'<span class="muted" style="font-size:12px">Exit k '+App.fmtDate(e.exitDate)+'</span>':''}</div>
+      ${e.reason?`<div style="font-size:13px;margin-bottom:8px">Důvod: ${e.reason} <span class="muted">(${e.proposedBy}${e.byFoster?' – pěstoun':''})</span></div>`:''}
+      <p class="muted" style="font-size:12px;margin:0 0 8px">Základní smlouva o doprovázení se ukončuje <b>fyzicky</b>; systém řídí proces kolem ní. Archiv zůstává dohledatelný pro OSPOD/soud.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px">${act.join('')}</div>
+      ${odBlock}
+      ${kidBlock}
+      ${wfBlock}
+      ${cwfBlock}
+      <div style="font-size:13px;font-weight:600;margin:14px 0 2px">Dotazy externích DO (bez podrobností)</div><div style="border:1px solid var(--border);border-radius:8px;padding:2px 10px;margin-bottom:12px">${inq}</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px">Procesní stopa</div><div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;max-height:120px;overflow:auto">${aud}</div>`); },
+  proposeExit(hid){ const r=prompt('Důvod návrhu na ukončení doprovázení:'); if(r===null)return; App.proposeExit(hid,r); toast('Návrh na ukončení zaevidován'); A.exitWf(hid); render(); },
+  approveExit(hid){ App.approveExit(hid); toast('Ukončení schváleno – spuštěno přechodné období'); A.exitWf(hid); render(); },
+  exitPack(hid){ const p=App.generateExitPack(hid); if(!p)return; aiBoxWide('Exit pack – '+App.byId(hid).name, ['pestoun','ospod','novaDO'].map(k=>{const s=p[k];return `<div style="margin-bottom:12px"><div style="font-weight:600;font-size:13px">${s.titul}</div>${s.polozky?'<ul style="margin:4px 0 0 18px;font-size:13px">'+s.polozky.map(x=>'<li>'+x+'</li>').join('')+'</ul>':''}${s.deti?'<div class="muted" style="font-size:12px;margin-top:3px">Děti: '+s.deti.join(', ')+'</div>':''}${s.pozn?'<div class="muted" style="font-size:12px;margin-top:3px">'+s.pozn+'</div>':''}</div>`;}).join('')+`<button class="btn-primary" style="width:auto;padding:8px 14px" onclick="A.exitPackExport(${hid})">Stáhnout balíček (export)</button>`); },
+  exitPackExport(hid){ App.exportHandover(hid,{cats:{identita:1,vzdelavani:1,respit:1},level:'exit pack'},'pdf'); toast('Exit pack exportován ✓'); },
+  handover(hid){ const cats=App.handoverCategories();
+    const rows=cats.map(c=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 0;font-size:14px;cursor:pointer;${c.sensitive?'color:var(--alert-due)':''}"><input type="checkbox" id="ho-${c.key}" ${c.mandatory?'checked disabled':''} style="width:17px;height:17px"> ${c.label}${c.mandatory?' <span class="muted" style="font-size:11px">(povinné)</span>':''}${c.sensitive?' <span style="font-size:11px">(citlivé – default NE)</span>':''}</label>`).join('');
+    aiBoxWide('Předání dat nové DO – výběr (WF-3)', `
+      <p class="muted" style="font-size:13px;margin-top:0">Vedení/KO rozhoduje, co se předá. Povinné kategorie nelze odebrat; soukromé poznámky KO jsou ve výchozím stavu vyloučené.</p>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:6px 12px;margin-bottom:12px">${rows}</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span style="font-size:13px">Nová DO:</span><input id="ho-do" placeholder="název organizace" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"><span style="font-size:13px">Formát:</span><select id="ho-fmt" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)">${[['pdf','PDF'],['csv','CSV'],['xml','XML'],['json','JSON']].map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
+      <button class="btn-primary" style="width:auto;padding:9px 16px" onclick="A.doHandover(${hid})">Předat / exportovat</button>`); },
+  doHandover(hid){ const cats=App.handoverCategories(); const c={}; cats.forEach(x=>{ const el=document.getElementById('ho-'+x.key); c[x.key]=(x.mandatory||(el&&el.checked))?1:0; });
+    const fmt=(document.getElementById('ho-fmt')||{}).value||'json'; const newDO=(document.getElementById('ho-do')||{}).value||'';
+    App.setHandover(hid,{cats:c,newDO,level:'definováno'}); App.exportHandover(hid,{cats:c,level:'definováno'},fmt);
+    const o=document.getElementById('aiBox'); if(o)o.remove(); toast('Data předána / exportována ('+fmt.toUpperCase()+') ✓'); render(); },
+  finalizeExit(hid){ if(!confirm('Dokončit ukončení a archivovat rodinu? Zůstane dohledatelná pro OSPOD/soud.'))return; App.finalizeExit(hid); const o=document.getElementById('aiBox');if(o)o.remove(); toast('Ukončeno – archivováno'); tab='archiv'; render(); },
+  logInquiry(hid){ const n=prompt('Název externí DO (eviduje se BEZ podrobností o pěstounovi):'); if(!n)return; App.logExternalDOInquiry(hid,n); toast('Dotaz externí DO zaevidován'); A.exitWf(hid); },
+  proposeReturn(hid){ App.proposeReturn(hid); toast('Žádost o návrat zaevidována'); A.exitWf(hid); render(); },
+  approveReturn(hid){ App.approveReturn(hid); const o=document.getElementById('aiBox');if(o)o.remove(); toast('Návrat schválen – nová smlouva (fyzicky)'); tab='aktivni'; render(); },
+  rejectReturn(hid){ const r=prompt('Důvod odmítnutí návratu:')||''; App.rejectReturn(hid,r); toast('Návrat odmítnut'); A.exitWf(hid); render(); },
+  /* ===== ŽIVOTNÍ CYKLUS DÍTĚTE (svěření/převod/návrat/zletilost) ===== */
+  reopenExitFor(kid){ const h=App.households.find(x=>x.kids.some(k=>k.id===kid)); if(h) A.exitWf(h.id); },
+  childTransfer(kid){ const out=confirm('Převod MIMO náš systém?\n\nOK = mimo systém (soud svěřil komukoli)\nZrušit = jinému pěstounovi v našem systému'); const target=prompt('Cílová rodina / pěstoun'+(out?' (mimo systém)':' (v systému)')+':','')||''; const ref=prompt('Č.j. rozhodnutí soudu (volitelné):','')||''; App.childProposeTransfer(kid,target,out,ref); toast('Návrh na převod dítěte zaevidován'); A.reopenExitFor(kid); render(); },
+  childSign(kid){ const f=prompt('Jméno stávajícího pěstouna (podepisuje předávací protokol – ne dítě):','')||''; if(!f)return; App.childSignTransfer(kid,f); toast('Předávací protokol podepsán stávajícím pěstounem'); A.reopenExitFor(kid); },
+  childFinal(kid){ App.childFinalizeTransfer(kid); toast('Převod dítěte dokončen – spis předán nové rodině'); A.reopenExitFor(kid); render(); },
+  childReturnBio(kid){ const ref=prompt('Č.j. rozhodnutí soudu o ukončení PP a návratu k biologické rodině:','')||''; App.childReturnBio(kid,ref); toast('Zaevidován návrat dítěte k biologické rodině'); A.reopenExitFor(kid); render(); },
+  childAgeOut(kid){ App.childAgeOut(kid); toast('Zletilost/odchod – uzávěrka SPVPP a závěrečná zpráva'); A.reopenExitFor(kid); render(); },
+  /* ===== WF-6/8/11/12/13 ===== */
+  emergencySuspend(hid){ const r=prompt('Důvod mimořádného pozastavení (podezření na ohrožení dítěte):',''); if(r===null)return; App.householdEmergencySuspend(hid,r); toast('Mimořádně pozastaveno – notifikace vedení/OSPOD'); A.exitWf(hid); render(); },
+  clearSuspend(hid){ const o=prompt('Výsledek šetření:','')||''; App.householdClearSuspend(hid,o); toast('Šetření uzavřeno'); A.exitWf(hid); render(); },
+  death(hid){ const h=App.byId(hid); const opts=[]; h.fosters.forEach((f,i)=>opts.push(['f'+i,'Pěstoun: '+f.n])); h.kids.forEach(k=>opts.push(['k:'+k.id,'Dítě: '+k.n])); opts.push(['ko','Klíčová osoba: '+App.workerFull(h.worker)]);
+    aiBoxWide('Úmrtí – koho se týká? (WF-8)', `<p class="muted" style="font-size:13px;margin-top:0">Důsledky se liší dle role: <b>dítě</b> = uzávěrka SPVPP + závěrečná zpráva; <b>pěstoun</b> = spis zmrazen + děti k přemístění soudem; <b>klíčová osoba</b> = rodiny převezme jiná KO.</p>${opts.map(([v,l])=>`<button class="btn-secondary" style="width:100%;margin:0 0 6px;padding:9px 12px;text-align:left" onclick="A.deathDo(${hid},'${v}')">${l}</button>`).join('')}`); },
+  deathDo(hid,v){ const h=App.byId(hid);
+    if(v==='ko'){ const nk=prompt('Nová klíčová osoba, která převezme rodiny po zemřelé KO:','')||''; const n=App.koDeath(h.worker,nk); toast('Úmrtí KO – rodin převzato: '+n); }
+    else if(v[0]==='f'){ const f=h.fosters[+v.slice(1)]; App.fosterDeath(hid,f?f.n:''); toast('Úmrtí pěstouna – spis zmrazen, děti k přemístění'); }
+    else if(v.slice(0,2)==='k:'){ App.childDeath(v.slice(2)); toast('Úmrtí dítěte zaevidováno'); }
+    const o=document.getElementById('aiBox'); if(o)o.remove(); A.exitWf(hid); render(); },
+  /* ===== WF-9/10/14 globální ===== */
+  orgDissolve(){ const s=prompt('Nástupnická DO (hromadný převod všech aktivních rodin):',''); if(!s)return; const n=App.orgDissolution(s); toast('WF-9: hromadný převod '+n+' rodin → '+s); render(); },
+  retention(){ const list=App.retentionList(); aiBoxWide('Retenční přehled / skartace (WF-10)', list.length?`<p class="muted" style="font-size:12px;margin-top:0">Archiv se uchovává ~15 let. Po uplynutí lhůty lze anonymizovat/skartovat.</p><table style="width:100%;font-size:13px;border-collapse:collapse"><tr style="background:var(--active)"><th style="text-align:left;padding:6px">Rodina</th><th style="text-align:left;padding:6px">Retence do</th><th></th></tr>${list.map(r=>`<tr><td style="padding:6px;border-top:1px solid var(--border)">${r.name}</td><td style="padding:6px;border-top:1px solid var(--border)">${r.retentionUntil?App.fmtDate(r.retentionUntil):'—'} ${r.overdue?'<span style="color:var(--alert-due)">po lhůtě</span>':''}</td><td style="padding:6px;border-top:1px solid var(--border)">${r.anonymized?'<span class="muted">anonymizováno</span>':(r.overdue?'<button class="btn-secondary" style="width:auto;margin:0;padding:4px 9px;font-size:12px" onclick="A.anon('+r.hid+')">Anonymizovat</button>':'<span class="muted" style="font-size:12px">v lhůtě</span>')}</td></tr>`).join('')}</table>`:'<p class="muted">Žádné archivované rodiny.</p>'); },
+  anon(hid){ App.anonymizeHousehold(hid); toast('Anonymizováno / skartováno (WF-10)'); A.retention(); },
+  mergeDup(){ const a=prompt('Ponechat kontakt (id, např. f1):',''); if(!a)return; const b=prompt('Sloučit DUPLICITU do něj (id):',''); if(!b)return; const r=App.mergeContacts(a,b); toast('WF-14: sloučeno '+b+' → '+a+' ('+((r&&r.docs)||0)+' dok.)'); },
+  /* ===== VLASTNÍ (AD-HOC) WORKFLOW ===== */
+  customWf(){ const list=App.customWorkflows();
+    aiBoxWide('Vlastní workflow (ad-hoc postupy)', `<p class="muted" style="font-size:13px;margin-top:0">Když případ nezapadá do předdefinovaných workflow, poskládej si vlastní postup, pojmenuj ho a ulož k opakování. Pak ho aplikuješ na konkrétní rodinu (Exit&WF → Vlastní postup).</p>
+      <div><label style="font-size:13px;font-weight:600">Název</label><input id="cwf-name" placeholder="např. Krizová návštěva po povodni" style="width:100%;border:1px solid var(--border-2);border-radius:8px;padding:8px;margin-top:3px"></div>
+      <div style="font-size:13px;font-weight:600;margin:10px 0 3px">Kroky (každý řádek = 1 krok)</div>
+      <textarea id="cwf-steps" placeholder="Každý řádek = jeden krok postupu" style="width:100%;min-height:110px;border:1px solid var(--border-2);border-radius:8px;padding:8px;font-size:13px"></textarea>
+      <button class="btn-primary" style="width:auto;padding:8px 16px;margin:10px 0 14px" onclick="A.cwfCreate()">Uložit workflow</button>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Uložená vlastní workflow (${list.length})</div>
+      ${list.length?list.map(w=>`<div style="display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding:7px 0;font-size:13px"><div style="flex:1"><b>${w.name}</b> <span class="muted">· ${w.steps.length} kroků · ${w.by}</span></div><button class="btn-secondary" style="width:auto;margin:0;padding:4px 9px;font-size:12px;border-color:var(--alert-due);color:var(--alert-due)" onclick="A.cwfDelete('${w.id}')">Smazat</button></div>`).join(''):'<div class="muted" style="font-size:12px">Zatím žádné.</div>'}`); },
+  cwfCreate(){ const name=((document.getElementById('cwf-name')||{}).value||'').trim(); const steps=((document.getElementById('cwf-steps')||{}).value||'').split('\n').map(s=>s.trim()).filter(Boolean); if(!name||!steps.length){toast('Zadej název a aspoň 1 krok');return;} App.saveCustomWorkflow(name,steps); toast('Workflow uloženo'); A.customWf(); },
+  cwfDelete(id){ if(!confirm('Smazat workflow?'))return; App.deleteCustomWorkflow(id); A.customWf(); },
+  applyWf(hid){ const sel=document.getElementById('cwf-sel'); if(!sel)return; App.applyWorkflow(hid,sel.value); toast('Vlastní postup zahájen na případu'); A.exitWf(hid); render(); },
+  wfToggle(hid,instId,idx){ App.wfStepToggle(hid,instId,idx); A.exitWf(hid); },
+  evidencePack(hid){ const p=App.familyEvidencePack(hid); if(!p)return; aiBoxWide('Důkazní balíček rodiny (WF-12)', `<p style="font-size:13px">Rodina: <b>${p.rodina}</b></p><ul style="font-size:13px;margin:6px 0 8px 18px"><li>Dokumentů: ${p.dokumenty}</li><li>Podpisů: ${p.podpisy}</li><li>Děti: ${p.deti.join(', ')||'—'}</li></ul><p class="muted" style="font-size:12px">Agreguje dokumenty + Osu + podpisy + auditní řetězené otisky celé rodiny pro OSPOD/soud (read-only). V ostré V8 export PDF + WORM + kval. razítko.</p>`); },
+  changeKO(hid){ const k=prompt('Nová klíčová osoba (jméno):',App.workerFull(App.byId(hid).worker)); if(!k)return; App.changeKO(hid,k); toast('Klíčová osoba změněna – předávací protokol, historie zachována'); A.exitWf(hid); render(); },
+  gdprReq(hid){ const h=App.byId(hid); const eid=(h.fosters.find(f=>f.isFoster)||{}).id; const kind=prompt('Typ žádosti subjektu údajů (přístup / oprava / výmaz):','přístup')||'přístup'; App.gdprRequest(eid,kind); toast('GDPR žádost zaevidována – lhůta vyřízení 30 dní'); A.exitWf(hid); },
+};
+window.A=A;
+function aiBox(title,html){ let o=document.getElementById('aiBox'); if(o)o.remove(); o=document.createElement('div'); o.id='aiBox'; o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1400;display:flex;align-items:center;justify-content:center;padding:20px'; o.onclick=e=>{if(e.target===o)o.remove();}; o.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:420px;width:100%;box-shadow:var(--shadow-pop)"><div style="display:flex;padding:14px 18px;border-bottom:1px solid var(--border)"><b style="flex:1">${title}</b><button onclick="document.getElementById('aiBox').remove()" style="border:none;background:none;font-size:20px;cursor:pointer">✕</button></div><div style="padding:16px 18px">${html}</div></div>`; document.body.appendChild(o); }
+function aiBoxWide(title,html){ let o=document.getElementById('aiBox'); if(o)o.remove(); o=document.createElement('div'); o.id='aiBox'; o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1400;display:flex;align-items:center;justify-content:center;padding:20px'; o.onclick=e=>{if(e.target===o)o.remove();}; o.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:580px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--shadow-pop)"><div style="display:flex;padding:14px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)"><b style="flex:1">${title}</b><button onclick="document.getElementById('aiBox').remove()" style="border:none;background:none;font-size:20px;cursor:pointer">✕</button></div><div style="padding:16px 18px">${html}</div></div>`; document.body.appendChild(o); }
+function render(){
+  if(!App.can('users.manage')){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Jen vedení/superadmin.</p></div></div>'; return; }
+  document.getElementById('nav').innerHTML=[['aktivni','Aktivní dohody'],['archiv','Archiv (jen čtení)']].map(([k,l])=>`<div class="nav-item ${tab===k?'active':''}" onclick="A.tab('${k}')">${l}</div>`).join('');
+  const list=App.households.filter(h=> tab==='archiv' ? App.isArchived(h.id) : !App.isArchived(h.id));
+  const STAV=App.DOHODA_STAVY;
+  body.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"><button class="btn-secondary" style="width:auto;margin:0;padding:7px 13px;border-color:var(--accent);color:var(--accent)" onclick="A.customWf()">Vlastní workflow (ad-hoc)</button><button class="btn-secondary" style="width:auto;margin:0;padding:7px 13px" onclick="A.orgDissolve()">Zánik / fúze DO (WF-9)</button><button class="btn-secondary" style="width:auto;margin:0;padding:7px 13px" onclick="A.retention()">Retenční přehled (WF-10)</button><button class="btn-secondary" style="width:auto;margin:0;padding:7px 13px" onclick="A.mergeDup()">Sloučit duplicity (WF-14)</button></div>`+`<div class="pcard"><div class="psection"><h3>${tab==='archiv'?'Archiv spisů (read-only)':'Aktivní dohody'} (${list.length})</h3>
+    ${tab==='archiv'?'<p class="muted" style="font-size:13px">Zmrazený stav pro kontroly OSPOD/MPSV. Nelze měnit ani mazat.</p>':''}
+    ${list.length?list.map(h=>{const s=App.dohodaStav(h.id);return `<div class="vrow" style="grid-template-columns:1fr auto;align-items:center">
+      <div class="k"><b style="cursor:pointer" onclick="A.detail(${h.id})" title="Detail a export">${h.name}</b> <span class="muted" style="font-size:12px">· ${h.city} · ${h.kids.length} dětí · stav: ${STAV[s.stav]}${s.cilOrg?' → '+s.cilOrg+(s.kdy?' ('+s.kdy+')':''):''}</span>${(()=>{const pl=App.exitPhaseLabel(h.id);return pl[0]!=='Aktivní'?` <span style="background:${pl[1]}1f;color:${pl[1]};border-radius:12px;padding:1px 8px;font-size:11px;font-weight:600">${pl[0]}</span>`:'';})()}</div>
+      <div class="v" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        ${tab==='archiv'?`<span class="badge"> jen čtení</span><button class="vact" onclick="A.exitWf(${h.id})">Exit & WF</button>`:`
+          <select onchange="A.setStav(${h.id},this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px;background:var(--surface)">${Object.entries(STAV).filter(([k])=>k!=='ARCHIV').map(([k,l])=>`<option value="${k}" ${s.stav===k?'selected':''}>${l}</option>`).join('')}</select>
+          <button class="vact" onclick="A.exitWf(${h.id})" style="border-color:var(--accent);color:var(--accent)">Exit & WF</button>
+          <button class="vact" onclick="A.transfer(${h.id})">Převod</button>
+          <button class="vact" onclick="A.detail(${h.id})">Export…</button>
+          <button class="vact" onclick="A.qr(${h.id})">QR</button>`}
+      </div></div>`;}).join(''):'<p class="muted">Nic zde.</p>'}
+  </div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

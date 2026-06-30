@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vzdělávání · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Doprovázení"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org" title="Přepnout organizaci / nastavení">
+      <div class="org-logo">D</div>
+      <div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div>
+      <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="sec-label">Pohledy</div>
+    <div class="nav" id="setnav"></div>
+    <div class="side-foot"><div class="sep-line"></div>
+      <div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">Martin Dvořák</div><div class="r">Doprovázející pracovník</div></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Vzdělávání pěstounů</h2>
+      <div class="search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg><input id="search" placeholder="Hledat pěstouna…" oninput="render()"></div>
+      <div class="spacer"></div>
+      <div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div>
+    </div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Zákonné vzdělávání pěstounů: <b>24 h / 12 měsíců</b> (dlouhodobá a přechodná péče), <b>18 h</b> (příbuzenská péče). Sledovaná metrika – „kdo je pod plánem".</div>
+    </div>
+  </main>
+</div>
+
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Vzdělávání');
+App.initTheme(document.getElementById('themeseg'));
+
+let view='all';
+function setView(v,el){view=v;document.querySelectorAll('#setnav .nav-item').forEach(x=>x.classList.remove('active'));if(el)el.classList.add('active');render();}
+window.setView=setView;
+const state = p => p.eduDone>=p.req ? 'done' : (p.eduDone>=p.req*0.6 ? 'mid' : 'low');
+const famName=h=>h.name.replace('Domácnost ','');
+
+function renderNav(){
+  const FO=App.visibleFosters();
+  const c={all:FO.length,low:FO.filter(p=>state(p)==='low').length,mid:FO.filter(p=>state(p)==='mid').length,done:FO.filter(p=>state(p)==='done').length};
+  const item=(v,label,n)=>`<div class="nav-item ${view===v?'active':''}" onclick="setView('${v}',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10 12 5 2 10l10 5 10-5z"/></svg> ${label} <span class="count">${n}</span></div>`;
+  document.getElementById('setnav').innerHTML=item('all','Všichni pěstouni',c.all)+item('low','Pod plánem',c.low)+item('mid','Rozpracováno',c.mid)+item('done','Splněno',c.done);
+}
+
+function render(){
+  renderNav();
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  let FO=App.visibleFosters();
+  if(view!=='all') FO=FO.filter(p=>state(p)===view);
+  if(q) FO=FO.filter(p=>(p.n+' '+p.household.name+' '+p.household.worker).toLowerCase().includes(q));
+  const all=App.visibleFosters();
+  const totDone=all.reduce((a,p)=>a+p.eduDone,0), totReq=all.reduce((a,p)=>a+p.req,0);
+  const low=all.filter(p=>state(p)==='low').length, done=all.filter(p=>state(p)==='done').length;
+  const stat=(num,lbl,col)=>`<div class="stat"><div class="lbl">${lbl}</div><div class="num"${col?` style="color:${col}"`:''}>${num}</div></div>`;
+  const rows=FO.map(p=>{const h=p.household;const pct=Math.round(p.eduDone/p.req*100);const s=state(p);
+    const tag=s==='done'?'<span class="badge ok">Splněno</span>':s==='mid'?'<span class="badge warn">Rozpracováno</span>':'<span class="badge due">Pod plánem</span>';
+    return `<a class="prow" href="hub.html?typ=pestoun&id=${p.id}&sec=vzdelavani" style="align-items:center">${App.avatar(p.n,null,p.photo,38,'sq')}
+      <div class="meta" style="flex:1"><div class="n">${p.n} ${tag}</div><div class="s">${famName(h)} · ${h.worker} · povinnost ${p.req} h${p.req===18?' (příbuzenská)':''}</div>
+        <div style="margin-top:6px;max-width:420px">${App.eduBar(p.eduDone,p.req)}</div></div>
+      <div style="text-align:right;min-width:70px"><div style="font-weight:700;font-size:15px">${pct} %</div><div class="s">${p.eduDone}/${p.req} h</div></div></a>`;
+  }).join('')||'<div class="prow">Nikdo neodpovídá filtru.</div>';
+  document.getElementById('body').innerHTML=`
+    <div class="stats">
+      ${stat(all.length,'Pěstounů')}
+      ${stat(totReq?Math.round(totDone/totReq*100)+' %':'—','Splněnost celkem','var(--care-long)')}
+      ${stat(low,'Pod plánem',low?'var(--alert-due)':'var(--alert-ok)')}
+      ${stat(done,'Splnili','var(--alert-ok)')}
+    </div>
+    <div class="dash-cols" style="grid-template-columns:1fr"><div class="panel"><h3>Přehled vzdělávání ${view!=='all'?'· filtr':''}</h3>${rows}</div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

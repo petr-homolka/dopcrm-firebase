@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Správa · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <div class="sec-label">Backstage</div>
+    <div class="nav"><div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7z"/></svg> Správa organizace</div></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Správa organizace (backstage)</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Manažerská / ekonomická část. Přístup jen vedení a superadmin (NE klíčová osoba / pěstoun / dítě).</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Správa');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+if(!App.can('users.manage')){
+  body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Backstage je jen pro vedení/superadmina. Vaše role nemá přístup.</p><button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="App.openRoleSwitcher()">Přepnout uživatele…</button></div></div>';
+}else{
+  const tiles=[
+    ['doklady.html',' Doklady přijaté Respit','Faktury/účtenky → rozúčtování na SPVPP dětí a dny respitu.'],
+    ['externiste.html',' Externisté & výkazy','Hlídači, doučovatelé, IT. Sazebník, schvalování výkazů.'],
+    ['reporty-manazerske.html',' Manažerské reporty','Výroční zprávy, finance SPVPP, respit dny – dle období.'],
+    ['provoz.html',' Provoz & zaměstnanci','Mzdy, docházka, nájmy/tarify, bilance organizace.'],
+    ['import.html','⬆ Import dat','Počáteční migrace z Excelu – 3 balíčky, staging, rollback.'],
+    ['archiv.html',' Archiv / Převod / Export','Stavy dohod, převod do jiné organizace, QR předání, archiv.'],
+    ['report-nastaveni.html','⚙ Nastavení reportů','Šablony, branding reportů a automatické rozesílání (např. měsíčně e-mailem).'],
+    ['monetizace.html','€ Tarify & AI kredit','Předplatné, měřič AI spotřeby, FUP a pozastavení AI.'],
+  ];
+  body.innerHTML='<div class="dash-cols" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">'+
+    tiles.map(([h,t,d])=>`<a class="panel" href="${h}" style="text-decoration:none;color:inherit;display:block"><h3 style="margin-top:0">${t}</h3><p class="muted" style="font-size:13px;margin:0">${d}</p></a>`).join('')+'</div>';
+}
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

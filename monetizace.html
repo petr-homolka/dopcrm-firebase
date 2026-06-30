@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tarify & AI kredit · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+<style>
+.tariffs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.tcard{border:1px solid var(--border);border-radius:14px;padding:15px;background:var(--surface);display:flex;flex-direction:column;gap:7px}
+.tcard.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.tcard .price{font-size:22px;font-weight:800}
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.tt{width:100%;border-collapse:collapse;font-size:13px}
+.tt th,.tt td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--border)}
+.tt th{color:var(--text-2);font-weight:600;font-size:12px}
+.tt input{width:92px;border:1px solid var(--border-2);border-radius:8px;padding:6px 8px;font:inherit}
+.paybadge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.pb-ok{background:var(--alert-ok-soft,#e6f6ec);color:#1a8a4a}
+.pb-late{background:var(--alert-due-soft);color:var(--alert-due)}
+.pb-wait{background:var(--alert-warn-soft,#fff3e0);color:#b06b00}
+</style>
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Tarify & AI</div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px" id="ttl">Tarify & AI</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div></div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Správa');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body'); const role=App.currentUser().role;
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+const KIND={structure:'Strukturace zápisu',report:'Koncept reportu',generate:'Generování textu',ocr:'OCR dokumentů',invoice:'Čtení faktur'};
+const COL={ok:'var(--alert-ok)',over:'var(--alert-due)',warn:'#E08A00'};
+const PAYB={'zaplaceno':['pb-ok','zaplaceno'],'po splatnosti':['pb-late','po splatnosti'],'čeká':['pb-wait','čeká na platbu']};
+const M={
+  tarifSet(key,field,v){ const L=App.aiTariffsLoad(); const t=L.find(x=>x.key===key); if(!t)return; t[field]= field==='aiKredit'&&v==='' ? null : (field==='nazev'||field==='popis'?v:(parseInt(v,10)||0)); App.aiTariffsSave(L); },
+  tarifSaveToast(){ toast('Definice tarifů uložena ✓'); render(); },
+  tarifReset(){ App.aiTariffsReset(); toast('Tarify obnoveny na výchozí'); render(); },
+  suspend(b){ App.aiSuspendSet(b); toast(b?'AI globálně pozastavena':'AI obnovena'); render(); },
+  pick(k){ App.aiTariffSet(k); toast('Tarif organizace: '+App.aiTariff().nazev); render(); },
+  pay(){ toast('Platební brána (GoPay/Stripe) + faktura – v ostré verzi (Google Cloud Billing).'); },
+  simulate(){ const ks=['structure','report','generate','ocr','invoice']; const k=ks[App.aiUsageMonth().calls%5]; App.aiUsageAdd(2200+App.aiUsageMonth().calls*311%9000,k); toast('Simulováno použití AI'); render(); },
+  resetUse(){ try{localStorage.removeItem('crm-ai-usage');}catch(e){} toast('Spotřeba vynulována'); render(); },
+};
+window.M=M;
+function aside(extra){ return `<aside class="aside">
+  <div class="aside-card"><h4>Související</h4>
+    <a class="aside-link" href="sprava.html">⬅︎ Správa (backstage)</a>
+    <a class="aside-link" href="reporty.html"> Reporty</a>
+    <a class="aside-link" href="report-nastaveni.html">⚙ Nastavení reportů</a>
+    <a class="aside-link" href="nastaveni.html"> Branding organizace</a>
+  </div>
+  ${extra||''}
+  <div class="aside-card"><h4>Poznámka k V8</h4><p class="muted" style="font-size:12px;margin:0">Účtování poběží na <b>Google Cloud Billing</b> (Vertex AI EU) + platební brána (GoPay/Stripe). Měřič je zde prototypový (odhad z délky textu).</p></div>
+  <div class="ad-slot">Prostor pro tip / nápovědu / partnerský odkaz</div>
+</aside>`; }
+
+function render(){
+  if(role!=='superadmin'&&role!=='vedeni'){ body.innerHTML='<div class="page solo"><div class="main"><div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Tarify a AI kredit spravuje vedení / superadmin.</p></div></div></div></div>'; return; }
+  document.getElementById('nav').innerHTML=`<div class="nav-item active" style="cursor:default">${role==='superadmin'?'Definice & plnění':'Předplatné & spotřeba'}</div>`;
+  if(role==='superadmin'){ renderSuper(); return; }
+  renderOrg();
+}
+
+/* ---------- SUPERADMIN: definuje tarify + sleduje platby ---------- */
+function renderSuper(){
+  document.getElementById('ttl').textContent='Tarify – definice & plnění';
+  const L=App.aiTariffsLoad();
+  const orgs=App.orgsBilling();
+  const tarifNazev=k=>(L.find(x=>x.key===k)||{}).nazev||k;
+  const rowsDef=L.map(t=>`<tr>
+    <td><input value="${(t.nazev||'').replace(/"/g,'&quot;')}" style="width:120px" onchange="M.tarifSet('${t.key}','nazev',this.value)"></td>
+    <td><input type="number" value="${t.pausal||0}" onchange="M.tarifSet('${t.key}','pausal',this.value)"> Kč</td>
+    <td><input type="number" value="${t.cenaKO||0}" onchange="M.tarifSet('${t.key}','cenaKO',this.value)"> Kč</td>
+    <td><input type="number" value="${t.aiKredit==null?'':t.aiKredit}" placeholder="∞" onchange="M.tarifSet('${t.key}','aiKredit',this.value)"></td>
+  </tr>`).join('');
+  const rowsOrg=orgs.map(o=>{const pb=PAYB[o.platba]||['pb-wait',o.platba]; const cena=App.aiMonthlyCost(o.tarif,o.ko);
+    return `<tr><td><b>${o.org}</b><div class="muted" style="font-size:11px">od ${App.fmtDate(o.od)}</div></td><td>${o.ko}</td><td>${tarifNazev(o.tarif)}</td><td><b>${cena.toLocaleString('cs')} Kč</b><div class="muted" style="font-size:11px">měsíčně</div></td><td>${o.usagePct}%</td><td><span class="paybadge ${pb[0]}">${pb[1]}</span></td></tr>`;}).join('');
+  const totalMRR=orgs.reduce((a,o)=>a+App.aiMonthlyCost(o.tarif,o.ko),0);
+  const late=orgs.filter(o=>o.platba==='po splatnosti').length;
+
+  body.innerHTML=`<div class="page"><div class="main">
+    <div class="page-head"><h1>Tarify – definice & plnění</h1><div class="sub">Provozovatel platformy definuje obsah a cenu tarifů a sleduje platby organizací. Cena = <b>paušál za organizaci + cena za klíčovou osobu × počet KO</b>.</div></div>
+
+    <div class="pcard"><div class="psection"><h3>Definice tarifů</h3>
+      <div style="overflow-x:auto"><table class="tt"><thead><tr><th>Tarif</th><th>Paušál / DO</th><th>Cena / klíč. osoba</th><th>AI kredit (tok./měs.)</th></tr></thead><tbody>${rowsDef}</tbody></table></div>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn-primary" style="width:auto;padding:9px 16px" onclick="M.tarifSaveToast()">Uložit definice</button><button class="btn-secondary" style="width:auto;padding:9px 16px" onclick="M.tarifReset()">Obnovit výchozí</button></div>
+      <p class="muted" style="font-size:12px;margin-top:8px">AI kredit prázdný = neomezeně (FUP). Klíčové osoby samy neplatí – platí jejich organizace.</p>
+    </div></div>
+
+    <div class="pcard"><div class="psection"><h3>Organizace a plnění plateb</h3>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px"><span>Organizací: <b>${orgs.length}</b></span><span>Měsíční tržby (MRR): <b>${totalMRR.toLocaleString('cs')} Kč</b></span><span>Po splatnosti: <b style="${late?'color:var(--alert-due)':''}">${late}</b></span></div>
+      <div style="overflow-x:auto"><table class="tt"><thead><tr><th>Organizace</th><th>KO</th><th>Tarif</th><th>Měsíčně</th><th>AI</th><th>Platba</th></tr></thead><tbody>${rowsOrg}</tbody></table></div>
+    </div></div>
+
+    <div class="pcard"><div class="psection"><h3>Globální řízení AI (FUP)</h3>
+      <p class="muted" style="font-size:13px">Pojistka provozovatele: při zneužití nebo neplacení lze AI dočasně pozastavit (zbytek CRM funguje dál).</p>
+      ${App.aiSuspended()?`<button class="btn-primary" style="width:auto;padding:9px 16px" onclick="M.suspend(false)">▶ Obnovit AI</button>`:`<button class="btn-secondary" style="width:auto;padding:9px 16px;border-color:var(--alert-due);color:var(--alert-due)" onclick="M.suspend(true)">⏸ Pozastavit AI</button>`}
+      <span class="muted" style="font-size:12px;margin-left:10px">Stav: <b>${App.aiSuspended()?'POZASTAVENA':'aktivní'}</b></span>
+    </div></div>
+  </div>${aside()}</div>`;
+}
+
+/* ---------- VEDENÍ DO: platí tarif + vidí spotřebu ---------- */
+function renderOrg(){
+  document.getElementById('ttl').textContent='Předplatné & spotřeba';
+  const t=App.aiTariff(); const ko=App.koCount(); const cena=App.aiMonthlyCost(t.key,ko);
+  const fup=App.aiFup(); const um=App.aiUsageMonth();
+  const gColor=fup.stav==='blocked'?COL.over:(fup.stav==='warn'?COL.warn:COL.ok);
+  const stavTxt={ok:'v pořádku',warn:'blíží se limitu',blocked:'limit vyčerpán',unlimited:'bez limitu (FUP)',noai:'tarif bez AI',suspended:'pozastaveno správcem'}[fup.stav];
+  const kindItems=Object.keys(KIND).map((k,i)=>({label:KIND[k],color:['#3380FF','#22C55E','#FF7F4D','#8B5CF6','#0BB1D5'][i],value:um.byKind&&um.byKind[k]||0})).filter(x=>x.value>0);
+  const usageCard=`<div class="aside-card"><h4>Tento měsíc</h4><div style="font-size:13px;line-height:1.9">Volání AI: <b>${um.calls}</b><br>AI kredity: <b>${um.tokens.toLocaleString('cs')}</b><br>Odhad nákladu: <b>${(um.tokens/1000*0.04).toFixed(2)} Kč</b></div></div>`;
+
+  body.innerHTML=`<div class="page"><div class="main">
+    <div class="page-head"><h1>Předplatné organizace</h1><div class="sub">Platí organizace (DO) – paušál + cena za každou klíčovou osobu. Klíčové osoby samy nic neplatí.</div></div>
+
+    <div class="pcard"><div class="psection"><h3>Vaše předplatné</h3>
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><div style="font-size:26px;font-weight:800">${cena.toLocaleString('cs')} Kč<span style="font-size:13px;font-weight:400">/měsíc</span></div><span class="badge ok">${t.nazev}</span></div>
+      <div class="muted" style="font-size:13px;margin-top:4px">Paušál ${(t.pausal||0).toLocaleString('cs')} Kč + ${ko} × ${(t.cenaKO||0).toLocaleString('cs')} Kč (klíčové osoby) = <b>${cena.toLocaleString('cs')} Kč</b></div>
+      <div class="tariffs" style="margin-top:14px">
+        ${App.aiTariffsLoad().map(x=>{const c=App.aiMonthlyCost(x.key,ko);return `<div class="tcard ${x.key===t.key?'cur':''}">
+          <div style="font-weight:700">${x.nazev}</div><div class="price">${c.toLocaleString('cs')}<span style="font-size:12px;font-weight:400"> Kč/měs.</span></div>
+          <div class="muted" style="font-size:12px;flex:1">${x.popis}</div>
+          <div style="font-size:12px"><b>AI kredit:</b> ${x.aiKredit==null?'neomezeně':(x.aiKredit?x.aiKredit.toLocaleString('cs')+' tok.':'—')}</div>
+          ${x.key===t.key?'<span class="badge ok" style="text-align:center">aktivní</span>':`<button class="btn-secondary" style="width:100%;padding:8px" onclick="M.pick('${x.key}')">Zvolit</button>`}
+        </div>`;}).join('')}
+      </div>
+      <div style="margin-top:12px"><button class="btn-secondary" style="width:auto;padding:9px 16px" onclick="M.pay()"> Platební metody / faktury</button></div>
+    </div></div>
+
+    <div class="pcard"><div class="psection"><h3>Spotřeba AI · ${App.todayISO.slice(0,7)}</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+        <div class="chartbox"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Vyčerpáno z kreditu</div>${App.chartGauge(fup.limit==null?0:fup.pct,gColor)}<div class="muted" style="font-size:12px;text-align:center">${um.tokens.toLocaleString('cs')} ${fup.limit?'/ '+fup.limit.toLocaleString('cs'):''} · <b style="color:${gColor}">${stavTxt}</b></div></div>
+        <div class="chartbox"><div style="font-size:12px;font-weight:600;margin-bottom:6px">Podle funkce</div>${kindItems.length?App.chartDonut(kindItems,{suffix:' tok.'}):'<p class="muted" style="font-size:12px">Zatím žádná spotřeba.</p>'}</div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px"><button class="btn-secondary" style="width:auto;padding:7px 12px" onclick="M.simulate()">Simulovat použití</button><button class="btn-secondary" style="width:auto;padding:7px 12px" onclick="M.resetUse()">Vynulovat</button></div>
+      ${fup.stav==='warn'?'<div class="alert warn" style="margin-top:12px"><div><div class="a-t">Blížíte se limitu</div><div>Vyčerpáno '+fup.pct+' % AI kreditu. Zvažte vyšší tarif.</div></div></div>':''}
+      ${fup.stav==='blocked'?'<div class="alert" style="margin-top:12px;background:var(--alert-due-soft);border-color:var(--alert-due)"><div><div class="a-t">Kredit vyčerpán</div><div>AI je do konce měsíce / navýšení tarifu blokované. Ruční práce funguje dál.</div></div></div>':''}
+    </div></div>
+  </div>${aside(usageCard)}</div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>

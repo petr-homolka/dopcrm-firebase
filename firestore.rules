@@ -1,0 +1,190 @@
+rules_version = '2';
+
+// ============================================================
+// Firestore Security Rules — Doprovázení CRM (MVP)
+//
+// ROLE MODEL:
+//   Role a oprávnění se NIKDY nečtou z Custom Claims.
+//   Jediný zdroj pravdy: user_roles/{uid} dokument v Firestore.
+//
+//   Schéma dokumentu user_roles/{uid}:
+//   {
+//     role: "superadmin" | "vedeni" | "ko" | "asistent" | "pestoun" | "dite" | "externista",
+//     tenantId: string,        // organizace uživatele
+//     scope: "all" | "own" | "self" | "extern",
+//     caps: string[],          // granulární oprávnění
+//     assignedFamilies: string[] // jen pro scope=own (KO)
+//   }
+//
+// TENANT MODEL:
+//   Všechna data klientů VÝHRADNĚ v: tenants/{tenantId}/data_objects/{docId}
+//   Root kolekce data_objects se NEPOUŽÍVÁ (viz pravidla níže).
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpery ─────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Čtení role z Firestore — NIKDY z custom claims
+    function userRole() {
+      return get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data;
+    }
+
+    function hasRole(roleKey) {
+      return isAuthenticated() && userRole().role == roleKey;
+    }
+
+    function hasCap(cap) {
+      return isAuthenticated() && cap in userRole().caps;
+    }
+
+    function isSameTenant(tenantId) {
+      return isAuthenticated() && userRole().tenantId == tenantId;
+    }
+
+    function isSuperadmin() {
+      return hasRole('superadmin');
+    }
+
+    // ── Vlastní role dokumenty ───────────────────────────────
+
+    // user_roles: číst smí jen vlastník nebo superadmin; psát jen superadmin/vedení
+    match /user_roles/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isSuperadmin());
+      allow write: if isSuperadmin() || hasRole('vedeni');
+    }
+
+    // ── ROOT kolekce data_objects — ZAKÁZÁNA ─────────────────
+    // Všechna data musí být v tenants/{tenantId}/data_objects, ne zde.
+    match /data_objects/{docId} {
+      allow read, write: if false;  // explicitní zákaz root kolekce
+    }
+
+    // ── Tenant data (hlavní datový model) ────────────────────
+
+    match /tenants/{tenantId} {
+
+      // Metadata tenanta: číst/psát smí jen superadmin nebo vedení daného tenanta
+      allow read:  if isSameTenant(tenantId) || isSuperadmin();
+      allow write: if isSuperadmin() || (hasRole('vedeni') && isSameTenant(tenantId));
+
+      // ── Hlavní datová kolekce (tenant-scoped) ────────────────
+
+      match /data_objects/{docId} {
+
+        // Superadmin: plný přístup napříč tenanty
+        allow read, write: if isSuperadmin();
+
+        // Vedení: plný přístup v rámci svého tenanta
+        allow read, write: if hasRole('vedeni') && isSameTenant(tenantId);
+
+        // KO: čtení a zápis jen pro přidělené rodiny (scope=own)
+        allow read:  if hasRole('ko') && isSameTenant(tenantId);
+        allow write: if hasRole('ko') && isSameTenant(tenantId) && hasCap('contacts.edit');
+
+        // Asistentka: čtení pro přidělené, zápis jen poznámek/dokumentů
+        allow read:  if hasRole('asistent') && isSameTenant(tenantId);
+        allow write: if hasRole('asistent') && isSameTenant(tenantId)
+                        && (hasCap('notes.add') || hasCap('docs.upload'));
+
+        // Pěstoun: číst jen svůj záznam a vlastní dokumenty
+        allow read: if hasRole('pestoun') && isSameTenant(tenantId)
+                       && resource.data.ownerId == request.auth.uid;
+        allow write: if hasRole('pestoun') && isSameTenant(tenantId)
+                        && resource.data.ownerId == request.auth.uid
+                        && hasCap('docs.upload');
+
+        // Dítě: jen vlastní karta, read-only
+        allow read: if hasRole('dite') && isSameTenant(tenantId)
+                       && resource.data.ownerId == request.auth.uid;
+
+        // Externista: žádný přístup k datům rodin (GDPR)
+        // (výkaz = samostatná kolekce níže)
+      }
+
+      // ── Záznamy časové osy / Osa ─────────────────────────────
+
+      match /timeline/{entryId} {
+        allow read: if isSameTenant(tenantId) && (
+          isSuperadmin() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
+          (hasRole('pestoun') && resource.data.scope == 'pestoun' && resource.data.ownerId == request.auth.uid)
+        );
+        allow create: if isSameTenant(tenantId) && hasCap('notes.add');
+        allow update, delete: if false; // osa je immutable (WORM cíl V8)
+      }
+
+      // ── Dokumenty ────────────────────────────────────────────
+
+      match /documents/{docId} {
+        allow read: if isSameTenant(tenantId) && (
+          isSuperadmin() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
+          (hasRole('pestoun') && resource.data.ownerId == request.auth.uid)
+        );
+        allow create: if isSameTenant(tenantId) && hasCap('docs.upload')
+                         && request.resource.data.keys().hasAll(['name','tenantId','createdAt']);
+        allow update: if isSameTenant(tenantId) && (
+          hasCap('contacts.edit') ||
+          (hasRole('pestoun') && resource.data.ownerId == request.auth.uid && hasCap('docs.upload'))
+        );
+        // Mazání: výhradně superadmin
+        allow delete: if isSuperadmin();
+      }
+
+      // ── Výkazy externistů ────────────────────────────────────
+
+      match /vykazy/{vykazId} {
+        allow read: if isSameTenant(tenantId) && (
+          isSuperadmin() || hasRole('vedeni') || hasRole('ko') ||
+          (hasRole('externista') && resource.data.externistaId == request.auth.uid)
+        );
+        allow create: if hasRole('externista') && isSameTenant(tenantId)
+                         && request.resource.data.externistaId == request.auth.uid;
+        allow update: if (hasRole('externista') && resource.data.externistaId == request.auth.uid
+                          && resource.data.stav == 'cekajici')
+                      || hasRole('vedeni') || isSuperadmin();
+        allow delete: if isSuperadmin();
+      }
+
+      // ── Instituce (číselník) ─────────────────────────────────
+
+      match /institutions/{instId} {
+        allow read: if isSameTenant(tenantId);
+        allow write: if isSuperadmin() || (hasRole('vedeni') && isSameTenant(tenantId));
+      }
+
+      // ── Šablony karet ────────────────────────────────────────
+
+      match /card_templates/{tplId} {
+        allow read: if isSameTenant(tenantId);
+        allow write: if isSuperadmin();  // pouze superadmin, globální číselník
+      }
+
+      // ── Audit log ────────────────────────────────────────────
+      // Zápis jen pro kritické chyby (ne běžné operace — viz functions/index.js)
+      match /audit_log/{logId} {
+        allow read:   if isSuperadmin() || hasRole('vedeni');
+        allow create: if isAuthenticated() && isSameTenant(tenantId)
+                         && request.resource.data.severity == 'critical';
+        allow update, delete: if false; // audit je immutable
+      }
+    }
+
+    // ── Globální šablony (Superadmin cross-tenant) ────────────
+
+    match /global_templates/{tplId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperadmin();
+    }
+
+    // ── Catch-all: vše ostatní zakázat ───────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Můj výkaz · Doprovázení</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Výkaz externisty</div></div></div>
+    <div class="sec-label">Externista</div>
+    <div class="nav"><div class="nav-item active">Můj výkaz hodin</div></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">EX</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Výkaz činnosti</h2><div class="spacer"></div><button class="btn-secondary" style="width:auto;padding:8px 14px" onclick="App.openRoleSwitcher()">Přepnout uživatele</button></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">GDPR: externista vidí pouze tento formulář a přiřazené děti. Žádná data rodiny, ceny ani rozpočty. Po schválení klíčovou osobou systém dopočítá odměnu.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('');
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+const u=App.currentUser();
+const exId = u.linkType==='externista' ? u.linkId : null;
+const V={ submit(){ if(!exId)return; const dite=document.getElementById('w-dite');
+    App.vykazAdd({externistaId:exId,diteId:dite?dite.value:'',datum:document.getElementById('w-datum').value,hodiny:parseFloat(document.getElementById('w-hod').value)||0,popis:document.getElementById('w-popis').value});
+    toast('Výkaz odeslán ke schválení ✓'); render(); } };
+window.V=V;
+function render(){
+  if(!exId){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Toto je rozhraní externisty</h3><p class="muted">Přihlas se jako externista (přepínač uživatele → „Kamil Student (externista)").</p><button class="btn-primary" style="width:auto;padding:9px 16px" onclick="App.openRoleSwitcher()">Přepnout uživatele…</button></div></div>'; return; }
+  const ex=App.externistaGet(exId); const deti=(ex.prirazeneDeti||[]).map(id=>App.diteById(id)).filter(Boolean);
+  const mine=App.vykazy({externistaId:exId});
+  const sum=App.vykazSum(exId);
+  body.innerHTML=`
+  <div class="pcard"><div class="psection"><h3>Nový výkaz</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      ${ex.typPrace==='prima_pece'?`<div><label class="muted" style="font-size:12px;display:block">Dítě (přiřazené)</label><select id="w-dite" style="border:1px solid var(--border-2);border-radius:8px;padding:8px 10px;background:var(--surface)">${deti.map(k=>`<option value="${k.id}">${k.n}</option>`).join('')||'<option>—</option>'}</select></div>`:''}
+      <div><label class="muted" style="font-size:12px;display:block">Datum</label><input type="date" id="w-datum" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:8px;padding:8px 10px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Počet hodin</label><input type="number" id="w-hod" value="2" step="0.5" style="width:90px;border:1px solid var(--border-2);border-radius:8px;padding:8px 10px"></div>
+      <div style="flex:1;min-width:180px"><label class="muted" style="font-size:12px;display:block">Popis činnosti</label><input id="w-popis" placeholder="${ex.cinnost} – …" style="width:100%;border:1px solid var(--border-2);border-radius:8px;padding:8px 10px"></div>
+      <button class="btn-primary" style="width:auto;padding:9px 16px" onclick="V.submit()">Odeslat výkaz</button>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:8px">Nevidíš ceny ani sazby – odměnu spočítá systém po schválení.</p></div></div>
+  <div class="pcard"><div class="psection"><h3>Moje odpracované hodiny</h3>
+    <p style="font-size:14px">Schváleno celkem: <b>${sum.hodiny} h</b> · odměna <b>${sum.kc.toLocaleString('cs')} Kč</b> <button class="btn-secondary" style="width:auto;padding:6px 12px;margin-left:8px" onclick="toast('PDF přehled (prototyp)')"> Stáhnout přehled (PDF)</button></p>
+    <table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Datum</th><th>Hodiny</th><th>Popis</th><th>Stav</th></tr></thead><tbody>
+    ${mine.length?mine.map(v=>`<tr><td>${App.fmtDate(v.datum)}</td><td>${v.hodiny}</td><td>${v.popis||''}</td><td>${v.stav==='schvaleno'?'<span class="badge ok">Schváleno</span>':v.stav==='zamitnuto'?'<span class="badge due">Zamítnuto</span>':'<span class="badge warn">Čeká</span>'}</td></tr>`).join(''):'<tr><td colspan="4" class="muted">Zatím žádné výkazy.</td></tr>'}
+    </tbody></table></div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

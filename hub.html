@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hub kontaktu · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Doprovázení"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side" id="side"></aside>
+  <main class="main">
+    <div class="topbar">
+      <a class="chip" id="backBtn" style="text-decoration:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Zpět</a>
+      <div class="spacer"></div>
+      <div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div>
+    </div>
+    <div class="hubhead" id="hubhead"></div>
+    <div class="hub-secbar" id="secbar"></div>
+    <div class="tabwrap" id="tabwrap"></div>
+  </main>
+</div>
+
+<!-- MODÁL: avatar -->
+<div class="modal-bg" id="avatarModal"><div class="modal">
+  <div class="modal-h">Změnit avatar <button class="x" onclick="Hub.closeAvatar()">✕</button></div>
+  <div class="modal-b">
+    <div class="dropzone" id="dropzone"><img id="dzPreview" class="dz-preview" style="display:none">
+      <div id="dzText"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:6px"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+        <div><b>Přetáhni sem obrázek</b> nebo klikni pro výběr</div><div style="font-size:12px;margin-top:4px">Velký se zmenší na max. 512×512 px.</div></div>
+      <input type="file" id="fileInput" accept="image/*" hidden></div>
+    <div style="font-size:12px;color:var(--text-2);margin:16px 0 6px">…nebo vyber z galerie:</div>
+    <div class="preset-grid" id="presetGrid"></div>
+  </div>
+  <div class="modal-f"><button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="Hub.closeAvatar()">Zrušit</button><button class="btn-primary" style="width:auto;padding:9px 18px" onclick="Hub.applyAvatar()">Použít</button></div>
+</div></div>
+
+<!-- MODÁL: dokument + boční chat -->
+<div class="modal-bg docmodal" id="docModal"><div class="modal">
+  <div class="modal-h" id="docTitle">Dokument <button class="x" onclick="Hub.closeDoc()">✕</button></div>
+  <div class="docmodal-body">
+    <div class="doc-preview"><div class="doc-page" id="docPage"></div></div>
+    <div class="doc-side"><div class="ds-h">Připomínky (špendlíky)</div>
+      <div class="chat-stream" id="docPins" style="flex:1"></div>
+      <div class="composer" style="padding:10px 12px"><input id="pinInput" placeholder="Přidat připomínku…"><button class="send" onclick="Hub.addPin()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- MODÁL: QR mapa -->
+<div class="modal-bg" id="qrModal"><div class="modal">
+  <div class="modal-h">QR – otevřít mapu v mobilu <button class="x" onclick="Hub.closeQR()">✕</button></div>
+  <div class="modal-b"><img id="qrImg" alt="QR"><div class="muted" style="font-size:12px">Naskenuj telefonem → otevře mapovou aplikaci.</div></div>
+</div></div>
+
+<!-- MODÁL: sdílet chat odkazem -->
+<div class="modal-bg" id="linkModal"><div class="modal" style="width:480px">
+  <div class="modal-h">Sdílet chat odkazem <button class="x" onclick="Hub.closeShare()">✕</button></div>
+  <div class="modal-b" id="shareBody"></div>
+  <div class="modal-f"><button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="Hub.closeShare()">Zavřít</button><button class="btn-primary" style="width:auto;padding:9px 18px" onclick="Hub.generateLink()">Vytvořit odkaz</button></div>
+</div></div>
+
+<script src="app.js?v=65"></script>
+<script>
+App.initTheme(document.getElementById('themeseg'));
+document.getElementById('rail').innerHTML = App.renderRail('');
+const qs=new URLSearchParams(location.search); const TYP=qs.get('typ')||'pestoun', ID=qs.get('id');
+document.getElementById('backBtn').href = TYP==='dite'?'deti.html':TYP==='ostatni'?'ostatni.html':'pestouni.html';
+
+const CATS={note:['Poznámka','var(--blue)'],visit:['Návštěva','var(--green)'],doc:['Dokument','#8B5CF6'],report:['Report','var(--orange)'],system:['Systém','var(--text-3)']};
+const THREAD_COLORS=['var(--cyan)','#8B5CF6','#EC48BE','#F59E0B','var(--green)','var(--orange)'];
+const UNITS=[['hodina','hodina'],['den','den'],['týden','týden'],['měsíc','měsíc'],['rok','rok'],['neomezeně','∞ neomezeně']];
+const LINK_PRESETS=[[1,'hodina'],[3,'hodina'],[1,'den'],[2,'den'],[1,'týden'],[1,'měsíc'],[1,'rok'],[null,'neomezeně']];
+
+/* ---------- model ---------- */
+let uid=0; const nid=()=>'f'+(++uid);
+const F=(type,label,value,options,old)=>({id:nid(),type,label,value:value||'',options,old});
+function buildModel(typ){
+  const baseSections=extra=>([
+    {id:'kontakt',title:'Kontaktní údaje',fields:[F('tel','Telefon',extra.tel,null,extra.telOld),F('email','E-mail',extra.email),F('textarea','Adresa',extra.addr)]},
+    ...extra.sections,{id:'pozn',title:'Další pole',fields:[]},
+  ]);
+  let m;
+  if(typ==='dite'){
+    const k=(App.allChildren().find(x=>x.id===ID))||App.allChildren()[0],h=k.household;
+    const addr='Teplice, Čelakovského 772/3';
+    m={typ,shape:'',care:k.care,photo:k.photo||null,name:k.n,
+      headSegs:['Dítě v pěstounské péči',App.CARE[k.care][1]+' péče','Klíčová osoba: '+h.worker],
+      contact:{address:addr,phone:'',email:''},
+      relations:{title:'Pěstouni',items:h.fosters.filter(x=>x.isFoster).map(p=>({name:p.n,age:null,sub:'Pěstoun',href:`hub.html?typ=pestoun&id=${p.id}`,care:null,photo:p.photo,shape:'sq'}))},
+      sections:baseSections({tel:'',email:'',addr,sections:[
+        {id:'pece',title:'Dítě v péči',fields:[F('select','Typ péče',App.CARE[k.care][1],['Dlouhodobá','Přechodná','Příbuzenská']),F('text','OSPOD','OSPOD '+(h.district||h.city)),F('text','Soud','Okresní soud Brno-venkov'),F('text','Spisová značka','P 123/2023')]},
+        {id:'skola',title:'Zdraví a škola',fields:[F('text','Praktický lékař','MUDr. Tomáš Veselý'),F('text','Škola','ZŠ Teplice, Buzulucká')]}]}),
+      docs:[['Rozsudek o svěření do PP','PDF','15. 8. 2023'],['Vysvědčení 2025-26','PDF','30. 6. 2026']],
+      upoz:(h.status==='due')?[['due','Návštěva po termínu','Naplánovat nový termín.']]:[],
+      threads:[{id:'th_pestoun',label:'Pěstoun – '+(h.fosters.find(x=>x.isFoster)||{}).n,color:THREAD_COLORS[0],share:'Nic',validity:'neomezeně'}],
+      edu:null, respit:{used:0,quota:14}, hlidani:[], reports:[['Zpráva pro OSPOD 1. pol. 2026','PDF','5. 6. 2026']],
+      social:[['Pěstounská rodina',h.fosters.filter(x=>x.isFoster).map(p=>[p.n,'Pěstoun','sq',null,p.photo,'A'])],
+        ['Biologická rodina',[['Matka (kontakt veden)','matka','sq',null,null,'C'],['Otec (zákaz styku)','otec','sq',null,null,'Z'],['Sourozenec','sourozenec v jiné PR','','long',null,'A']]],
+        ['Sociální okolí',[['Nejlepší kamarádka','spolužačka','',null,null,'A']]]],
+      mapAddrs:[['Bydliště (pěstoun)',addr,'var(--blue)'],['Škola','ZŠ Teplice, Buzulucká','var(--green)'],['Pobyt biologické matky','Ústí nad Labem','var(--orange)'],['Letní tábor','Lipka, Brno','#8B5CF6']],
+      chat:[
+        {cat:'system',thread:'internal',who:'sys',text:'Karta dítěte založena · 15. 8. 2023'},
+        {cat:'visit',thread:'internal',who:'me',text:'Návštěva v domácnosti – dítě prospívá, ve škole bez problémů.',time:'28. 5. · 16:25'},
+        {cat:'note',thread:'th_pestoun',who:'them',text:'Tereza má v pátek besídku, můžete přijít?',time:'2. 6. · 18:10'},
+        {cat:'note',thread:'th_pestoun',who:'me',text:'Děkuji za pozvání, dám vědět.',time:'2. 6. · 19:00'},
+        {cat:'report',thread:'internal',who:'sys',text:'__doc__Zpráva pro OSPOD 1. pol. 2026 (vygenerováno)',time:'5. 6. · 09:12'}]};
+  } else if(typ==='ostatni'){
+    const addr='Dominikánská 2, 601 69 Brno';
+    m={typ,shape:'sq',care:null,photo:null,name:'OSPOD Brno-střed',
+      headSegs:['Ostatní · právnická osoba','IČO 44992785','Zřizovatel: MČ Brno-střed'],
+      contact:{address:addr,phone:'+420 542 526 111',email:'ospod@brno-stred.cz'},
+      relations:{title:'Přiřazeno k',items:[{name:'Tereza Marková',age:9,sub:'dítě',href:'hub.html?typ=dite&id=k1',care:'long',shape:''}]},
+      sections:baseSections({tel:'+420 542 526 111',email:'ospod@brno-stred.cz',addr,sections:[
+        {id:'org',title:'Organizace',fields:[F('text','Zřizovatel','MČ Brno-střed'),F('text','Web','brno-stred.cz')]},
+        {id:'osoby',title:'Kontaktní osoby',fields:[F('text','Mgr. Lenka Bártová','sociální pracovnice')]}]}),
+      docs:[['Pověření OSPOD','PDF','—']],upoz:[],threads:[],edu:null,respit:null,hlidani:[],reports:[],
+      social:[['Kontaktní osoby',[['Mgr. Lenka Bártová','sociální pracovnice','sq',null,null,'A']]]],
+      mapAddrs:[['Sídlo úřadu',addr,'var(--blue)']],
+      chat:[{cat:'system',thread:'internal',who:'sys',text:'Kontakt přidán do číselníku'},{cat:'note',thread:'internal',who:'me',text:'Domluvena spolupráce na případu Tereza M.',time:'3. 4. · 11:00'}]};
+  } else {
+    const p=(App.allFosters().find(x=>x.id===ID))||App.allFosters()[0],h=p.household;
+    const addr='Teplice, Čelakovského 772/3';
+    m={typ:'pestoun',shape:'sq',care:null,photo:p.photo||null,name:p.n,
+      headSegs:['Pěstoun','Dlouhodobá péče','Klíčová osoba: Michal Dvořák','Dohoda od 12. 12. 2012'],
+      contact:{address:addr,phone:h.phone,email:'petr.novak@email.cz'},
+      relations:{title:'Děti v péči',items:h.kids.map(k=>({name:k.n,age:k.age,sub:App.CARE[k.care][1],href:`hub.html?typ=dite&id=${k.id}`,care:k.care,photo:k.photo,shape:''}))},
+      sections:baseSections({tel:h.phone,telOld:'+420 602 000 111',email:'petr.novak@email.cz',addr,sections:[
+        {id:'pp',title:'Pěstounská péče',fields:[F('select','Typ dohody','Dlouhodobá',['Dlouhodobá','Přechodná','Příbuzenská']),F('text','Číslo dohody','D-2023/118'),F('date','Datum podpisu','2023-09-01')]},
+        {id:'vz',title:'Vzdělávání',fields:[F('number','Splněno (h)',String(p.eduDone)),F('number','Povinnost (h)',String(p.req))]}]}),
+      docs:[['Dohoda o výkonu PP','PDF','1. 9. 2023'],['Potvrzení o vzdělávání 04-2026','PDF','10. 4. 2026']],
+      upoz:(p.eduDone<p.req)?[[p.eduDone<p.req*0.6?'due':'warn',`Vzdělávání ${p.eduDone}/${p.req} h`,'Zbývá doplnit do konce období.']]:[],
+      threads:[{id:'th_pestoun',label:'Pěstoun – '+p.n,color:THREAD_COLORS[0],share:'Nic',validity:'neomezeně'}],
+      edu:{done:p.eduDone,req:p.req,courses:[['Attachment v NRP','4 h','10. 4. 2026'],['Krizová komunikace','6 h','3. 2. 2026']]},
+      respit:{used:6,quota:14}, hlidani:[['Hlídání při semináři','8 h','10. 4. 2026'],['Hlídání při kurzu','6 h','3. 2. 2026']],
+      reports:[['Roční vyúčtování SPVPP','PDF','2. 5. 2026']],
+      social:[['Domácnost',h.fosters.map(x=>[x.n,x.isFoster?'Pěstoun':'Partner (není pěstoun)','sq',null,x.photo,'A'])],
+        ['Děti v péči',h.kids.map(k=>[k.n,App.CARE[k.care][1]+' · '+k.age+' let','',k.care,k.photo,'A'])],
+        ['Širší rodina',[['Babička (výpomoc)','babička dětí','sq',null,null,'A']]]],
+      mapAddrs:[['Bydliště pěstouna',addr,'var(--blue)'],['Škola dětí','ZŠ Teplice, Buzulucká','var(--green)'],['Pobyt biologické matky (Tereza)','Ústí nad Labem','var(--orange)']],
+      chat:[
+        {cat:'system',thread:'internal',who:'sys',text:'Karta pěstouna založena · 1. 9. 2023'},
+        {cat:'note',thread:'th_pestoun',who:'them',text:'Dobrý den, posílám podepsanou dohodu.',time:'9:14'},
+        {cat:'doc',thread:'th_pestoun',who:'them',text:'__doc__Dohoda o výkonu PP.pdf',time:'9:15'},
+        {cat:'note',thread:'th_pestoun',who:'me',text:'Děkuji, zaevidováno.',time:'9:40'},
+        {cat:'note',thread:'internal',who:'me',text:'Pěstoun splnil 22/24 h vzdělávání – ještě 1 seminář.',time:'10. 4. · 12:00'},
+        {cat:'report',thread:'internal',who:'sys',text:'__doc__Roční vyúčtování SPVPP (vygenerováno)',time:'2. 5. · 08:30'}]};
+  }
+  m.custom=[]; return m;
+}
+let model=buildModel(TYP);
+/* napojení ŠABLONY KARTY (Superadmin): doplnit pole definovaná šablonou (aditivně) */
+(function applyTemplate(){
+  const map={pestoun:'pestoun',dite:'dite',ostatni:'instituce'};
+  const tpl=(App.cardTemplates()||[]).find(t=>t.key===map[TYP]); if(!tpl)return;
+  tpl.sections.forEach(ts=>{
+    let sec=model.sections.find(s=>s.title===ts.title);
+    if(!sec){ sec={id:'tpl_'+ts.title.replace(/\W+/g,''),title:ts.title,fields:[]}; model.sections.splice(Math.max(0,model.sections.length-1),0,sec); }
+    ts.fields.forEach(tf=>{ if(!sec.fields.some(f=>f.label===tf.label)) sec.fields.push(F(tf.type,tf.label,'')); });
+  });
+})();
+/* seed historie změn (verzování) – původní změny + založení karty */
+if(ID && App.histList(ID).length===0){
+  App.histAdd(ID,{field:'Karta kontaktu',from:'—',to:'založena',by:'systém',at:'2023-09-01'});
+  model.sections.forEach(s=>s.fields.forEach(f=>{ if(f.old) App.histAdd(ID,{field:f.label,from:f.old,to:f.value||'—',by:'M. Dvořák',at:'2026-03-01'}); }));
+}
+const state={sec:'chat',sub:0,edit:false,addOpen:null,avatarPreview:null,fcats:new Set(Object.keys(CATS)),threadView:'vse',compTarget:'internal',curDoc:null,link:{name:'',share:'nic',num:1,unit:'den'}};
+{const _s=qs.get('sec'); if(_s && ['chat','profil','dokumenty','vzdelavani','respit','hlidani','reporty','kalendar','social','upozorneni','mapa'].includes(_s)) state.sec=_s;}
+const SUBTABS={profil:['Údaje','Historie změn'],dokumenty:['Vše','Smlouvy','Reporty','Fotky'],social:['Mapa vztahů','Seznam']};
+function threadById(id){ return id==='internal'?{id:'internal',label:'Interní (DO)',color:'var(--text-3)'}:model.threads.find(t=>t.id===id); }
+
+/* preset avatary */
+const STYLES=['bottts','fun-emoji','thumbs','adventurer','lorelei','notionists','open-peeps','pixel-art','shapes','identicon'];
+const SEEDS=['Aneta','Bára','Cyril','Dan','Ema','Filip','Gita','Hana','Ivan','Jana','Klára','Luka','Mája','Nela','Ota','Pavla','Radek','Sára','Tom','Věra'];
+const PRESETS=SEEDS.map((s,i)=>`https://api.dicebear.com/7.x/${STYLES[i%STYLES.length]}/svg?seed=${encodeURIComponent(s)}`);
+
+const Hub={
+  go(s){state.sec=s;state.sub=0;renderSide();renderSecbar();renderBody();},
+  setSub(i){state.sub=i;renderSecbar();renderBody();},
+  newNote(){state.sec='chat';state.sub=0;renderSide();renderSecbar();renderBody();setTimeout(()=>{const i=document.getElementById('chatInput');if(i)i.focus();},0);},
+  addTab(){if(!App.can('contacts.edit')){toast('Nemáte oprávnění přidávat záložky');return;}const n=prompt('Název nové záložky:');if(!n)return;const id='cs_'+(++uid);model.custom.push({id,label:n,content:''});state.sec=id;state.sub=0;renderSide();renderSecbar();renderBody();},
+  /* chat */
+  toggleCat(c){state.fcats.has(c)?state.fcats.delete(c):state.fcats.add(c);renderBody();},
+  setThreadView(s){state.threadView=s;renderBody();},
+  setCompTarget(s){state.compTarget=s;},
+  send(){if(!App.can('notes.add')){toast('Nemáte oprávnění přidávat zápisy');return;}const el=document.getElementById('chatInput');if(!el)return;const t=el.value.trim();if(!t)return;model.chat.push({cat:'note',thread:state.compTarget,who:'me',text:t,time:'teď'});if(ID)App.chatAdd(ID,{cat:'note',scope:state.compTarget==='internal'?'internal':'pestoun',who:'me',text:t});el.value='';renderStream();},
+  addDoc(name){if(!App.can('docs.upload')){toast('Nemáte oprávnění nahrávat dokumenty');return;}model.docs.unshift([name.replace(/\.[^.]+$/,''),(name.split('.').pop()||'').toUpperCase(),'teď']);model.chat.push({cat:'doc',thread:state.compTarget,who:'sys',text:'__doc__'+name,time:'teď'});if(ID){App.chatAdd(ID,{cat:'doc',scope:'internal',who:'sys',text:name,doc:(name.split('.').pop()||'').toUpperCase()});App.histAdd(ID,{field:'Dokument',from:'—',to:'nahrán: '+name});}renderStream();if(state.sec==='dokumenty')renderBody();renderSide();if(App.AI)this.aiOcr(name);},
+  delDoc(idx){if(!App.can('docs.delete')){toast('Mazat dokumenty smí jen Superadmin');return;}const d=model.docs[idx];if(!d)return;if(!confirm('Smazat dokument „'+d[0]+'"?'))return;model.docs.splice(idx,1);if(ID){App.histAdd(ID,{field:'Dokument',from:d[0],to:'smazán'});App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:'Smazán dokument: '+d[0]});}if(state.sec==='dokumenty')renderBody();renderSide();toast('Dokument smazán');},
+  addEdu(){if(!App.can('contacts.edit')){toast('Nemáte oprávnění zapisovat vzdělávání');return;}if(!model.edu){toast('Vzdělávání se vede u pěstouna');return;}const n=prompt('Název absolvovaného vzdělávání:');if(!n)return;const h=parseInt(prompt('Počet hodin:','4'),10);if(!h||h<0)return;const prev=model.edu.done;model.edu.done+=h;model.edu.courses.unshift([n,h+' h','teď']);if(ID){App.histAdd(ID,{field:'Vzdělávání (h)',from:prev+' h',to:model.edu.done+' h ('+n+')'});App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:`Zapsáno vzdělávání: ${n} (+${h} h) → ${model.edu.done}/${model.edu.req} h`});}renderBody();toast('Vzdělávání zapsáno ✓');},
+  /* AI asistent (reálné přes proxy, fallback mock) */
+  async aiStructure(){
+    const el=document.getElementById('chatInput'); const t=(el&&el.value.trim())||'';
+    if(!t){toast('Nejdřív napiš surový zápis – AI ho zstrukturuje');return;}
+    if(!App.can('notes.add')){toast('Nemáte oprávnění přidávat zápisy');return;}
+    toast(App.AI.live()?'AI pracuje…':'Strukturuji…');
+    const r=await App.AI.structureNote(t); this._aiR=r; this._aiRaw=t;
+    const catL=(App.CHAT_CATS[r.cat]||['Poznámka'])[0];
+    const li=(arr,col)=>arr.length?arr.map(x=>`<li${col?` style="color:${col}"`:''}>${x.replace(/</g,'&lt;')}</li>`).join(''):'<li style="color:var(--text-3)">žádné</li>';
+    aiOverlay('Strukturovaný zápis (AI)',
+      `${App.AI.showDisclaimer()?`<div style="background:var(--active);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-2);margin-bottom:12px">${App.AI.disclaimer}</div>`:''}
+       <div style="margin:8px 0"><b>Kategorie:</b> ${catL}</div>
+       <div style="margin:8px 0"><b>Shrnutí:</b><div style="margin-top:3px">${r.summary.replace(/</g,'&lt;')}</div></div>
+       <div style="margin:8px 0"><b>Navržené úkoly:</b><ul style="margin:4px 0 0 18px">${li(r.tasks)}</ul></div>
+       <div style="margin:8px 0"><b>Možné obavy:</b><ul style="margin:4px 0 0 18px">${li(r.concerns,'var(--alert-warn)')}</ul></div>
+       ${r.ospodNotify?'<div style="margin:10px 0;color:var(--alert-due);font-weight:600">AI doporučuje zvážit nahlášení OSPOD</div>':''}`,
+      `<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Zavřít</button>
+       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiApply()">Vložit jako zápis</button>`);
+  },
+  aiApply(){const r=this._aiR,raw=this._aiRaw;if(!r)return;
+    model.chat.push({cat:r.cat,thread:state.compTarget,who:'me',text:raw,time:'teď'});
+    if(ID)App.chatAdd(ID,{cat:r.cat,scope:state.compTarget==='internal'?'internal':'pestoun',who:'me',text:raw});
+    const inp=document.getElementById('chatInput');if(inp)inp.value='';
+    this.aiClose();if(state.sec==='chat')renderStream();toast('Zápis vložen (struktura AI) ✓');},
+  aiClose(){const o=document.getElementById('aiOverlay');if(o)o.remove();},
+  respitSetNad(v){ const h=hubHousehold(); if(h){ App.respitSetNadstandard(h.id,v); renderBody(); } },
+  respitOpen(){ const h=hubHousehold(); if(!h)return;
+    const kids=h.kids.map(k=>`<label style="display:inline-flex;gap:6px;align-items:center;margin:2px 10px 2px 0;cursor:pointer"><input type="checkbox" value="${k.id}" class="rsp-kid"> ${k.n}</label>`).join('');
+    const typs=Object.entries(RTYP).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+    aiOverlay('Zaznamenat čerpání respitu',
+      `<div style="display:flex;gap:10px;flex-wrap:wrap"><div><label class="muted" style="font-size:12px;display:block">Od</label><input type="date" id="rsp-from" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+       <div><label class="muted" style="font-size:12px;display:block">Do</label><input type="date" id="rsp-to" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+       <div><label class="muted" style="font-size:12px;display:block">Typ</label><select id="rsp-typ" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px;background:var(--surface)">${typs}</select></div></div>
+       <div style="margin:10px 0 4px"><b>Kterých dětí se týká</b></div><div>${kids||'<span class="muted">Bez dětí v dohodě</span>'}</div>
+       <div style="margin:10px 0 4px"><b>Náklad (Kč, bez stravy)</b> <span class="muted" style="font-size:12px">nepovinné; u interního hlídání nech 0</span></div>
+       <input type="number" id="rsp-kc" value="0" style="width:140px;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px">
+       <div class="muted" style="font-size:12px;margin-top:8px">Pravidlo: i hodina = celý den. Souběh všech dětí = reálný respit pěstouna.</div>`,
+      `<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Zrušit</button>
+       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.respitSave()">Uložit čerpání</button>`);
+  },
+  respitSave(){ const h=hubHousehold(); if(!h)return;
+    const from=document.getElementById('rsp-from').value, to=document.getElementById('rsp-to').value||from;
+    const typ=document.getElementById('rsp-typ').value; const kc=parseInt(document.getElementById('rsp-kc').value,10)||0;
+    const deti=[...document.querySelectorAll('.rsp-kid:checked')].map(x=>x.value);
+    if(!from){toast('Zadej datum');return;} if(to<from){toast('„Do" nesmí být před „Od"');return;}
+    App.respitAddEvent(h.id,{from,to,typ,detiIds:deti,kc});
+    if(ID)App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:`Respit: ${RTYP[typ]||typ} ${App.fmtDate(from)}${to!==from?'–'+App.fmtDate(to):''}${deti.length?' ('+deti.length+' dětí)':''}`});
+    this.aiClose(); renderBody(); toast('Čerpání respitu zaznamenáno ✓');
+  },
+  spvppAddCost(){ if(TYP!=='dite')return; const h=hubHousehold();
+    const typs=Object.entries(RTYP).map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+    aiOverlay('Přidat náklad na respit (Větev B – ruční)',
+      `<div class="muted" style="font-size:12px;margin-bottom:8px">Zadej podíl tohoto dítěte z dokladu (faktura je položková – každé dítě svůj řádek). Tím se ponížá SPVPP dítěte a pěstounovi se zapíše den respitu.</div>
+       <div class="vrow" style="grid-template-columns:160px 1fr"><div class="k">Interní č. dokladu</div><div class="v"><input id="sp-cislo" placeholder="${App.dokladNextNo()}" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div></div>
+       <div class="vrow" style="grid-template-columns:160px 1fr"><div class="k">Celková částka (Kč)</div><div class="v"><input type="number" id="sp-total" placeholder="nepovinné" style="width:160px;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div></div>
+       <div class="vrow" style="grid-template-columns:160px 1fr"><div class="k">Podíl tohoto dítěte (Kč)</div><div class="v"><input type="number" id="sp-podil" style="width:160px;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div></div>
+       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px"><div><label class="muted" style="font-size:12px;display:block">Termín od</label><input type="date" id="sp-from" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div><div><label class="muted" style="font-size:12px;display:block">do</label><input type="date" id="sp-to" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div><div><label class="muted" style="font-size:12px;display:block">Typ</label><select id="sp-typ" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px;background:var(--surface)">${typs}</select></div></div>`,
+      `<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Zrušit</button>
+       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.spvppSaveCost()">Zaúčtovat</button>`);
+  },
+  spvppSaveCost(){ const podil=parseInt(document.getElementById('sp-podil').value,10)||0; if(!podil){toast('Zadej podíl částky');return;}
+    const cislo=document.getElementById('sp-cislo').value.trim()||App.dokladNextNo(); const from=document.getElementById('sp-from').value, to=document.getElementById('sp-to').value||from; const typ=document.getElementById('sp-typ').value;
+    App.spvppCharge(ID,podil,cislo);
+    const h=hubHousehold(); if(h) App.respitAddEvent(h.id,{from,to,typ,detiIds:[ID],kc:0,doklad:cislo});
+    App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:`Náklad na respit ${podil} Kč (doklad ${cislo}) zaúčtován na SPVPP.`});
+    App.histAdd(ID,{field:'SPVPP náklad',from:'—',to:podil+' Kč ('+cislo+')'});
+    this.aiClose(); renderBody(); toast('Zaúčtováno '+podil+' Kč ✓');
+  },
+  aiVoice(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){toast('Hlasové zadávání tento prohlížeč nepodporuje (zkuste Chrome)');return;}
+    const btn=document.getElementById('micBtn'); const inp=document.getElementById('chatInput');
+    if(this._rec){ this._rec.stop(); return; }
+    const rec=new SR(); this._rec=rec; rec.lang='cs-CZ'; rec.interimResults=true; rec.continuous=true;
+    const base=(inp.value||''); let fin='';
+    rec.onresult=e=>{ let interim=''; for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal)fin+=t; else interim+=t; } inp.value=(base+' '+fin+' '+interim).trim(); };
+    const MIC='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
+    const STOP='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+    rec.onend=()=>{ this._rec=null; if(btn){btn.innerHTML=MIC;btn.style.background='var(--active)';btn.style.color='var(--text)';} toast('Diktování ukončeno – uprav a klikni AI pro zápis'); };
+    rec.onerror=ev=>{ this._rec=null; if(btn){btn.innerHTML=MIC;btn.style.background='var(--active)';btn.style.color='var(--text)';} toast('Hlas: '+(ev.error||'chyba')); };
+    rec.start(); if(btn){btn.innerHTML=STOP;btn.style.background='var(--alert-due-soft)';btn.style.color='var(--alert-due)';} toast('Mluvte… (audio je jen pracovní, neukládá se)');
+  },
+  async reportAssistant(){
+    if(!App.can('reports.generate')){toast('Nemáte oprávnění generovat reporty');return;}
+    this._ra={type:'OSPOD',from:repFrom,to:repTo,inc:{visits:true,notes:true,tasks:true,docs:true,edu:true},note:'',focus:'__all__'};
+    Hub._raRender();
+  },
+  _raFocusOpts(){ const items=(model.relations&&model.relations.items)||[]; return ['__all__'].concat(items.map(x=>x.name)); },
+  async raQuestions(){ const r=this._ra; const a=document.getElementById('raQ'); if(a)a.textContent='AI přemýšlí…';
+    const q=await App.AI.generate(`Jsi zkušená klíčová osoba. Než sepíšu zprávu typu „${r.type}" o průběhu pěstounské péče (kontakt ${model.name}, období ${App.fmtDate(r.from)}–${App.fmtDate(r.to)}), polož mi 3 stručné upřesňující otázky (číslované), na co se zaměřit. Vrať jen otázky.`);
+    if(a)a.textContent=q;
+  },
+  _raRender(){
+    const r=this._ra; const TYPES=['OSPOD','Interní (DO)','Pro soud','Shrnutí pro pěstouna'];
+    const presets=[['1. pololetí 2026','2026-01-01','2026-06-30'],['Celý rok 2026','2026-01-01','2026-12-31'],['Poslední 3 měsíce','2026-03-20','2026-06-20']];
+    const chk=(k,l)=>`<label style="display:inline-flex;gap:6px;align-items:center;margin:2px 10px 2px 0;cursor:pointer"><input type="checkbox" ${r.inc[k]?'checked':''} onchange="Hub._raSet('inc.${k}',this.checked)"> ${l}</label>`;
+    aiOverlay('Asistent zprávy — co a jak sestavit?',
+      `<div style="margin:6px 0"><b>Typ zprávy</b><div style="margin-top:4px">${TYPES.map(t=>`<button class="chip" style="cursor:pointer;border:1px solid var(--border-2);${r.type===t?'background:var(--active);font-weight:600':''}" onclick="Hub._raSet('type','${t}')">${t}</button>`).join(' ')}</div></div>
+       <div style="margin:10px 0"><b>Období</b><div style="margin-top:4px">${presets.map(([l,f,t])=>`<button class="chip" style="cursor:pointer;border:1px solid var(--border-2);${r.from===f&&r.to===t?'background:var(--active);font-weight:600':''}" onclick="Hub._raSet('period','${f}|${t}')">${l}</button>`).join(' ')}</div><div class="muted" style="font-size:12px;margin-top:4px">Vybráno: ${App.fmtDate(r.from)} – ${App.fmtDate(r.to)}</div></div>
+       <div style="margin:10px 0"><b>Co zahrnout</b><div style="margin-top:4px">${chk('visits','Návštěvy/kontakty')}${chk('notes','Poznámky KO')}${chk('tasks','Úkoly')}${chk('docs','Dokumenty')}${chk('edu','Vzdělávání')}</div></div>
+       <div style="margin:10px 0"><b>Zaměření</b><div style="margin-top:4px">${Hub._raFocusOpts().map(f=>`<button class="chip" style="cursor:pointer;border:1px solid var(--border-2);${r.focus===f?'background:var(--active);font-weight:600':''}" onclick="Hub._raSet('focus','${f.replace(/'/g,'')}')">${f==='__all__'?'Celá rodina':f}</button>`).join(' ')}</div></div>
+       <div style="margin:10px 0"><b>Doplňující pokyn pro AI</b> <span class="muted" style="font-size:12px">(nepovinné)</span><textarea id="raNote" oninput="Hub._ra.note=this.value" placeholder="Např. zdůrazni spolupráci se školou; vynech finanční údaje…" style="width:100%;min-height:54px;margin-top:4px;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px;font-size:13px">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+       <button class="chip" style="cursor:pointer;background:var(--active);margin-top:6px" onclick="Hub.raQuestions()">Nech AI navrhnout upřesňující otázky</button><div id="raQ" style="font-size:13px;margin-top:6px;white-space:pre-line;color:var(--text-2)"></div></div>`,
+      `<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Zrušit</button>
+       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.reportAssistantGo()">Sestavit zprávu</button>`);
+    const ta=document.getElementById('raNote'); if(ta)ta.value=r.note||'';
+  },
+  _raSet(path,val){ const r=this._ra; if(path==='period'){const[f,t]=val.split('|');r.from=f;r.to=t;} else if(path.startsWith('inc.')){r.inc[path.slice(4)]=val;} else {r[path]=val;} Hub._raRender(); },
+  async reportAssistantGo(){
+    const r=this._ra; this.aiClose(); toast(App.AI.live()?'AI sestavuje zprávu…':'Sestavuji…');
+    const d=App.reportData({etype:TYP,eid:ID,from:r.from,to:r.to,name:model.name});
+    const inc=Object.entries(r.inc).filter(([k,v])=>v).map(([k])=>({visits:'návštěvy a kontakty',notes:'poznámky KO',tasks:'úkoly',docs:'dokumenty',edu:'vzdělávání'}[k])).join(', ');
+    const focus=r.focus&&r.focus!=='__all__'?` Zaměř se zejména na: ${r.focus}.`:'';
+    const docCtx=(r.inc.docs&&(model._docOcr||[]).length)?(' Přečtené dokumenty k využití: '+model._docOcr.map(x=>`${x.typ||'dokument'} (${x.date||'?'}): ${x.summary||''}`).join(' | ')+'.'):'';
+    const prompt=`Jsi klíčová osoba doprovázející organizace. Napiš v češtině zprávu typu „${r.type}" o průběhu pěstounské péče pro kontakt „${model.name}" za období ${App.fmtDate(r.from)}–${App.fmtDate(r.to)}. `+
+      `Zahrň pouze tyto oblasti: ${inc||'obecný souhrn'}.${focus} Podklady: ${d.events.length} návštěv/kontaktů, ${d.notes.length} záznamů KO, ${d.tasks.length} úkolů, ${d.docs.length} dokumentů${d.foster?', vzdělávání '+d.foster.eduDone+'/'+d.foster.req+' h':''}.${docCtx} `+
+      (r.note?`Zvláštní pokyn: ${r.note}. `:'')+`Piš věcně, 5–8 vět, ve 3. osobě. Nevymýšlej konkrétní jména ani události nad rámec podkladů. Vrať pouze text zprávy.`;
+    const text=await App.AI.generate(prompt);
+    repShown=true; repEdit=true; repFrom=r.from; repTo=r.to; renderBody();
+    setTimeout(()=>{ const el=document.querySelector('#reportPrint .rd-summary'); if(el){ el.textContent=text; el.scrollIntoView({block:'center'}); }
+      if(App.AI.showDisclaimer()){ const tb=document.querySelector('.report-toolbar'); if(tb&&!document.getElementById('aiRepBanner')){const b=document.createElement('div');b.id='aiRepBanner';b.style.cssText='background:var(--active);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text-2);margin:8px 0';b.textContent=App.AI.disclaimer+' · Typ: '+r.type;tb.parentNode.insertBefore(b,tb.nextSibling);} }
+      // uložit jako verzi (víc zpráv vedle sebe)
+      const rp=document.getElementById('reportPrint'); if(rp) App.saveReport(ID, `${r.type} · ${App.fmtDate(r.from)}–${App.fmtDate(r.to)}`, rp.innerHTML);
+      toast('Zpráva „'+r.type+'" sestavena a uložena jako verze ✓'); },80);
+  },
+  aiScan(){
+    if(!App.can('docs.upload')){toast('Nemáte oprávnění nahrávat dokumenty');return;}
+    const i=document.createElement('input'); i.type='file'; i.accept='image/*';
+    i.onchange=e=>{ if(e.target.files[0]) Hub._scanFile(e.target.files[0]); };
+    i.click();
+  },
+  async _scanFile(f){
+    if(!App.can('docs.upload')){toast('Nemáte oprávnění nahrávat dokumenty');return;}
+    const isImg=/^image\//.test(f.type);
+    if(!isImg){ this.addDoc(f.name); return; }   // ne-obrázky zatím bez vision OCR
+    App.progressStart(); toast(App.AI.live()?'AI čte dokument…':'Čtu dokument…');
+    const buf=await f.arrayBuffer(); let bin=''; const bytes=new Uint8Array(buf); for(let k=0;k<bytes.length;k++)bin+=String.fromCharCode(bytes[k]);
+    const b64=btoa(bin); const mime=f.type||'image/jpeg'; const src='data:'+mime+';base64,'+b64;
+    const r=await App.AI.ocrImage(b64, mime, f.name);
+    App.progressStop();
+    this._lastOcr=Object.assign({name:f.name,src},r);
+    this._ocrOverlay();
+  },
+  _ocrOverlay(){ const r=this._lastOcr; const kd=Object.keys(r.keyData||{});
+    aiOverlay('Přečtený dokument (AI)',
+      `${App.AI.showDisclaimer()?`<div style="background:var(--active);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-2);margin-bottom:12px">${App.AI.disclaimer}</div>`:''}
+       ${r.src?`<img src="${r.src}" style="max-width:100%;max-height:200px;border-radius:10px;display:block;margin-bottom:10px"/>`:''}
+       <div style="margin:6px 0"><b>Soubor:</b> ${(r.name||'').replace(/</g,'&lt;')}</div>
+       <div style="margin:6px 0"><b>Typ:</b> ${(r.typ||'?').replace(/</g,'&lt;')}${r.date?' · '+r.date:''}</div>
+       <div style="margin:6px 0"><b>Shrnutí:</b><div style="margin-top:3px">${(r.summary||'').replace(/</g,'&lt;')}</div></div>
+       <div style="margin:6px 0"><b>Klíčová data:</b><ul style="margin:4px 0 0 18px">${kd.length?kd.map(k=>`<li>${k.replace(/</g,'&lt;')}: ${String(r.keyData[k]).replace(/</g,'&lt;')}</li>`).join(''):'<li style="color:var(--text-3)">—</li>'}</ul></div>
+       ${r.hours?`<div style="margin:8px 0;color:var(--alert-ok)"><b>Rozpoznáno ${r.hours} h vzdělávání</b> – lze započítat.</div>`:''}
+       ${r.action?`<div style="margin:8px 0;color:var(--alert-warn)"><b>Návrh:</b> ${(r.action||'').replace(/</g,'&lt;')}</div>`:''}
+       <div style="margin:12px 0 4px"><b>Vaše poznámka</b> <span class="muted" style="font-size:12px">(uloží se k dokumentu i do časové osy)</span></div>
+       <textarea id="ocrNote" placeholder="Např. doložila pěstounka, kontrolovat platnost…" style="width:100%;min-height:48px;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px;font-size:13px"></textarea>
+       <div style="margin:12px 0 4px"><b>Zeptat se na dokument</b></div>
+       <div style="display:flex;gap:6px"><input id="ocrQ" placeholder="Např. Do kdy platí? Jaký prospěch?" style="flex:1;border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"><button class="btn-secondary" style="width:auto;margin:0;padding:8px 14px" onclick="Hub.ocrAsk()">Odpovědět</button></div>
+       <div id="ocrA" style="margin-top:8px;font-size:13px"></div>`,
+      `<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Zavřít</button>
+       ${r.hours&&App.can('contacts.edit')&&model.edu?`<button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.ocrEdu()">+ Započítat ${r.hours} h vzdělávání</button>`:''}
+       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.ocrSave()">Uložit dokument</button>`);
+  },
+  ocrSave(){ const r=this._lastOcr; if(!r)return; const ext=(r.name.split('.').pop()||'').toUpperCase();
+    const note=(document.getElementById('ocrNote')||{}).value||'';
+    const finish=(thumb)=>{ const doc=App.docSave({eid:ID,name:r.name,typ:r.typ,date:r.date,summary:r.summary,keyData:r.keyData,src:r.src,thumb,note});
+      model.docs.unshift([r.name.replace(/\.[^.]+$/,''),(ext.length<=4?ext:'IMG'),'teď',doc.id]);
+      model._docOcr=(model._docOcr||[]); model._docOcr.unshift({name:r.name,typ:r.typ,date:r.date,summary:r.summary,keyData:r.keyData});
+      if(r.hours&&model.edu){/* hodiny lze započítat tlačítkem výše */}
+      this.aiClose(); if(state.sec==='dokumenty')renderBody(); renderSide(); toast('Dokument uložen (zdroj+souhrn+poznámka) ✓');
+      App.openDocPreview(doc.id);
+    };
+    if(r.src) App.makeThumb(r.src,200,finish); else finish('');
+  },
+  ocrEdu(){ const r=this._lastOcr; if(!r||!r.hours||!model.edu)return; const prev=model.edu.done; model.edu.done+=r.hours;
+    model.edu.courses.unshift([r.typ||'Vzdělávání (z dokumentu)',r.hours+' h',r.date||'teď']);
+    if(ID){ App.histAdd(ID,{field:'Vzdělávání (h)',from:prev+' h',to:model.edu.done+' h (z dokumentu: '+(r.name||'')+')'}); App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:`Z dokumentu „${r.name}" započteno ${r.hours} h vzdělávání → ${model.edu.done}/${model.edu.req} h`}); }
+    toast('Započteno '+r.hours+' h ✓'); const b=event&&event.target; if(b)b.disabled=true;
+  },
+  async ocrAsk(){ const q=document.getElementById('ocrQ'); const t=q&&q.value.trim(); if(!t)return; const a=document.getElementById('ocrA'); a.textContent='…'; const ans=await App.AI.askDoc(t,this._lastOcr); a.textContent=ans; },
+  aiOcr(name){ const r=App.AI.ocrDoc(name);
+    const kd=Object.keys(r.keyData||{}); const kdH=kd.length?kd.map(k=>`<li><b>${k}:</b> ${String(r.keyData[k]).replace(/</g,'&lt;')}</li>`).join(''):'<li style="color:var(--text-3)">—</li>';
+    aiOverlay('OCR dokumentu (AI)',
+      `${App.AI.showDisclaimer()?`<div style="background:var(--active);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text-2);margin-bottom:12px">${App.AI.disclaimer}</div>`:''}
+       <div style="margin:8px 0"><b>Soubor:</b> ${String(name).replace(/</g,'&lt;')}</div>
+       <div style="margin:8px 0"><b>Rozpoznaný typ:</b> ${r.typ}</div>
+       <div style="margin:8px 0"><b>Datum:</b> ${App.fmtDate(r.date)}</div>
+       <div style="margin:8px 0"><b>Shrnutí:</b><div style="margin-top:3px">${r.summary}</div></div>
+       <div style="margin:8px 0"><b>Klíčová data:</b><ul style="margin:4px 0 0 18px">${kdH}</ul></div>
+       ${r.action?`<div style="margin:10px 0;color:var(--alert-warn)"><b>Navržená akce:</b> ${r.action}</div>`:''}`,
+      `<button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiClose()">Rozumím</button>`);
+  },
+  /* sdílení odkazem */
+  openShare(){if(!App.can('contacts.edit')){toast('Nemáte oprávnění sdílet chat odkazem');return;}state.link={name:'',share:'nic',num:1,unit:'den'};document.getElementById('linkModal').classList.add('open');renderShare();document.getElementById('linkResult')&&(document.getElementById('linkResult').style.display='none');},
+  closeShare(){document.getElementById('linkModal').classList.remove('open');},
+  setLink(k,v){state.link[k]=v;renderShare();},
+  preset(num,unit){state.link.num=num;state.link.unit=unit;renderShare();},
+  generateLink(){const id='th_'+Date.now().toString(36);const label=(state.link.name.trim()||'Host')+' (odkaz)';const valid=state.link.unit==='neomezeně'?'neomezeně':`${state.link.num} ${state.link.unit}`;
+    model.threads.push({id,label,color:THREAD_COLORS[model.threads.length%THREAD_COLORS.length],share:state.link.share==='nic'?'Nic':'Vybrané',validity:valid});
+    model.chat.push({cat:'system',thread:'internal',who:'sys',text:`Vytvořen odkaz na chat: ${label} · platnost ${valid} · sdíleno: ${state.link.share==='nic'?'nic (jen komunikace)':'vybrané položky'}`,time:'teď'});
+    const r=document.getElementById('linkResult');r.style.display='block';document.getElementById('linkUrl').value=`${location.origin}/chat/${id}`;state.compTarget=id;if(state.sec==='chat')renderBody();},
+  copyLink(){const i=document.getElementById('linkUrl');i.select();try{document.execCommand('copy');}catch(e){}},
+  /* profil */
+  toggleEdit(){
+    if(!state.edit){ // vstup do editace
+      if(!App.can('contacts.edit')){toast('Nemáte oprávnění upravovat profil');return;}
+      state.editSnapshot={}; model.sections.forEach(s=>s.fields.forEach(f=>{state.editSnapshot[f.id]={label:f.label,value:f.value};}));
+      state.edit=true;
+    } else { // odchod z editace → zaznamenat verze (nic se nepřepisuje)
+      let n=0;
+      model.sections.forEach(s=>s.fields.forEach(f=>{ const snap=state.editSnapshot&&state.editSnapshot[f.id];
+        if(snap && snap.value!==f.value && (snap.value!==''||f.value!=='')){
+          const prev=snap.value||'—';
+          if(ID){ App.histAdd(ID,{field:f.label,from:prev,to:f.value||'—'});
+            App.chatAdd(ID,{cat:'system',scope:'internal',who:'sys',text:`Změna pole „${f.label}": ${prev} → ${f.value||'—'}`}); }
+          f.old=`${prev} · aktivní do ${App.fmtDate(App.todayISO)}`;
+          n++;
+        }
+      }));
+      state.edit=false; toast(n?`${n} změn zaznamenáno do historie ✓`:'Beze změn');
+    }
+    state.addOpen=null;renderBody();
+  },
+  find(id){for(const s of model.sections){const f=s.fields.find(x=>x.id===id);if(f)return f;}},
+  setVal(id,v){const f=this.find(id);if(f)f.value=v;},
+  setLabel(id,v){const f=this.find(id);if(f)f.label=v;},
+  toggleAdd(sec){state.addOpen=state.addOpen===sec?null:sec;renderBody();},
+  addField(sec,t){const s=model.sections.find(x=>x.id===sec);s.fields.push(F(t,'Nové pole','',t==='select'?['Možnost A','Možnost B']:undefined));state.addOpen=null;renderBody();},
+  delField(sec,fid){const s=model.sections.find(x=>x.id===sec);s.fields=s.fields.filter(x=>x.id!==fid);renderBody();},
+  /* avatar */
+  openAvatar(){if(!App.can('contacts.edit')){toast('Nemáte oprávnění měnit avatar');return;}state.avatarPreview=model.photo;document.getElementById('avatarModal').classList.add('open');renderModalPreview();renderPresets();},
+  closeAvatar(){document.getElementById('avatarModal').classList.remove('open');},
+  pickPreset(u){state.avatarPreview=u;renderModalPreview();renderPresets();},
+  applyAvatar(){model.photo=state.avatarPreview;this.closeAvatar();renderHead();},
+  /* dokument modál */
+  openDocShared(gi){const row=model.docs[gi];if(!row)return;const [n,k,d,docId]=row;if(docId){App.openDocPreview(docId);return;}App.docOpen({eid:ID,name:n,kind:k,date:d,ename:model.name});},
+  signNew(){if(!App.can('docs.upload')){toast('Bez oprávnění');return;}App.signNewDoc(ID, model.name||'', '');},
+  openDoc(name){document.getElementById('docTitle').firstChild.textContent=name+' ';
+    document.getElementById('docPage').innerHTML='<span class="pin" style="left:18%;top:22%"><span class="head"><span>1</span></span></span><span class="pin" style="left:60%;top:54%"><span class="head"><span>2</span></span></span>'+Array(8).fill('<div class="ph-line"></div><div class="ph-line s"></div>').join('');
+    document.getElementById('docPins').innerHTML=`<div class="msg them"><div class="bubble"><div class="cat-tag"><span class="d" style="background:var(--red)"></span>Špendlík 1</div>Zkontrolovat datum podpisu na str. 1.<div class="meta">M. Dvořák</div></div></div><div class="msg them"><div class="bubble"><div class="cat-tag"><span class="d" style="background:var(--red)"></span>Špendlík 2</div>Chybí podpis druhého pěstouna.<div class="meta">M. Dvořák</div></div></div>`;
+    document.getElementById('docModal').classList.add('open');},
+  closeDoc(){document.getElementById('docModal').classList.remove('open');},
+  addPin(){if(!App.can('notes.add')){toast('Nemáte oprávnění přidávat připomínky');return;}const el=document.getElementById('pinInput');if(!el.value.trim())return;const n=document.getElementById('docPins');n.insertAdjacentHTML('beforeend',`<div class="msg them"><div class="bubble"><div class="cat-tag"><span class="d" style="background:var(--red)"></span>Špendlík</div>${el.value}<div class="meta">teď</div></div></div>`);el.value='';n.scrollTop=n.scrollHeight;},
+  /* odkazy/QR */
+  copyText(t){try{navigator.clipboard.writeText(t);}catch(e){}},
+  showQR(q){document.getElementById('qrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent('https://www.google.com/maps/search/?api=1&query='+q)}`;document.getElementById('qrModal').classList.add('open');},
+  closeQR(){document.getElementById('qrModal').classList.remove('open');},
+};
+window.Hub=Hub;
+
+/* ---------- SIDEBAR (menu sekcí) ---------- */
+const SECTIONS=[
+  ['chat','Chat','M4 5h16v11H8l-4 3z'],
+  ['profil','Profil','M4 5h16v14H4zM4 9h16M9 13h7M9 16h5'],
+  ['dokumenty','Dokumenty','M6 2h8l4 4v16H6zM14 2v4h4'],
+  ['social','Sociální prostor','M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.7-5 6-5M17 9a2.5 2.5 0 1 0 0-5M15 20c0-2.5 2-4 4.5-4'],
+  ['vzdelavani','Vzdělávání','M22 10 12 5 2 10l10 5 10-5zM6 12v5c0 1 3 3 6 3s6-2 6-3v-5'],
+  ['respit','Respit','M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M12 7v5l3 2'],
+  ['hlidani','Hlídání','M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2'],
+  ['reporty','Reporty','M6 2h8l4 4v16H6zM9 13h6M9 17h4M14 2v4h4'],
+  ['mapa','Mapa','M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14'],
+  ['upozorneni','Upozornění','M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01'],
+  ['kalendar','Kalendář','M3 5h18v16H3zM3 9h18M8 3v4M16 3v4'],
+];
+function secCount(k){return k==='chat'?model.chat.length:k==='dokumenty'?model.docs.length:k==='upozorneni'?model.upoz.length:null;}
+function renderSide(){
+  const items=SECTIONS.map(([k,l,d])=>{const c=secCount(k);
+    return `<div class="nav-item ${state.sec===k?'active':''}" onclick="Hub.go('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${d}"/></svg> ${l}${c!=null?`<span class="count">${c}</span>`:''}</div>`;}).join('');
+  const customs=model.custom.map(c=>`<div class="nav-item ${state.sec===c.id?'active':''}" onclick="Hub.go('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/></svg> ${c.label}</div>`).join('');
+  document.getElementById('side').innerHTML=`
+    ${App.can('notes.add')?`<button class="btn-primary" onclick="Hub.newNote()">+ Nový zápis</button>`:''}
+    ${App.can('reports.generate')?`<button class="btn-secondary" onclick="Hub.go('reporty')">Vytvořit report</button>`:''}
+    <div class="sec-label">Sekce kontaktu</div>
+    <div class="nav">${items}</div>
+    ${customs?`<div class="sec-label">Vlastní záložky</div><div class="nav">${customs}</div>`:''}
+    ${App.can('contacts.edit')?`<div class="nav"><div class="nav-item" style="color:var(--text-2)" onclick="Hub.addTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Přidat záložku…</div></div>`:''}`;
+}
+
+/* ---------- LIŠTA SEKCE (sub-tabs pod hlavičkou) ---------- */
+function secLabel(k){const s=SECTIONS.find(x=>x[0]===k);if(s)return s[1];const c=model.custom.find(x=>x.id===k);return c?c.label:'';}
+function renderSecbar(){const k=state.sec,subs=SUBTABS[k];
+  document.getElementById('secbar').innerHTML=`<div class="stitle">${secLabel(k)}</div>`+
+    (subs?subs.map((t,i)=>`<div class="subtab ${state.sub===i?'active':''}" onclick="Hub.setSub(${i})">${t}</div>`).join(''):'');
+}
+
+/* ---------- HLAVIČKA ---------- */
+const HI=p=>`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px;color:var(--text-3)">${p}</svg>`;
+function renderHead(){
+  const c=model.contact;
+  const rel=model.relations.items.map(r=>`<a class="rel-chip" href="${r.href}">${App.avatar(r.name,r.care,r.photo,22,r.shape)} ${r.name}${r.age?` <span class="muted">(${r.age} let)</span>`:''}</a>`).join('');
+  const contactLine=[c.address?`<a class="vlink" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}">${HI('<path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>')}${c.address}</a>`:'',
+    c.phone?`<a class="vlink" href="tel:${c.phone.replace(/\s+/g,'')}">${HI('<path d="M22 16.9v3a2 2 0 0 1-2.2 2A19 19 0 0 1 3 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7 13 13 0 0 0 .7 2.6 2 2 0 0 1-.5 2L9 12a16 16 0 0 0 6 6l1.7-1.2a2 2 0 0 1 2-.5 13 13 0 0 0 2.6.7A2 2 0 0 1 22 19z"/>')}${c.phone}</a>`:'',
+    c.email?`<a class="vlink" href="mailto:${c.email}">${HI('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>')}${c.email}</a>`:''].filter(Boolean).join('<span class="sep-dot">|</span>');
+  const canEditCard=App.can('contacts.edit');
+  document.getElementById('hubhead').innerHTML=`
+    <div class="pavatar" ${canEditCard?`onclick="Hub.openAvatar()" style="cursor:pointer"`:''}>${App.avatar(model.name,model.care,model.photo,96,model.shape)}${canEditCard?`<span class="edit" style="border-radius:${model.shape==='sq'?'26%':'50%'}">změnit</span>`:''}</div>
+    <div class="phead-meta">
+      <div class="hh2-name">${model.name}</div>
+      <div class="hh2-segs">${model.headSegs.join('<span class="sep-dot">|</span>')}</div>
+      <div class="hh2-rel"><span class="muted" style="font-size:12px">${model.relations.title}:</span> ${rel||'<span class="muted">—</span>'}</div>
+      <div class="hh2-contact">${contactLine}</div>
+    </div>`;
+}
+
+/* ---------- TĚLO ---------- */
+function renderBody(){const w=document.getElementById('tabwrap');
+  const s=state.sec;
+  if(s==='chat'){w.innerHTML=chatHtml();wireComposer();renderStream();}
+  else if(s==='profil'){w.innerHTML=`<div class="hub-pane">${state.sub===1?historieHtml():profilHtml()}</div>`;}
+  else if(s==='dokumenty'){w.innerHTML=docsHtml();wireBigDrop();}
+  else if(s==='upozorneni'){w.innerHTML=`<div class="hub-pane"><div class="alerts" style="max-width:620px">${App.upoz(model.upoz)}</div></div>`;}
+  else if(s==='kalendar'){w.innerHTML=calendarHtml();}
+  else if(s==='social'){w.innerHTML=socialHtml();}
+  else if(s==='vzdelavani'){w.innerHTML=vzdelavaniHtml();}
+  else if(s==='respit'){w.innerHTML=respitHtml();}
+  else if(s==='hlidani'){w.innerHTML=hlidaniHtml();}
+  else if(s==='reporty'){w.innerHTML=reportyHtml();}
+  else if(s==='mapa'){w.innerHTML=mapaHtml();}
+  else {const cs=model.custom.find(c=>c.id===s);const ce=App.can('contacts.edit');w.innerHTML=`<div class="hub-pane"><h3 style="margin-top:0">${cs?cs.label:''}</h3><p class="muted">Vlastní záložka – sem KO vloží obsah (text, pole, odkazy, vložené dokumenty…). Definici obsahu doladíme.</p><textarea ${ce?'':'readonly'} style="width:100%;min-height:160px;border:1px solid var(--border-2);border-radius:12px;padding:12px${ce?'':';background:var(--active);color:var(--text-2)'}" placeholder="Obsah záložky…">${cs?cs.content:''}</textarea></div>`;}
+}
+
+/* CHAT */
+function chatHtml(){
+  const cats=Object.entries(CATS).map(([k,[l,c]])=>`<span class="fchip ${state.fcats.has(k)?'on':''}" onclick="Hub.toggleCat('${k}')"><span class="d" style="background:${c}"></span>${l}</span>`).join('');
+  const tchips=[['vse','Vše'],['internal','Interní (DO)'],...model.threads.map(t=>[t.id,t.label,t.color])].map(a=>{const[id,l,c]=a;return `<span class="fchip ${state.threadView===id?'on':''}" onclick="Hub.setThreadView('${id}')">${c?`<span class="d" style="background:${c}"></span>`:''}${l}</span>`;}).join('');
+  const targetOpts=[['internal','Interní (DO)'],...model.threads.map(t=>[t.id,t.label])].map(([id,l])=>`<option value="${id}" ${state.compTarget===id?'selected':''}>${l}</option>`).join('');
+  const canNote=App.can('notes.add');
+  const canShare=App.can('contacts.edit');
+  const composer=canNote
+    ? `<div class="composer" id="composer"><button class="attach" id="attachBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.5 12 21a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/></svg></button>
+      <select class="scope-sel" id="compTarget" onchange="Hub.setCompTarget(this.value)">${targetOpts}</select>
+      <input id="chatInput" placeholder="Napiš poznámku nebo přetáhni dokument…" onkeydown="if(event.key==='Enter')Hub.send()">
+      <button class="send" id="micBtn" title="Nadiktovat hlasem" onclick="Hub.aiVoice()" style="background:var(--active);color:var(--text)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button>
+      <button class="send" title="Strukturovat zápis pomocí AI" onclick="Hub.aiStructure()" style="background:var(--active);color:var(--accent)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 14.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z"/></svg></button>
+      <button class="send" onclick="Hub.send()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+      <input type="file" id="chatFile" hidden></div>`
+    : `<div class="composer" id="composer" style="justify-content:center;color:var(--text-3);font-size:13px;cursor:default">Jen pro čtení — nemáte oprávnění přidávat zápisy (${App.roleOf().label})</div>`;
+  return `<div class="chat-toolbar"><span class="lbl">Vlákna:</span>${tchips}${canShare?`<button class="fchip" style="border-style:dashed" onclick="Hub.openShare()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a3 3 0 1 0-2.8-4M6 12a3 3 0 1 0 0 0M18 19a3 3 0 1 0-2.8-1.9M8.6 13.5l6.8 4M15.2 6.5l-6.8 4"/></svg> Sdílet odkazem</button>`:''}</div>
+    <div class="chat-toolbar" style="border-top:none;padding-top:0"><span class="lbl">Kategorie:</span>${cats}</div>
+    <div class="chat-stream" id="chatStream" style="flex:1"></div>
+    ${composer}`;
+}
+function renderStream(){const s=document.getElementById('chatStream');if(!s)return;
+  const list=model.chat.filter(m=>state.fcats.has(m.cat)&&(state.threadView==='vse'||m.thread===state.threadView));
+  s.innerHTML=list.map(m=>{
+    if(m.who==='sys'&&m.cat==='system')return `<div class="msg sys"><div class="bubble">${m.text}</div></div>`;
+    const[cl,cc]=CATS[m.cat];const th=threadById(m.thread);const ext=m.thread!=='internal';
+    const tag=`<div class="cat-tag"><span class="d" style="background:${cc}"></span>${cl}${(state.threadView==='vse'&&ext&&th)?` · <span style="color:${th.color}">${th.label}</span>`:''}</div>`;
+    let body=m.text.startsWith('__doc__')?`<div class="doc-bubble" onclick="Hub.openDoc('${m.text.replace('__doc__','').replace(/'/g,'')}')" style="cursor:pointer"><span class="doc-ic">${(m.text.split('.').pop().length<=4?m.text.split('.').pop().toUpperCase():'DOC')}</span><div><div>${m.text.replace('__doc__','')}</div><div class="meta">otevřít · ${m.time||''}</div></div></div>`:`${m.text}<div class="meta">${m.time||''}</div>`;
+    return `<div class="msg ${m.who} ${ext?'scope-pestoun':''}"><div class="bubble" ${ext&&th?`style="border-left-color:${th.color}"`:''}>${tag}${body}</div></div>`;}).join('');
+  s.scrollTop=s.scrollHeight;}
+function wireComposer(){const c=document.getElementById('composer');if(!c)return;const fi=document.getElementById('chatFile'),ab=document.getElementById('attachBtn');if(!ab||!fi)return;ab.onclick=()=>fi.click();fi.onchange=e=>{if(e.target.files[0])Hub._scanFile(e.target.files[0]);};
+  ['dragenter','dragover'].forEach(ev=>c.addEventListener(ev,e=>{e.preventDefault();c.classList.add('drag');}));['dragleave','drop'].forEach(ev=>c.addEventListener(ev,e=>{e.preventDefault();c.classList.remove('drag');}));c.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)Hub._scanFile(f);});document.getElementById('compTarget').value=state.compTarget;}
+
+/* PROFIL */
+const careKeyOf=l=>({'Dlouhodobá':'long','Přechodná':'temp','Příbuzenská':'kin'})[l];
+const isAddr=f=>f.type==='textarea'&&/adres/i.test(f.label);
+const isInst=l=>/OSPOD|Soud|Škol|ZŠ|MŠ|lékař|učitel|jídeln|klub/i.test(l);
+const A=p=>`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`;
+function fIcon(f){const s=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p}</svg>`;
+  if(f.type==='tel')return s('<path d="M22 16.9v3a2 2 0 0 1-2.2 2A19 19 0 0 1 3 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7 13 13 0 0 0 .7 2.6 2 2 0 0 1-.5 2L9 12a16 16 0 0 0 6 6l1.7-1.2a2 2 0 0 1 2-.5 13 13 0 0 0 2.6.7A2 2 0 0 1 22 19z"/>');
+  if(f.type==='email')return s('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
+  if(isAddr(f))return s('<path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>');
+  if(f.type==='date')return s('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>');
+  if(f.type==='number')return s('<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>');
+  if(isInst(f.label))return s('<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5"/>');
+  if(f.type==='select')return s('<path d="M20.6 13.4 12 22l-9-9V3h10z"/><circle cx="7.5" cy="7.5" r="1.5"/>');
+  return s('<circle cx="12" cy="12" r="9"/><path d="M12 8v5l3 2"/>');}
+function fieldRead(f){const v=f.value;let val;
+  if(!v)val='<span class="muted">—</span>';
+  else if(f.type==='tel'){const t=v.replace(/\s+/g,'');val=`<a class="vlink" href="tel:${t}">${v}</a><button class="vact" onclick="Hub.copyText('${v.replace(/'/g,'')}')">${A('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>')} kopírovat</button>`;}
+  else if(f.type==='email')val=`<a class="vlink" href="mailto:${v}">${v}</a>`;
+  else if(isAddr(f)){const q=encodeURIComponent(v);val=`<a class="vlink" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">${v} ${A('<path d="M7 17 17 7M7 7h10v10"/>')}</a><button class="vact" onclick="Hub.showQR('${q}')">${A('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7"/>')} QR mapa</button>`;}
+  else if(f.type==='select'&&careKeyOf(v))val=App.careBadge(careKeyOf(v));
+  else if(isInst(f.label))val=`<a class="vlink" href="hub.html?typ=ostatni">${v} ${A('<path d="M7 17 17 7M7 7h10v10"/>')}</a>`;
+  else val=v;
+  return `<div class="vrow"><div class="k">${fIcon(f)}${f.label}</div><div class="v">${val}${f.old?`<span class="old">${f.old}</span>`:''}</div></div>`;}
+function fieldEdit(sec,f){const onin=`oninput="Hub.setVal('${f.id}',this.value)"`;let ctl;
+  if(f.type==='textarea')ctl=`<textarea ${onin}>${f.value}</textarea>`;
+  else if(f.type==='select')ctl=`<select ${onin}>${(f.options||[]).map(o=>`<option ${o===f.value?'selected':''}>${o}</option>`).join('')}</select>`;
+  else{const t=f.type==='tel'?'tel':f.type==='email'?'email':f.type==='date'?'date':f.type==='number'?'number':'text';ctl=`<input type="${t}" value="${String(f.value).replace(/"/g,'&quot;')}" ${onin}>`;}
+  return `<div class="frow"><input class="flabel" value="${String(f.label).replace(/"/g,'&quot;')}" oninput="Hub.setLabel('${f.id}',this.value)"><div class="fval">${ctl}</div><button class="fdel" onclick="Hub.delField('${sec}','${f.id}')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></div>`;}
+const FT=[['text','Text'],['tel','Telefon'],['email','E-mail'],['date','Datum'],['number','Číslo'],['textarea','Adresa/pozn.'],['select','Výběr']];
+function profilHtml(){
+  const canEdit=App.can('contacts.edit');
+  const editing=state.edit&&canEdit;
+  const btn=canEdit
+    ? `<button class="btn-primary" style="width:auto;padding:9px 16px" onclick="Hub.toggleEdit()">${state.edit?'✓ Hotovo':'✎ Editovat profil'}</button>`
+    : `<span class="badge" style="background:var(--active);color:var(--text-2)">Jen pro čtení (${App.roleOf().label})</span>`;
+  return `<div class="inner">
+    <div style="display:flex;align-items:center;padding:2px 0 14px"><h3 style="margin:0;font-size:15px">Údaje o kontaktu</h3><div style="flex:1"></div>
+      ${btn}</div>
+    <div class="pcard">${model.sections.map(s=>`<div class="psection"><h3>${s.title}</h3>
+      ${s.fields.map(f=>editing?fieldEdit(s.id,f):fieldRead(f)).join('')||(editing?'':'<div class="muted" style="font-size:13px">—</div>')}
+      ${editing?`<div class="addfield"><button class="chip" onclick="Hub.toggleAdd('${s.id}')"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Přidat pole</button>${state.addOpen===s.id?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${FT.map(([t,l])=>`<span class="tag" style="cursor:pointer;background:var(--active)" onclick="Hub.addField('${s.id}','${t}')">${l}</span>`).join('')}</div>`:''}</div>`:''}
+    </div>`).join('')}</div></div>`;
+}
+
+/* DOKUMENTY */
+function docsHtml(){const sub=state.sub||0;let docs=model.docs;
+  if(sub===1)docs=docs.filter(d=>/dohoda|smlouv/i.test(d[0]));
+  else if(sub===2)docs=docs.filter(d=>/zpráv|vyúčtov|report/i.test(d[0]));
+  else if(sub===3)docs=docs.filter(d=>/^(PNG|JPG|GIF|SVG|JPEG)$/i.test(d[1]));
+  const canDel=App.can('docs.delete'); const CAM='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'; const SIGN='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M3 17s3.5 .5 6-2.5 3.5-7 3.5-7M14 8.5l1.6-1.6a2.12 2.12 0 0 1 3 3L13 15.5l-4 1 1-4zM2 21h20"/></svg>';
+  const modelCards=docs.map((row)=>{const [n,k,d,docId]=row; const gi=model.docs.findIndex(x=>x[0]===n&&x[2]===d); const dd=docId?App.docGet(docId):null;
+    const open=docId?`App.openDocPreview('${docId}')`:`Hub.openDocShared(${gi})`;
+    const thumb=dd&&dd.thumb?`<div class="doc-thumb" style="padding:0;overflow:hidden"><img src="${dd.thumb}" style="width:100%;height:100%;object-fit:cover"/></div>`:`<div class="doc-thumb">${k}</div>`;
+    return `<div class="doc-card" style="position:relative" onclick="${open}">${canDel?`<button title="Smazat dokument" onclick="event.stopPropagation();Hub.delDoc(${gi})" style="position:absolute;top:6px;right:6px;border:none;background:var(--alert-due-soft);color:var(--alert-due);width:24px;height:24px;border-radius:7px;cursor:pointer;font-weight:700;line-height:1;z-index:1">✕</button>`:''}${thumb}<div class="dn">${n}</div><div class="dd">${d}${dd?' · náhled':''}</div></div>`;}).join('');
+  const saved=(sub===0&&App.docList&&ID?App.docList(ID).filter(sd=>!model.docs.some(r=>r[3]===sd.id)):[]);
+  const savedCards=saved.map(sd=>{const thumb=sd.thumb?`<div class="doc-thumb" style="padding:0;overflow:hidden"><img src="${sd.thumb}" style="width:100%;height:100%;object-fit:cover"/></div>`:`<div class="doc-thumb">${sd.kind||(sd.src?'IMG':'DOC')}</div>`;const sg=(sd.signatures&&sd.signatures.length)?` · podepsáno (${sd.signatures.length})`:' · náhled';
+    return `<div class="doc-card" style="position:relative" onclick="App.openDocPreview('${sd.id}')">${thumb}<div class="dn">${sd.name}</div><div class="dd">${App.fmtDate(sd.date)}${sg}</div></div>`;}).join('');
+  const allCards=modelCards+savedCards;
+  const tools=App.can('docs.upload')?`<button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="Hub.aiScan()">${CAM}Vyfotit / nahrát a přečíst (AI)</button><button class="btn-secondary" style="width:auto;padding:9px 16px;margin:0;border-color:var(--accent);color:var(--accent)" onclick="Hub.signNew()">${SIGN}Připravit k podpisu</button>`:'';
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px">${tools}</div>
+  <div class="dropbig" id="bigdrop">Přetáhni sem dokumenty (PDF, DOCX, XLSX, MD, PNG, JPG, SVG, GIF…) nebo <a href="#" id="bigpick">vyber soubor</a></div>
+  <div class="docs-grid">${allCards||'<div class="muted" style="padding:8px">V této kategorii zatím nic není.</div>'}</div>`;}
+function historieHtml(){
+  const hist = ID?App.histList(ID):[];
+  const rows = hist.map(h=>`<div class="rec"><div class="when">${App.fmtDate(h.at)}</div><div class="what"><div class="rt">${h.field}</div><div class="rd">${h.from} → ${h.to} · ${h.by}</div></div></div>`).join('');
+  // časová osa vazeb (Modul 5)
+  const h=hubHousehold();
+  const dh=h?App.dohodaHist(h.id):[];
+  const tl=dh.map(x=>`<div class="rec"><div class="when">${App.fmtDate(x.od)}${x.do?'–'+App.fmtDate(x.do):'–dosud'}</div><div class="what"><div class="rt">${x.organizace}</div><div class="rd">Klíčová osoba: ${x.klicovaOsoba||'—'}${x.do?'':' · <b>aktuální</b>'}</div></div></div>`).join('');
+  const diteTl = TYP==='dite' ? App.diteHist(ID).map(x=>`<div class="rec"><div class="when">${App.fmtDate(x.od)}${x.do?'–'+App.fmtDate(x.do):'–dosud'}</div><div class="what"><div class="rt">${x.nazev}</div><div class="rd">${x.druh}</div></div></div>`).join('') : '';
+  return `<div class="inner"><div class="section-title">Historie změn (verzování)</div>
+    ${hist.length?`<div class="recs">${rows}</div>`:'<p class="muted" style="font-size:13px">Zatím žádné zaznamenané změny.</p>'}
+    <div class="section-title">Časová osa doprovázení (organizace / klíčová osoba)</div>
+    <div class="recs">${tl||'<div class="rec"><div class="what"><div class="rd muted">—</div></div></div>'}</div>
+    ${TYP==='dite'?`<div class="section-title">Vývojová osa dítěte (školy / odborníci)</div><div class="recs">${diteTl}</div>`:''}
+    <p class="muted" style="font-size:12px;margin-top:10px">„Nic se nepřepisuje" — změny se verzují (kdo, kdy, stará → nová); vazby (organizace, KO, školy) se vedou s platností od–do (historie přechodů rodiny i mezi organizacemi). V ostré verzi audit log + WORM zálohy.</p></div>`;}
+function wireBigDrop(){const z=document.getElementById('bigdrop');if(!z)return;['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('drag');}));['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('drag');}));z.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)Hub._scanFile(f);});document.getElementById('bigpick').onclick=e=>{e.preventDefault();const i=document.createElement('input');i.type='file';i.onchange=ev=>{if(ev.target.files[0])Hub._scanFile(ev.target.files[0]);};i.click();};}
+
+/* SOCIÁLNÍ PROSTOR */
+function ratingBadge(r){const z=r==='Z';return `<span class="badge" style="background:${z?'var(--alert-due-soft)':'var(--active)'};color:${z?'var(--alert-due)':'var(--text-2)'}">${z?'Z – zákaz styku':'rating '+r}</span>`;}
+function socialGraph(flat){
+  const cx=300,cy=195,R=140,n=flat.length||1;let lines='',nodes='';
+  flat.forEach((p,i)=>{const a=(-90+i*360/n)*Math.PI/180,x=cx+R*Math.cos(a),y=cy+R*Math.sin(a);
+    const z=p.rat==='Z',col=z?'var(--alert-due)':'var(--border-2)';
+    lines+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${col}" stroke-width="${z?3:1.5}" ${z?'stroke-dasharray="5 4"':''}/>`;
+    const fill=p.care?App.CARE[p.care][2]:'var(--avatar-neutral)';
+    const node=p.shape==='sq'?`<rect x="${x-20}" y="${y-20}" width="40" height="40" rx="11" fill="${fill}"/>`:`<circle cx="${x}" cy="${y}" r="20" fill="${fill}"/>`;
+    nodes+=`<g>${node}<text x="${x}" y="${y+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${App.ini(p.n)}</text><text x="${x}" y="${y+34}" text-anchor="middle" font-size="10" fill="var(--text-2)">${p.n.length>15?p.n.slice(0,14)+'…':p.n}${z?' ⛔':''}</text></g>`;});
+  const c=model.shape==='sq'?`<rect x="${cx-34}" y="${cy-34}" width="68" height="68" rx="18" fill="var(--accent)"/>`:`<circle cx="${cx}" cy="${cy}" r="34" fill="var(--accent)"/>`;
+  return `<svg viewBox="0 0 600 400" style="width:100%;max-width:620px;height:auto;display:block;margin:0 auto 6px">${lines}${c}<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="15" font-weight="800" fill="var(--accent-text)">${App.ini(model.name)}</text>${nodes}</svg>`;
+}
+function socialHtml(){
+  const flat=model.social.flatMap(([g,ppl])=>ppl.map(p=>({n:p[0],role:p[1],shape:p[2],care:p[3],photo:p[4],rat:p[5]})));
+  const graph=state.sub!==1?`<div class="section-title">Mapa vztahů</div>
+    <div class="pcard" style="padding:14px">${socialGraph(flat)}
+      <div class="muted" style="font-size:12px;text-align:center">Kruh = dítě · čtverec = dospělý/instituce · barva = typ péče · <span style="color:var(--alert-due)">červená přerušovaná = zákaz styku (Z)</span></div></div>`:'';
+  return `<div class="hub-pane">
+    ${graph}
+    ${model.social.map(([grp,people])=>`<div class="section-title">${grp}</div>
+      ${people.map(([n,role,shape,care,photo,rat])=>`<div class="person">${App.avatar(n,care,photo,40,shape)}<div class="meta"><div class="n">${n}</div><div class="r">${role}</div></div>${ratingBadge(rat)}</div>`).join('')}`).join('')}
+    ${App.can('contacts.edit')?`<div style="padding:12px 2px"><a href="#">+ přidat osobu do sociálního prostoru</a></div>`:''}</div>`;
+}
+
+/* VZDĚLÁVÁNÍ */
+function vzdelavaniHtml(){
+  if(!model.edu) return `<div class="hub-pane"><p class="muted">Vzdělávání se vede u pěstouna. U dítěte sledujeme školu a prospěch (viz Profil → Zdraví a škola).</p></div>`;
+  const e=model.edu, pct=Math.round(e.done/e.req*100);
+  return `<div class="hub-pane">
+    <div class="edu-card"><div class="top"><div><span class="big">${e.done}</span> <span class="sub">/ ${e.req} h (${pct} %)</span></div><div class="sub">povinné roční vzdělávání</div></div>${App.eduBar(e.done,e.req)}
+      <div class="sub" style="margin-top:8px">Zbývá ${Math.max(0,e.req-e.done)} h do konce období.</div></div>
+    ${App.can('contacts.edit')?`<button class="btn-secondary" style="margin:10px 0;width:auto;padding:9px 16px" onclick="Hub.addEdu()">+ Zapsat absolvované vzdělávání</button>`:''}
+    <div class="section-title">Absolvované kurzy</div>
+    <div class="recs">${e.courses.map(([n,h,d])=>`<div class="rec"><div class="when">${d}<div class="dur">${h}</div></div><div class="what"><div class="rt">${n}</div><div class="rd">akreditace MPSV · započítáno</div></div></div>`).join('')}</div></div>`;
+}
+
+/* RESPIT */
+function hubHousehold(){ const o=TYP==='dite'?App.allChildren().find(x=>x.id===ID):App.allFosters().find(x=>x.id===ID); return o?o.household:null; }
+const RTYP={tabor_pobyt:'Tábor / pobyt',asistence_interni:'Hlídání (interní)',asistence_externi:'Hlídání (externí)',doucovani:'Doučování'};
+function respitHtml(){
+  const h=hubHousehold(); if(!h) return `<div class="hub-pane"><p class="muted">Respit se vede u pěstouna / domácnosti.</p></div>`;
+  const hid=h.id; const vyk=App.respitVykazano(hid), real=App.respitRealny(hid), limit=App.respitLimit(hid), nad=App.respitData(hid).nadstandard;
+  const ev=App.respitData(hid).events.slice().sort((a,b)=>b.from.localeCompare(a.from));
+  const warn = vyk>0 && real<vyk;
+  const canEdit=App.can('tasks.manage')||App.can('contacts.edit');
+  return `<div class="hub-pane">
+    <p class="muted" style="margin-top:0">Respit = odlehčení pěstouna. Počítá se <b>na dohodu/rodinu</b> (ne na dítě). Zákonné minimum <b>14 dní/rok</b> (§47a ZSPOD), nadstandard přes IPOD. Pravidlo: <b>i hodina hlídání = celý den</b>.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div class="edu-card" style="flex:1;min-width:240px"><div class="top"><div><span class="big">${vyk}</span> <span class="sub">/ ${limit} dní</span></div><div class="sub">Vykázaný respit (legislativa/finance)</div></div>${App.eduBar(vyk,limit)}
+        <div class="sub" style="margin-top:8px">Zákon 14${nad?` + IPOD ${nad}`:''} = ${limit} dní · zbývá ${Math.max(0,limit-vyk)}.</div></div>
+      <div class="edu-card" style="flex:1;min-width:240px"><div class="top"><div><span class="big" style="color:${real>0?'var(--alert-ok)':'var(--alert-due)'}">${real}</span> <span class="sub">dní</span></div><div class="sub">Skutečný odpočinek pěstouna</div></div>
+        <div class="sub" style="margin-top:8px">Dny, kdy byly <b>všechny ${h.kids.length} děti</b> mimo domov současně.</div></div>
+    </div>
+    ${warn?`<div class="alert due" style="margin-top:10px"><div><div class="a-t">Pěstoun nečerpá souběžný respit</div><div>Organizace vykázala ${vyk} dní podpory, ale pěstoun měl reálné volno jen ${real} dní (vždy měl doma alespoň jedno dítě). Zvažte v IPODu doplnit hlídání pro zbývající děti, aby si pěstoun odpočinul.</div></div></div>`:''}
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      ${canEdit?`<button class="btn-primary" style="width:auto;padding:9px 16px" onclick="Hub.respitOpen()">+ Zaznamenat čerpání respitu</button>`:''}
+      ${App.can('contacts.edit')?`<span class="muted" style="font-size:13px">Nadstandard IPOD (dní): <input type="number" min="0" value="${nad}" onchange="Hub.respitSetNad(this.value)" style="width:64px;border:1px solid var(--border-2);border-radius:8px;padding:6px 8px"></span>`:''}
+    </div>
+    <div class="section-title">Čerpání respitu (${ev.length})</div>
+    <div class="recs">${ev.length?ev.map(e=>`<div class="rec"><div class="when">${App.fmtDate(e.from)}${e.to!==e.from?'–'+App.fmtDate(e.to):''}<div class="dur">${App.respitEventDays(e)} d</div></div><div class="what"><div class="rt">${RTYP[e.typ]||e.typ}</div><div class="rd">${(e.detiIds||[]).map(d=>{const k=App.diteById(d);return k?k.n:d;}).join(', ')||'—'}${e.kc?' · '+e.kc+' Kč':''}${e.doklad?' · '+e.doklad:''}</div></div></div>`).join(''):'<div class="rec"><div class="what"><div class="rd muted">Zatím bez záznamů.</div></div></div>'}</div>
+    ${TYP==='dite'?(()=>{const w=App.spvppWallet(ID),zb=App.spvppZustatek(ID),pct=Math.min(100,Math.round(w.vycerpano/w.rozpocet*100));return `
+    <div class="section-title">SPVPP – finanční peněženka dítěte (${w.rok})</div>
+    <div class="edu-card"><div class="top"><div><span class="big" style="color:${zb<0?'var(--alert-due)':'var(--text)'}">${w.vycerpano.toLocaleString('cs')}</span> <span class="sub">/ ${w.rozpocet.toLocaleString('cs')} Kč</span></div><div class="sub">vyčerpáno na respit/pobyty</div></div>
+      <div style="height:10px;border-radius:6px;background:var(--active);margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${zb<0?'var(--alert-due)':pct>80?'var(--alert-warn)':'var(--alert-ok)'}"></div></div>
+      <div class="sub" style="margin-top:8px">Zůstatek: <b style="color:${zb<0?'var(--alert-due)':'inherit'}">${zb.toLocaleString('cs')} Kč</b>${zb<0?' v mínusu – pobyty stály víc než SPVPP dítěte':''}</div></div>
+    ${App.can('reports.generate')||App.can('contacts.edit')?`<button class="btn-secondary" style="margin:10px 0;width:auto;padding:9px 16px" onclick="Hub.spvppAddCost()">+ Přidat náklad na respit (z dokladu)</button>`:''}`;})():''}
+  </div>`;
+}
+
+/* HLÍDÁNÍ */
+function hlidaniHtml(){
+  const total=model.hlidani.reduce((a,[_,h])=>a+(parseInt(h)||0),0);
+  return `<div class="hub-pane">
+    <p class="muted" style="margin-top:0">Hlídání = krátkodobá péče o dítě (např. při vzdělávání pěstouna). Hrazeno z příspěvku dle § 47a ZSPOD.</p>
+    <div class="section-title">Záznamy hlídání · celkem ${total} h</div>
+    ${model.hlidani.length?`<div class="recs">${model.hlidani.map(([n,h,d])=>`<div class="rec"><div class="when">${d}<div class="dur">${h}</div></div><div class="what"><div class="rt">${n}</div></div></div>`).join('')}</div>`:'<p class="muted">Zatím bez záznamů.</p>'}
+    ${App.can('tasks.manage')?`<button class="btn-secondary" style="margin:12px 0;width:auto;padding:9px 16px">+ Zaznamenat hlídání</button>`:''}</div>`;
+}
+
+/* REPORTY */
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+function aiOverlay(title,body,foot){
+  let o=document.getElementById('aiOverlay');if(o)o.remove();
+  o=document.createElement('div');o.id='aiOverlay';
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
+  o.innerHTML=`<div style="background:var(--surface);border-radius:16px;max-width:520px;width:100%;max-height:85vh;overflow:auto;box-shadow:var(--shadow-pop)">
+    <div style="display:flex;align-items:center;padding:15px 18px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:16px;flex:1">${title}</div><button onclick="Hub.aiClose()" style="border:none;background:none;font-size:20px;cursor:pointer;color:var(--text-2)">✕</button></div>
+    <div style="padding:16px 18px;font-size:14px;line-height:1.5">${body}</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border)">${foot}</div></div>`;
+  o.addEventListener('click',e=>{if(e.target===o)Hub.aiClose();});
+  document.body.appendChild(o);
+}
+let repFrom='2026-01-01', repTo='2026-06-30', repShown=false, repEdit=false;
+window.repPreset=(f,t)=>{repFrom=f;repTo=t;repShown=true;repEdit=false;renderBody();};
+window.repCustom=()=>{const f=document.getElementById('repFrom').value,t=document.getElementById('repTo').value;if(f)repFrom=f;if(t)repTo=t;repShown=true;repEdit=false;renderBody();};
+window.repPrint=()=>App.printReport();
+window.repToggleEdit=()=>{repEdit=!repEdit;renderBody();};
+window.repAIDraft=async()=>{ if(!App.can('reports.generate')){toast('Nemáte oprávnění generovat reporty');return;}
+  const data=App.reportData({etype:TYP,eid:ID,from:repFrom,to:repTo,name:model.name});
+  toast(App.AI.live()?'AI sestavuje report…':'Sestavuji návrh…');
+  const draft=await App.AI.draftReport(data);
+  repShown=true; repEdit=true; renderBody();
+  setTimeout(()=>{ const el=document.querySelector('#reportPrint .rd-summary'); if(el){ el.textContent=draft; el.scrollIntoView({block:'center'}); }
+    const tb=document.querySelector('.report-toolbar'); if(tb&&App.AI.showDisclaimer()&&!document.getElementById('aiRepBanner')){ const b=document.createElement('div'); b.id='aiRepBanner'; b.style.cssText='background:var(--active);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--text-2);margin:8px 0'; b.textContent=App.AI.disclaimer; tb.parentNode.insertBefore(b,tb.nextSibling); } toast('Souhrn navržen AI – zkontrolujte ✓'); },60);
+};
+window.repSave=()=>{const el=document.getElementById('reportPrint');if(!el)return;
+  const name=`Zpráva OSPOD ${App.fmtDate(repFrom)}–${App.fmtDate(repTo)}`;
+  App.saveReport(ID,name,el.innerHTML);
+  repEdit=false; renderBody(); toast('Report uložen a zapsán do chatu ✓');};
+function reportyHtml(){
+  const data=App.reportData({etype:TYP,eid:ID,from:repFrom,to:repTo,name:model.name});
+  const presets=[['1. pololetí 2026','2026-01-01','2026-06-30'],['2. pololetí 2026','2026-07-01','2026-12-31'],['Celý rok 2026','2026-01-01','2026-12-31'],['Poslední 3 měsíce','2026-03-20','2026-06-20']]
+    .map(([l,f,t])=>`<button class="chip" style="cursor:pointer;border:1px solid var(--border-2);${repFrom===f&&repTo===t?'background:var(--active);font-weight:600':''}" onclick="repPreset('${f}','${t}')">${l}</button>`).join('');
+  const saved=App.savedReports(ID);
+  const preview=repShown?`<div class="report-toolbar no-print" style="margin:16px 0 10px">
+      <button class="btn-primary" style="width:auto;padding:9px 16px" onclick="repToggleEdit()">${repEdit?'✓ Hotovo':'✎ Upravit'}</button>
+      ${App.can('reports.generate')?`<button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px;border-color:var(--accent);color:var(--accent)" onclick="repAIDraft()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg>Navrhnout draft (AI)</button><button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px;border-color:var(--accent);color:var(--accent)" onclick="Hub.reportAssistant()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Asistent (dialog)</button>`:''}
+      ${repEdit?`<button class="btn-primary" style="width:auto;padding:9px 16px" onclick="repSave()"> Uložit report</button>`:`<button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="repPrint()"> Tisk / PDF</button>`}
+      <span class="muted" style="font-size:12px">${repEdit?'Klikni do textu/buněk a uprav. Můžeš přidávat i mazat řádky.':'Report vychází z časové osy (chatu). Uprav před odevzdáním na OSPOD.'}</span>
+    </div>
+    <div id="reportPrint" class="report-doc${repEdit?' report-editing':''}">${App.reportInnerHtml(data,repEdit)}</div>`:'';
+  return `<div class="hub-pane">
+    <h3 style="margin:0 0 4px">Report pro OSPOD</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 12px">Vyber období – zpráva se sestaví z časové osy kontaktu (návštěvy, poznámky KO, úkoly, dokumenty, vzdělávání) a lze ji editovat.</p>
+    <div class="report-presets no-print">${presets}</div>
+    <div class="no-print" style="display:flex;gap:8px;align-items:flex-end;margin-top:12px;flex-wrap:wrap">
+      <div><label class="muted" style="font-size:12px;display:block">Od</label><input type="date" id="repFrom" value="${repFrom}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Do</label><input type="date" id="repTo" value="${repTo}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+      <button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="repCustom()">Sestavit náhled</button>
+      ${App.can('reports.generate')?`<button class="btn-primary" style="width:auto;margin:0;padding:9px 16px" onclick="Hub.reportAssistant()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Asistent zprávy (AI)</button>`:''}
+    </div>
+    ${preview}
+    ${saved.length?`<div class="section-title no-print" style="margin-top:22px">Uložené reporty</div><div class="docs-grid no-print" style="padding:0">${saved.map((r,i)=>`<div class="doc-card" onclick="repOpenSaved(${i})"><div class="doc-thumb">PDF</div><div class="dn">${r.name}</div><div class="dd">${App.fmtDate(r.date)}</div></div>`).join('')}</div>`:''}</div>`;
+}
+window.repOpenSaved=(i)=>{const r=App.savedReports(ID)[i];if(!r)return;
+  const w=document.getElementById('tabwrap');
+  w.innerHTML=`<div class="hub-pane"><div class="report-toolbar no-print" style="margin-bottom:10px"><button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="renderBody()">‹ Zpět na reporty</button><button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="repPrint()"> Tisk / PDF</button></div><div id="reportPrint" class="report-doc">${r.html}</div></div>`;};
+
+/* MAPA */
+function mapaHtml(){
+  const center=encodeURIComponent(model.mapAddrs[0]?model.mapAddrs[0][1]:'Brno');
+  return `<div class="hub-pane">
+    <iframe title="mapa" style="width:100%;height:380px;border:0;border-radius:12px" loading="lazy" src="https://maps.google.com/maps?q=${center}&z=12&output=embed"></iframe>
+    <p class="muted" style="font-size:12px;margin:10px 0 4px">Body se generují automaticky z dat kontaktu (bydliště, škola, pobyt biologických rodičů, tábory, aktivity…).</p>
+    <div class="section-title">Adresy (špendlíky)</div>
+    ${model.mapAddrs.map(([label,addr,col])=>`<div class="vrow" style="grid-template-columns:1fr auto"><div class="k"><span style="width:10px;height:10px;border-radius:50%;background:${col};display:inline-block;margin-right:8px"></span>${label}<div style="color:var(--text);font-weight:500;margin-top:2px;margin-left:18px">${addr}</div></div><div class="v"><a class="vlink" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}">Mapa ↗</a></div></div>`).join('')}</div>`;
+}
+
+/* KALENDÁŘ kontaktu (4 pohledy) */
+let hubCalView='week';
+window.setHubCal=v=>{hubCalView=v;renderBody();};
+const CTYPE={visit:'var(--green)',contact:'var(--cyan)',term:'var(--orange)',edu:'var(--blue)',other:'#8B5CF6'};
+const cIso=d=>`2026-06-${String(d).padStart(2,'0')}`, cDOW=['Po','Út','St','Čt','Pá','So','Ne'], cMin=t=>{const[a,b]=t.split(':').map(Number);return a*60+b;};
+function calEv(){const mk=(day,start,dur,title,type)=>({date:cIso(day),start,dur,title,type,color:CTYPE[type]});
+  if(TYP==='dite')return[mk(5,'09:00',120,'Zpráva pro OSPOD','term'),mk(12,'15:00',90,'Asistovaný kontakt s matkou','contact'),mk(25,'14:00',60,'Návštěva KO','visit'),mk(30,'16:30',60,'Besídka ve škole','other')];
+  if(TYP==='ostatni')return[mk(15,'10:00',60,'Telefonát – domluva','contact')];
+  return[mk(10,'13:00',240,'Seminář – vzdělávání','edu'),mk(25,'14:00',90,'Návštěva v domácnosti','visit'),mk(30,'10:00',90,'Roční vyhodnocení dohody','term')];}
+function calHol(isoStr){const h=App.holidaysFor(isoStr),p=[];if(h.state)p.push(`<span style="color:var(--alert-due)">${h.state}</span>`);if(h.nameday)p.push(`<span class="muted">${h.nameday}</span>`);return p.length?`<div style="font-size:10px;font-weight:400;margin-top:2px">${p.join(' · ')}</div>`:'';}
+function calHead(title,badge){return `<div class="cal-head" style="padding:0 0 12px"><h3 style="margin:0">${title}</h3>${badge?`<span class="chip">${badge}</span>`:''}<div style="flex:1"></div><div class="seg">${[['month','Měsíc'],['week','Týden'],['3day','3 dny'],['agenda','Agenda']].map(([k,l])=>`<button class="${hubCalView===k?'on':''}" onclick="setHubCal('${k}')">${l}</button>`).join('')}</div></div>`;}
+function calMonthH(){const ev=calEv();let cells='';for(let i=1;i<=35;i++){const out=i>30,num=out?i-30:i,di=cIso(i);
+  const e=(!out)?ev.filter(x=>x.date===di).map(x=>`<div class="cal-ev" style="background:color-mix(in srgb, ${x.color} 16%, var(--surface));border-left:3px solid ${x.color};color:var(--text)">${x.start} ${x.title}</div>`).join(''):'';
+  cells+=`<div class="cal-cell ${out?'out':''} ${(!out&&i===20)?'today':''}"><span class="dnum">${out?num+'. 7.':num}</span>${!out?calHol(di):''}${e}</div>`;}
+  return `<div class="cal-grid">${cDOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}${cells}</div>`;}
+function calTimeH(days){const H0=7,H1=20,hh=44,ev=calEv();const hrs=[];for(let h=H0;h<=H1;h++)hrs.push(`<div class="hr">${h}:00</div>`);
+  const head=`<div class="tg-head" style="grid-template-columns:54px repeat(${days.length},1fr)"><div class="th"></div>${days.map(d=>`<div class="th ${d.iso==='2026-06-20'?'today':''}">${cDOW[(d.d-1)%7]}<div class="dn">${d.d}</div>${calHol(d.iso)}</div>`).join('')}</div>`;
+  const cols=days.map(d=>{const evs=ev.filter(e=>e.date===d.iso).map(e=>{const top=(cMin(e.start)-H0*60)/60*hh,ht=Math.max(22,e.dur/60*hh-2);
+    return `<div class="tg-ev" style="top:${top}px;height:${ht}px;background:color-mix(in srgb, ${e.color} 16%, var(--surface));border-left-color:${e.color}"><div class="te-time">${e.start}</div><div class="te-t">${e.title}</div></div>`;}).join('');
+    const now=d.iso==='2026-06-20'?`<div class="tg-now" style="top:${(cMin('14:20')-H0*60)/60*hh}px"></div>`:'';return `<div class="tg-col">${evs}${now}</div>`;}).join('');
+  return `${head}<div style="overflow:auto;flex:1"><div class="tg-body"><div class="tg-gutter">${hrs.join('')}</div><div class="tg-cols" style="grid-template-columns:repeat(${days.length},1fr);height:${(H1-H0+1)*hh}px">${cols}</div></div></div>`;}
+function calAgendaH(){const ev=calEv().slice().sort((a,b)=>a.date.localeCompare(b.date)||cMin(a.start)-cMin(b.start));const by={};ev.forEach(e=>{(by[e.date]=by[e.date]||[]).push(e);});
+  return `<div class="agenda" style="padding:8px 0">${Object.keys(by).sort().map(dt=>{const d=parseInt(dt.slice(8,10));return `<div class="ag-day">${d}. 6. · ${cDOW[(d-1)%7]} ${calHol(dt)}</div>`+by[dt].map(e=>`<div class="ag-row" style="border-left-color:${e.color}"><div class="ag-time">${e.start}</div><div class="ag-t">${e.title}</div></div>`).join('');}).join('')}</div>`;}
+function calDays(v){const a=[];if(v==='week')for(let d=15;d<=21;d++)a.push({d,iso:cIso(d)});else if(v==='3day')for(let d=20;d<=22;d++)a.push({d,iso:cIso(d)});return a;}
+function calendarHtml(){let body,title='Červen 2026',badge='';
+  if(hubCalView==='month')body=calMonthH();
+  else if(hubCalView==='agenda'){body=calAgendaH();title='Agenda · červen 2026';}
+  else {body=calTimeH(calDays(hubCalView));badge='Týden '+App.isoWeek(hubCalView==='week'?cIso(15):cIso(20));title=hubCalView==='week'?'Červen 2026 · 15.–21.':'Červen 2026 · 20.–22.';}
+  return `<div class="cal" style="display:flex;flex-direction:column">${calHead(title,badge)}${body}</div>`;}
+
+/* sdílet odkazem – form */
+function renderShare(){const L=state.link,inf=L.unit==='neomezeně';
+  const presets=LINK_PRESETS.map(([n,u])=>{const on=(u==='neomezeně'&&inf)||(L.num===n&&L.unit===u);const lbl=u==='neomezeně'?'∞ neomezeně':`${n} ${u}`;return `<span class="tag" style="cursor:pointer;${on?'background:var(--text);color:#fff':'background:var(--active)'}" onclick="Hub.preset(${n},'${u}')">${lbl}</span>`;}).join('');
+  document.getElementById('shareBody').innerHTML=`
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:12px">Odkaz otevře <b>jen tento chat</b> (na mobilu lze uložit jako ikonu na plochu). Příjemce nevidí nic dalšího ze systému.</div>
+    <label class="muted" style="font-size:12px">S kým (jméno příjemce – volitelné)</label>
+    <input style="width:100%;border:1px solid var(--border-2);border-radius:var(--r-md);padding:9px 11px;margin:4px 0 14px" placeholder="např. Pěstoun, OSPOD, ředitel…" value="${L.name.replace(/"/g,'&quot;')}" oninput="Hub.setLink('name',this.value)">
+    <label class="muted" style="font-size:12px">Co se s příjemcem sdílí</label>
+    <div style="display:flex;gap:8px;margin:6px 0 14px;flex-wrap:wrap">
+      <span class="fchip ${L.share==='nic'?'on':''}" onclick="Hub.setLink('share','nic')">Nic – jen komunikace + přílohy <span style="opacity:.7">(výchozí)</span></span>
+      <span class="fchip ${L.share==='vyber'?'on':''}" onclick="Hub.setLink('share','vyber')">Vybrané položky…</span></div>
+    <label class="muted" style="font-size:12px">Platnost odkazu</label>
+    <div style="display:flex;gap:8px;align-items:center;margin:6px 0 8px">
+      <input type="number" min="1" ${inf?'disabled':''} value="${inf?'':L.num}" style="width:80px;border:1px solid var(--border-2);border-radius:var(--r-md);padding:9px 11px" oninput="Hub.setLink('num',+this.value)">
+      <select style="flex:1;border:1px solid var(--border-2);border-radius:var(--r-md);padding:9px 11px" onchange="Hub.setLink('unit',this.value)">${UNITS.map(([v,l])=>`<option value="${v}" ${L.unit===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${presets}</div>
+    <div id="linkResult" style="display:none;margin-top:16px;background:var(--hover);border-radius:var(--r-md);padding:12px">
+      <div class="muted" style="font-size:12px;margin-bottom:6px">Odkaz vytvořen (ukázka). Lze kdykoli zneplatnit.</div>
+      <div style="display:flex;gap:8px"><input id="linkUrl" readonly style="flex:1;border:1px solid var(--border-2);border-radius:var(--r-md);padding:8px 10px;font-size:12px"><button class="btn-secondary" style="width:auto;margin:0;padding:8px 12px" onclick="Hub.copyLink()">Kopírovat</button></div></div>`;
+}
+
+/* avatar modál */
+function renderModalPreview(){const img=document.getElementById('dzPreview'),txt=document.getElementById('dzText');if(state.avatarPreview){img.src=state.avatarPreview;img.style.display='block';img.style.borderRadius=model.shape==='sq'?'14%':'50%';txt.style.display='none';}else{img.style.display='none';txt.style.display='block';}}
+function renderPresets(){document.getElementById('presetGrid').innerHTML=PRESETS.map(u=>`<div class="preset ${state.avatarPreview===u?'sel':''}" onclick="Hub.pickPreset('${u}')"><img src="${u}"></div>`).join('');}
+function resizeDataURL(src,max,cb){const img=new Image();img.onload=()=>{let w=img.width,h=img.height;const s=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.9));};img.src=src;}
+function handleFile(file){if(!file||!file.type.startsWith('image/'))return;const r=new FileReader();r.onload=e=>resizeDataURL(e.target.result,512,d=>{state.avatarPreview=d;renderModalPreview();renderPresets();});r.readAsDataURL(file);}
+(function(){const dz=document.getElementById('dropzone'),fi=document.getElementById('fileInput');dz.onclick=()=>fi.click();fi.onchange=e=>handleFile(e.target.files[0]);['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));dz.addEventListener('drop',e=>handleFile(e.dataTransfer.files[0]));})();
+
+renderSide(); renderHead(); renderSecbar(); renderBody();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Provoz & zaměstnanci · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Provoz</div>
+    <div class="nav"><div class="nav-item active">Zaměstnanci & náklady</div></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Provoz & zaměstnanci</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Manažerský přehled (nesupluje účetní/mzdy). Docházka = podklad pro mzdovou účetní. Smlouvy s hlídáním konce platnosti.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Provoz');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop)';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1600);}
+const P={
+  addAbsence(zid){ const z=App.zamestnanci().find(x=>x.id===zid); const typ=prompt('Typ (Dovolená/Nemocenská/Lékař/Přesčas):','Dovolená'); if(!typ)return; const od=prompt('Od (YYYY-MM-DD):',App.todayISO); if(!od)return; const dod=prompt('Do (YYYY-MM-DD):',od); App.absenceAdd(zid,{typ,od,do:dod||od}); toast('Absence zapsána'); render(); },
+  addNaklad(){ const n=document.getElementById('pn-naz').value.trim(); if(!n){toast('Zadej název');return;} App.provozAdd({nazev:n,typ:document.getElementById('pn-typ').value,poskytovatel:document.getElementById('pn-posk').value,castka:parseInt(document.getElementById('pn-castka').value,10)||0,perioda:document.getElementById('pn-typ').value==='smlouva'?'měsíc':'jednorázově',platnostOd:document.getElementById('pn-od').value,platnostDo:document.getElementById('pn-do').value,kategorie:document.getElementById('pn-kat').value}); toast('Náklad přidán'); render(); },
+};
+window.P=P;
+function render(){
+  if(!App.can('users.manage')){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Jen vedení/superadmin.</p></div></div>'; return; }
+  const zam=App.zamestnanci(); const pn=App.provozNaklady(); const expir=App.provozExpiring(120);
+  const mzdy=zam.reduce((a,z)=>a+z.mzda,0); const rezie=pn.filter(p=>p.typ==='smlouva').reduce((a,p)=>a+p.castka,0);
+  body.innerHTML=`
+  ${expir.length?`<div class="alert warn" style="margin-bottom:12px"><div><div class="a-t">Končící smlouvy (do 120 dní)</div><div>${expir.map(p=>p.nazev+' (do '+App.fmtDate(p.platnostDo)+')').join(' · ')}</div></div></div>`:''}
+  <div class="pcard"><div class="psection"><h3>Zaměstnanci (${zam.length}) · mzdový náklad ${mzdy.toLocaleString('cs')} Kč/měs.</h3>
+    <table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Jméno</th><th>Pozice</th><th>Úvazek</th><th>Mzd. náklad</th><th>Absence</th><th></th></tr></thead><tbody>
+    ${zam.map(z=>`<tr><td>${z.jmeno}</td><td>${z.pozice}</td><td>${z.uvazek}</td><td>${z.mzda.toLocaleString('cs')} Kč</td><td>${z.absence.map(a=>a.typ+' '+App.fmtDate(a.od)+(a.do!==a.od?'–'+App.fmtDate(a.do):'')).join('; ')||'—'}</td><td><button class="vact" onclick="P.addAbsence('${z.id}')">+ absence</button></td></tr>`).join('')}
+    </tbody></table></div></div>
+  <div class="pcard"><div class="psection"><h3>Provozní náklady & smlouvy · ${rezie.toLocaleString('cs')} Kč/měs. (smlouvy)</h3>
+    <table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Název</th><th>Typ</th><th>Poskytovatel</th><th>Částka</th><th>Perioda</th><th>Platnost do</th><th>Kategorie</th></tr></thead><tbody>
+    ${pn.map(p=>`<tr><td>${p.nazev}</td><td>${p.typ==='smlouva'?'Smlouva':'Jednorázový'}</td><td>${p.poskytovatel||'—'}</td><td>${(p.castka||0).toLocaleString('cs')} Kč</td><td>${p.perioda}</td><td>${p.platnostDo?App.fmtDate(p.platnostDo):'—'}</td><td>${p.kategorie||'—'}</td></tr>`).join('')}
+    </tbody></table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
+      <div><label class="muted" style="font-size:12px;display:block">Název</label><input id="pn-naz" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Typ</label><select id="pn-typ" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)"><option value="smlouva">Smlouva (opakující)</option><option value="jednorazovy">Jednorázový</option></select></div>
+      <div><label class="muted" style="font-size:12px;display:block">Poskytovatel</label><input id="pn-posk" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Částka</label><input type="number" id="pn-castka" value="0" style="width:100px;border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Platnost od</label><input type="date" id="pn-od" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">do</label><input type="date" id="pn-do" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Kategorie</label><input id="pn-kat" placeholder="Nájem/IT/Auta…" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="P.addNaklad()">+ Náklad</button>
+    </div></div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

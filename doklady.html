@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Doklady přijaté · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Doprovázení"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org" title="Přepnout organizaci / nastavení">
+      <div class="org-logo">D</div>
+      <div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div>
+    </div>
+    <button class="btn-primary" style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px" onclick="Dok.add()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Nahrát doklad / fakturu</button>
+    <div class="sec-label">Backstage (vedení/ekonom)</div>
+    <div class="nav"><div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l3 3v17H6z"/></svg> Doklady přijaté Respit</div></div>
+    <div class="side-foot"><div class="sep-line"></div>
+      <div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">Martin Dvořák</div><div class="r">Doprovázející pracovník</div></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Doklady přijaté – Respit / SPVPP</h2><div class="spacer"></div>
+      <div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div>
+    </div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Faktury/účtenky/výkazy za tábory a pobyty. Položkově: každé dítě = řádek s vlastní částkou → ponížení SPVPP dítěte + dny respitu pěstounovi. Backstage (NE klíčová osoba/pěstoun/dítě).</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Doklady');
+App.initTheme(document.getElementById('themeseg'));
+const gate = App.can('users.manage'); // vedení/superadmin (backstage)
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+
+const Dok={
+  add(){ if(!gate){toast('Backstage – jen vedení/ekonom');return;}
+    const i=document.createElement('input');i.type='file';i.accept='image/*';
+    i.onchange=async e=>{ const f=e.target.files[0]; if(!f)return; App.progressStart(); toast(App.AI.live()?'AI čte fakturu…':'Načítám…');
+      const buf=await f.arrayBuffer();const by=new Uint8Array(buf);let bin='';for(let k=0;k<by.length;k++)bin+=String.fromCharCode(by[k]);
+      const mime=f.type||'image/jpeg'; const src='data:'+mime+';base64,'+btoa(bin);
+      const inv=await App.AI.ocrInvoice(btoa(bin),mime); App.progressStop();
+      // namapovat jména na děti
+      const items=(inv.items||[]).map(it=>{ const kid=App.allChildren().find(k=>k.n.toLowerCase().includes((it.name||'').toLowerCase().split(' ').slice(-1)[0]||' ')); return {diteId:kid?kid.id:'',name:it.name||'',kc:it.amount||0}; });
+      const d=App.dokladAdd({total:inv.total||0,src,items:items.length?items:[{diteId:'',name:'',kc:0}]});
+      render(d.id);
+    };
+    i.click();
+  },
+  setItem(did,idx,field,val){ const d=App.doklady().find(x=>x.id===did); if(!d)return; if(field==='kc')val=parseInt(val,10)||0; d.items[idx][field]=val; },
+  addRow(did){ const d=App.doklady().find(x=>x.id===did); d.items.push({diteId:'',name:'',kc:0}); render(did); },
+  delRow(did,idx){ const d=App.doklady().find(x=>x.id===did); d.items.splice(idx,1); render(did); },
+  setField(did,field,val){ const d=App.doklady().find(x=>x.id===did); if(d)d[field]=val; },
+  allocate(did){ const d=App.doklady().find(x=>x.id===did); if(!d)return;
+    if(!d.items.some(it=>it.diteId&&it.kc)){toast('Přiřaď aspoň jedno dítě s částkou');return;}
+    App.dokladAllocate(did); toast('Rozúčtováno na SPVPP + dny respitu ✓'); render(did);
+  },
+};
+window.Dok=Dok;
+
+function childOpts(sel){ return '<option value="">— dítě —</option>'+App.allChildren().map(k=>`<option value="${k.id}" ${sel===k.id?'selected':''}>${k.n} (${k.household.name.replace('Domácnost ','')})</option>`).join(''); }
+function render(openId){
+  if(!gate){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Doklady spravuje vedení/ekonom. Vaše role nemá přístup.</p><button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="App.openRoleSwitcher()">Přepnout uživatele…</button></div></div>'; return; }
+  const ds=App.doklady();
+  body.innerHTML=`<div class="pcard"><div class="psection"><h3>Jak to funguje</h3>
+    <p class="muted" style="font-size:13px">Nahraj fakturu/účtenku (tlačítko vlevo). AI přečte <b>položky</b> (jméno dítěte → částka). Zkontroluj/oprav rozúčtování a klikni <b>Schválit a rozúčtovat</b> – systém poníží SPVPP konkrétních dětí a zapíše dny respitu jejich pěstounům. Pokud AI selže, doplň řádky ručně.</p></div>
+  ${ds.length?ds.map(d=>dokladCard(d,openId===d.id)).join(''):'<div class="psection"><p class="muted">Zatím žádné doklady. Nahraj první fakturu.</p></div>'}
+  </div>`;
+}
+function dokladCard(d,open){
+  const sumItems=d.items.reduce((a,it)=>a+(it.kc||0),0);
+  const done=d.stav==='zauctovano';
+  return `<div class="psection" style="${open?'outline:2px solid var(--accent);border-radius:10px':''}">
+    <h3>${d.cislo} ${done?'<span class="badge ok">Zaúčtováno</span>':'<span class="badge warn">Návrh</span>'}</h3>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      ${d.src?`<img src="${d.src}" style="max-width:180px;max-height:160px;border-radius:8px;border:1px solid var(--border)"/>`:''}
+      <div style="flex:1;min-width:280px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div><label class="muted" style="font-size:12px;display:block">Termín od</label><input type="date" value="${d.datumOd}" ${done?'disabled':''} onchange="Dok.setField('${d.id}','datumOd',this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px"></div>
+          <div><label class="muted" style="font-size:12px;display:block">do</label><input type="date" value="${d.datumDo}" ${done?'disabled':''} onchange="Dok.setField('${d.id}','datumDo',this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px"></div>
+          <div><label class="muted" style="font-size:12px;display:block">Celkem dle dokladu</label><div style="padding:6px 0;font-weight:600">${(d.total||0).toLocaleString('cs')} Kč</div></div>
+        </div>
+        <table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Dítě (řádek faktury)</th><th>Částka (Kč)</th>${done?'':'<th></th>'}</tr></thead><tbody>
+          ${d.items.map((it,i)=>`<tr>
+            <td>${done?(App.diteById(it.diteId)?App.diteById(it.diteId).n:it.name):`<select onchange="Dok.setItem('${d.id}',${i},'diteId',this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:5px 7px;background:var(--surface);max-width:240px">${childOpts(it.diteId)}</select> ${it.name?`<span class="muted" style="font-size:11px">(${it.name})</span>`:''}`}</td>
+            <td>${done?(it.kc||0).toLocaleString('cs'):`<input type="number" value="${it.kc||0}" onchange="Dok.setItem('${d.id}',${i},'kc',this.value)" style="width:110px;border:1px solid var(--border-2);border-radius:8px;padding:5px 7px">`}</td>
+            ${done?'':`<td class="no-print"><button onclick="Dok.delRow('${d.id}',${i})" style="border:none;background:var(--alert-due-soft);color:var(--alert-due);border-radius:6px;width:24px;height:24px;cursor:pointer">✕</button></td>`}
+          </tr>`).join('')}
+        </tbody></table>
+        <div style="margin-top:6px;font-size:13px">Součet řádků: <b>${sumItems.toLocaleString('cs')} Kč</b>${d.total&&sumItems!==d.total?` <span style="color:var(--alert-warn)">(≠ celkem ${d.total.toLocaleString('cs')} Kč)</span>`:''}</div>
+        ${done?'<div class="muted" style="font-size:12px;margin-top:8px">Zaúčtováno – SPVPP dětí poníženo, dny respitu zapsány pěstounům.</div>'
+          :`<div style="margin-top:10px;display:flex;gap:8px"><button class="btn-secondary" style="width:auto;margin:0;padding:8px 14px" onclick="Dok.addRow('${d.id}')">+ řádek</button><button class="btn-primary" style="width:auto;padding:8px 16px" onclick="Dok.allocate('${d.id}')">Schválit a rozúčtovat</button></div>`}
+      </div>
+    </div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>

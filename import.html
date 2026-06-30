@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Import dat · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Import</div>
+    <div class="nav" id="balicky"></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Počáteční import dat</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Bezstresový import: pískoviště (staging) → validace/autopilot → oprava chyb → ostrý zápis. Vše lze vrátit (Rollback). Formáty .xlsx/.csv.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Import');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop)';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1600);}
+const PKG={ importTym:{name:'Tým (zaměstnanci/externisté)',cols:['Jméno','Role','Smlouva','Sazba','E-mail'],demo:'Jméno;Role;Smlouva;Sazba;E-mail\n  Jana Klíčová ;Klíčová osoba;HPP;;jana@org.cz\nIT Petr;IT;OSVČ;600;'},
+  importKmen:{name:'Kmen pěstounů a dětí',cols:['Pěstoun','Rodné číslo','Číslo dohody','Děti'],demo:'Pěstoun;Rodné číslo;Číslo dohody;Děti\nJan a Marie Novákovi;800101/1234;D-2023/118;Tereza Marková, Adam Beneš\nMarie Svobodová;;D-2025/044;Lukáš Dohnal'},
+  importAdresarOstatni:{name:'Adresář „Ostatní" (deduplikace)',cols:['Název','Typ','Telefon','E-mail','IČO'],demo:'Název;Typ;Telefon;E-mail;IČO\nOSPOD Brno-střed;OSPOD;542526111;ospod@brno-stred.cz;44992785\nNová poradna;Psycholog;; poradna@x.cz ;'} };
+let pkg='importKmen', stage=null;
+const I={ pick(p){pkg=p;stage=null;render();}, demo(){document.getElementById('imp-csv').value=PKG[pkg].demo;},
+  parse(){ const raw=document.getElementById('imp-csv').value.trim(); if(!raw){toast('Vlož CSV nebo načti vzor');return;}
+    const lines=raw.split(/\r?\n/).filter(x=>x.trim()); const head=lines[0].split(';').map(s=>s.trim());
+    const rows=lines.slice(1).map((ln,i)=>{ const cells=ln.split(';'); const o={__i:i,__err:[],__fix:[]};
+      head.forEach((h,j)=>{ let v=(cells[j]||'').trim();
+        if(/rodné|číslo/i.test(h)&&/rodn/i.test(h)){ if(v&&!/^\d{6}\/?\d{3,4}$/.test(v.replace(/\s/g,''))) o.__err.push(h+' špatný formát'); }
+        if(/telefon/i.test(h)&&v){ const t=v.replace(/\s/g,''); if(/^\d{9}$/.test(t)){v='+420'+t;o.__fix.push('telefon');} }
+        if(/jméno|pěstoun|název/i.test(h)&&!v) o.__err.push(h+' chybí');
+        o[h]=v; });
+      return o; });
+    stage={head,rows,done:false}; render();
+  },
+  fix(i,h,val){ stage.rows[i][h]=val; stage.rows[i].__err=stage.rows[i].__err.filter(e=>!e.startsWith(h)); },
+  commit(){ const bad=stage.rows.filter(r=>r.__err.length); if(bad.length){toast('Oprav '+bad.length+' chybných řádků');return;} stage.done=true; toast(stage.rows.length+' řádků zapsáno do CRM ✓ (staging→ostré)'); render(); },
+  rollback(){ stage=null; toast('Import vrácen zpět (staging vymazán)'); render(); } };
+window.I=I;
+function render(){
+  if(!App.can('users.manage')){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Import spravuje vedení.</p></div></div>'; return; }
+  document.getElementById('balicky').innerHTML=Object.entries(PKG).map(([k,v])=>`<div class="nav-item ${pkg===k?'active':''}" onclick="I.pick('${k}')">${v.name}</div>`).join('');
+  const p=PKG[pkg];
+  let h=`<div class="pcard"><div class="psection"><h3>${p.name}</h3>
+    <p class="muted" style="font-size:13px">Očekávané sloupce: <b>${p.cols.join(' · ')}</b>. Stáhni si vzor, vyplň v Excelu a vlož sem obsah (CSV s „;"). Autopilot opraví mezery, formáty dat a telefonů; chyby ukáže k ruční opravě.</p>
+    <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn-secondary" style="width:auto;padding:7px 12px" onclick="I.demo()">Načíst vzor</button><button class="btn-secondary" style="width:auto;padding:7px 12px" onclick="toast('Šablona .xlsx (prototyp)')">⬇ Šablona .xlsx</button></div>
+    <textarea id="imp-csv" placeholder="Vlož CSV…" style="width:100%;min-height:120px;border:1px solid var(--border-2);border-radius:10px;padding:10px;font-family:monospace;font-size:12px"></textarea>
+    <div style="margin-top:8px"><button class="btn-primary" style="width:auto;padding:9px 16px" onclick="I.parse()">Zkontrolovat (do pískoviště)</button></div>
+  </div></div>`;
+  if(stage){ const errCnt=stage.rows.filter(r=>r.__err.length).length, fixCnt=stage.rows.filter(r=>r.__fix.length).length;
+    h+=`<div class="pcard"><div class="psection"><h3>Pískoviště – kontrola (${stage.rows.length} řádků)</h3>
+      <p class="muted" style="font-size:13px">${stage.rows.length} načteno · ${fixCnt} automaticky opraveno · <b style="color:${errCnt?'var(--alert-due)':'var(--alert-ok)'}">${errCnt} chyb k opravě</b>. ${pkg==='importKmen'?'Manželské páry („Jan a Marie") rozpoznány jako pěstoun+spolupěstoun. Zletilost dětí by se ověřila.':''} ${pkg==='importAdresarOstatni'?'Deduplikace dle IČO/e-mailu (existující se aktualizuje, ne duplikuje).':''}</p>
+      <table class="rd-rows" style="font-size:12px;width:100%"><thead><tr>${stage.head.map(c=>`<th>${c}</th>`).join('')}<th>Stav</th></tr></thead><tbody>
+      ${stage.rows.map(r=>`<tr style="${r.__err.length?'background:var(--alert-due-soft)':''}">${stage.head.map(c=>`<td>${stage.done?String(r[c]||''):`<input value="${String(r[c]||'').replace(/"/g,'&quot;')}" onchange="I.fix(${r.__i},'${c}',this.value)" style="border:1px solid var(--border-2);border-radius:6px;padding:4px 6px;width:100%;font-size:12px">`}</td>`).join('')}<td>${r.__err.length?' '+r.__err.join(', '):(r.__fix.length?'✏ opraveno':'✓')}</td></tr>`).join('')}
+      </tbody></table>
+      <div style="margin-top:10px;display:flex;gap:8px">${stage.done?`<span class="badge ok">Zapsáno do CRM</span> <button class="btn-secondary" style="width:auto;padding:8px 16px;border-color:var(--alert-due);color:var(--alert-due)" onclick="I.rollback()">Smazat import a vrátit zpět</button>`:`<button class="btn-primary" style="width:auto;padding:9px 16px" onclick="I.commit()">Zapsat data do CRM</button><button class="btn-secondary" style="width:auto;padding:9px 16px" onclick="I.rollback()">Zrušit</button>`}</div>
+    </div></div>`;
+  }
+  body.innerHTML=h;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

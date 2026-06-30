@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reporty · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+<style>
+@media print{ .rail,.side,.topbar,.no-print{display:none!important} .main{margin:0!important} .content{padding:0!important} .pcard{break-inside:avoid} }
+.rep-header{display:none}
+@media print{ .rep-header{display:flex!important;align-items:center;gap:12px;border-bottom:2px solid var(--accent);padding-bottom:10px;margin-bottom:14px} }
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.menu{position:relative;display:inline-block}
+.menu-pop{position:absolute;right:0;top:38px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-pop);z-index:50;min-width:170px;overflow:hidden;display:none}
+.menu-pop.open{display:block}
+.menu-pop button{display:block;width:100%;text-align:left;border:none;background:none;padding:10px 14px;cursor:pointer;font-size:13px}
+.menu-pop button:hover{background:var(--hover)}
+.sw{display:inline-flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;user-select:none}
+.sw input{display:none}
+.sw .track{width:38px;height:22px;border-radius:12px;background:var(--border-2,#ccc);position:relative;transition:.2s}
+.sw .track::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw input:checked + .track{background:var(--accent)}
+.sw input:checked + .track::after{transform:translateX(16px)}
+</style>
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <div class="sec-label">Období</div>
+    <div class="nav" id="pernav"></div>
+    <div class="sec-label" style="margin-top:14px">Pohled</div>
+    <div class="nav" id="scopenav"></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" id="uav" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">—</span><div class="meta"><div class="n" id="un">—</div><div class="r" id="ur">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar no-print"><h2 style="margin-right:8px" id="ttl">Reporty</h2><div class="spacer"></div>
+      <label class="sw" title="Zobrazit grafy"><input type="checkbox" id="chSw" onchange="R.toggleCharts(this.checked)"><span class="track"></span>Grafy</label>
+      <div class="menu" style="margin-left:10px"><button class="btn-secondary" style="width:auto;padding:8px 14px" onclick="R.menu(event)">Export ▾</button>
+        <div class="menu-pop" id="expMenu">
+          <button onclick="R.exp('pdf')"> PDF / tisk</button>
+          <button onclick="R.exp('xls')"> Excel (.xls)</button>
+          <button onclick="R.exp('csv')"> CSV</button>
+          <button onclick="R.exp('md')"> Markdown</button>
+          <button onclick="R.exp('xml')"> XML</button>
+          <button onclick="R.exp('json')">{ } JSON</button>
+        </div></div>
+      <a class="btn-secondary settingsLink" style="width:auto;padding:8px 12px;margin-left:8px;text-decoration:none;display:none" id="cfgLink" href="report-nastaveni.html" title="Šablony, design, automatizace">⚙︎</a>
+      <div class="seg theme-switch" id="themeseg" style="margin-left:8px"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div>
+    </div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote" id="foot">Reporty respektují roli a období. Pěstoun/dítě vidí jen sebe, klíčová osoba svůj kmen, vedení celou organizaci. OSPOD/MPSV/KÚ dostávají reporty exportem/tiskem (bez přístupu do systému).</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Reporty');
+App.initTheme(document.getElementById('themeseg'));
+const u=App.currentUser(), role=u.role; const body=document.getElementById('body');
+const ROLELBL={superadmin:'Superadmin',vedeni:'Vedení',ko:'Klíčová osoba',asistent:'Asistentka',pestoun:'Pěstoun',dite:'Dítě',externista:'Externista'};
+(function(){ const av=document.getElementById('uav'); av.textContent=(u.name||'?').split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase(); document.getElementById('un').textContent=u.name; document.getElementById('ur').textContent=ROLELBL[role]||role;
+  if(role==='vedeni'||role==='superadmin') document.getElementById('cfgLink').style.display='inline-block'; })();
+
+const PERIODS=[['den','Den'],['tyden','Týden'],['mesic','Měsíc'],['q','Čtvrtletí'],['half','Pololetí'],['rok','Rok'],['custom','Vlastní…']];
+let per='q', cFrom='', cTo='';
+let chartsOn=App.reportCfgLoad().charts!==false;
+let lastModel={title:'report',meta:{},tables:[]};
+const ACT={visit:['Návštěvy','#22C55E'],contact:['Kontakty','#0BB1D5'],term:['Termíny/reporty','#FF7F4D'],edu:['Vzdělávání','#3380FF'],other:['Ostatní','#8B5CF6']};
+const SPVPP_CATS=[['Tábory','#3380FF'],['Doučování','#22C55E'],['Kroužky','#FF7F4D'],['Terapie','#8B5CF6'],['Ostatní','#8A8F98']];
+function spvppByCat(v){ const w=[0.34,0.24,0.18,0.14,0.10]; return SPVPP_CATS.map((c,i)=>({label:c[0],color:c[1],value:Math.round(v*w[i])})); }
+
+function rng(){ if(per==='custom'&&cFrom&&cTo) return {from:cFrom,to:cTo,label:cFrom+' – '+cTo}; return App.periodRange(per); }
+const R={
+  pickPer(p){ per=p; if(p==='custom'){const r=App.periodRange('rok'); cFrom=cFrom||App.todayISO.slice(0,4)+'-01-01'; cTo=cTo||App.todayISO;} render(); },
+  setCustom(w,v){ if(w==='f')cFrom=v; else cTo=v; render(); },
+  toggleCharts(on){ chartsOn=on; const c=App.reportCfgLoad(); c.charts=on; App.reportCfgSave(c); render(); },
+  menu(e){ e.stopPropagation(); document.getElementById('expMenu').classList.toggle('open'); },
+  exp(fmt){ document.getElementById('expMenu').classList.remove('open'); App.exportReport(fmt,lastModel); },
+};
+window.R=R;
+document.addEventListener('click',()=>document.getElementById('expMenu').classList.remove('open'));
+
+const COL={ok:'var(--alert-ok)',over:'var(--alert-due)',under:'#E08A00'};
+function pacingBar(p){ const rozpocet=p.frac>0?Math.round(p.expected/p.frac):0; const planPct=Math.round(p.frac*100);
+  const fillPct=rozpocet?Math.min(100,Math.round(p.actual/rozpocet*100)):0;
+  const c=p.status==='over'?COL.over:(p.status==='under'?COL.under:COL.ok);
+  const lbl=p.status==='over'?' riziko přečerpání':(p.status==='under'?' nedočerpává se (riziko propadnutí)':'✓ v plánu');
+  return `<div style="margin:4px 0 2px"><div style="position:relative;height:14px;background:var(--bg-2,#ececec);border-radius:8px;overflow:hidden">
+    <div style="position:absolute;inset:0;width:${fillPct}%;background:${c};opacity:.85"></div>
+    <div title="očekávané tempo k dnešku" style="position:absolute;top:-2px;bottom:-2px;left:${planPct}%;width:2px;background:#1A1A1A"></div></div>
+    <div class="muted" style="font-size:11px;margin-top:3px">Čerpáno ${p.actual.toLocaleString('cs')} z ${rozpocet.toLocaleString('cs')} Kč · k dnešku (${planPct} % roku) očekáváno ~${p.expected.toLocaleString('cs')} Kč · <b style="color:${c}">${lbl}</b></div></div>`;
+}
+function lastVisitBadge(m){ if(m.daysSince==null) return '<span class="muted">bez kontaktu v evidenci</span>';
+  const risk=m.daysSince>60; return `<span style="${risk?'color:var(--alert-due);font-weight:600':''}">${m.daysSince} dní (${App.fmtDate(m.lastVisit)})${risk?'':''}</span>`; }
+function activityItems(byType){ return Object.keys(ACT).map(k=>({label:ACT[k][0],color:ACT[k][1],value:byType[k]||0})).filter(i=>i.value>0); }
+function metricChips(m){ return `<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
+  <span> Návštěvy: <b>${m.visits}</b></span><span> Kontakty: <b>${m.contacts}</b></span><span> Záznamy: <b>${m.notes}</b></span>
+  <span> Respit: <b>${m.respitV}</b>/${m.respitLim} d <span class="muted">(reálně ${m.respitR})</span></span>
+  ${m.edu?`<span> Vzdělávání: <b>${m.edu.done}/${m.edu.req} h</b></span>`:''}
+  <span>⏱ Od posl. kontaktu: ${lastVisitBadge(m)}</span></div>`; }
+function chartGrid(cards){ return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:6px;--care-long:${App.reportAccent()}">${cards.map(c=>`<div class="chartbox"><div style="font-size:12px;font-weight:600;margin-bottom:8px">${c.t}</div>${c.svg}</div>`).join('')}</div>`; }
+function card(title,html){ return `<div class="pcard"><div class="psection"><h3>${title}</h3>${html}</div></div>`; }
+function eduPrediction(m){ if(!m.edu) return ''; const rem=m.edu.req-m.edu.done; if(rem<=0) return '<span class="badge ok">vzdělávání splněno</span>';
+  return `<span class="muted" style="font-size:12px">Do splnění zbývá <b>${rem} h</b> – ${m.eduRisk==='low'?'<span style="color:var(--alert-due)">tempo nedostatečné, hrozí nesplnění</span>':'v dosažitelném tempu'}.</span>`; }
+
+function renderNav(){
+  document.getElementById('pernav').innerHTML=PERIODS.map(([k,l])=>`<div class="nav-item ${per===k?'active':''}" onclick="R.pickPer('${k}')">${l}</div>`).join('')
+    + (per==='custom'?`<div style="padding:8px 4px;display:flex;flex-direction:column;gap:6px"><input type="date" value="${cFrom}" onchange="R.setCustom('f',this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px"><input type="date" value="${cTo}" onchange="R.setCustom('t',this.value)" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 8px"></div>`:'');
+  const sc={superadmin:'Celá platforma',vedeni:'Celá organizace',ko:'Můj kmen rodin',asistent:'Kmen KO',pestoun:'Moje rodina',dite:'Já',externista:'—'}[role]||'';
+  document.getElementById('scopenav').innerHTML=`<div class="nav-item active" style="cursor:default">${sc}</div>`;
+  document.getElementById('chSw').checked=chartsOn;
+}
+
+function render(){
+  renderNav();
+  const {from,to,label}=rng(); const cfg=App.reportCfgLoad();
+  document.getElementById('ttl').textContent='Reporty · '+label;
+  const hdr=`<div class="rep-header"><div style="width:34px;height:34px;border-radius:8px;background:var(--accent);color:#1a1a1a;display:flex;align-items:center;justify-content:center;font-weight:800">D</div><div><div style="font-weight:700">Doprovázení, z.s. — Report</div><div style="font-size:12px;color:#666">${ROLELBL[role]||role} · ${label} · vytištěno ${App.fmtDate(App.todayISO)}</div></div></div>`;
+
+  if(role==='externista'){ body.innerHTML=hdr+card('Reporty nejsou pro externisty','<p class="muted">Externista vidí pouze svůj výkaz hodin. <a href="vykaz.html">Otevřít můj výkaz →</a></p>'); lastModel={title:'report',meta:{},tables:[]}; return; }
+
+  // ---------- SELF: pěstoun / dítě ----------
+  if(role==='pestoun'||role==='dite'){
+    const typ=u.linkType, m=App.reportEntity(typ,u.linkId,from,to);
+    let charts=''; if(chartsOn){ const cc=[{t:'Aktivita podle typu',svg:App.chartDonut(activityItems(m.byType).length?activityItems(m.byType):[{label:'Žádná',color:'#ccc',value:1}])},
+      {t:'Kontakty v čase',svg:App.chartLine(m.trend)}];
+      if(m.spvpp) cc.push({t:'Čerpání SPVPP (% roku)',svg:App.chartGauge(m.spvpp.pacing.frac?Math.round(m.spvpp.pacing.actual/(m.spvpp.pacing.expected/m.spvpp.pacing.frac||1)*100):0, m.spvpp.pacing.status==='over'?COL.over:(m.spvpp.pacing.status==='under'?COL.under:COL.ok))});
+      if(m.edu) cc.push({t:'Plnění vzdělávání',svg:App.chartGauge(Math.round(m.edu.done/m.edu.req*100),'#3380FF')});
+      charts=chartGrid(cc); }
+    body.innerHTML=hdr+card(`Můj přehled · ${m.name}`,
+      `<p class="muted" style="font-size:13px">Souhrn za období <b>${label}</b>. Tato data vidíte jen vy a vaše klíčová osoba.</p>${metricChips(m)}<div style="margin-top:8px">${eduPrediction(m)}</div>`
+      + (m.spvpp?`<div style="margin-top:14px"><b style="font-size:13px">Čerpání SPVPP v roce</b>${pacingBar(m.spvpp.pacing)}</div>`:'')
+      + charts);
+    lastModel={title:'Muj prehled '+m.name, meta:{Obdobi:label,Role:ROLELBL[role]}, tables:[{name:'Metriky',head:['Metrika','Hodnota'],rows:[['Návštěvy',m.visits],['Kontakty',m.contacts],['Záznamy',m.notes],['Respit vykázaný',m.respitV],['Respit reálný',m.respitR],['Od posledního kontaktu (dní)',m.daysSince==null?'—':m.daysSince],m.edu?['Vzdělávání (h)',m.edu.done+'/'+m.edu.req]:null,m.spvpp?['SPVPP čerpáno',m.spvpp.vycerpano]:null].filter(Boolean)}]};
+    return;
+  }
+
+  // ---------- KO / asistent ----------
+  if(role==='ko'||role==='asistent'){
+    const worker=u.worker; const r=App.reportKO(worker,from,to);
+    const fam=r.households.map(h=>{ const f=h.fosters.find(x=>x.isFoster)||h.fosters[0]||{}; const m=App.reportEntity('pestoun',f.id,from,to);
+      const sp=h.kids.reduce((a,k)=>{const w=App.spvppWallet(k.id);a.v+=w.vycerpano;a.r+=w.rozpocet;return a;},{v:0,r:0});
+      return {h,f,m,sp}; });
+    const poTermFamilies=fam.filter(x=>x.m.daysSince!=null&&x.m.daysSince>60);
+    const allIds=r.households.flatMap(h=>[...h.fosters.map(f=>f.id),...h.kids.map(k=>k.id)]);
+    let charts=''; if(chartsOn){ charts=chartGrid([
+      {t:'Návštěvy + kontakty podle rodin',svg:App.chartBars(fam.map(x=>({label:x.h.name.replace('Domácnost ','').slice(0,8),value:x.m.visits+x.m.contacts})))},
+      {t:'Čerpání SPVPP kmene (% roku)',svg:App.chartGauge(r.spvpp.pacing.frac?Math.round(r.spvpp.pacing.actual/(r.spvpp.pacing.expected/r.spvpp.pacing.frac||1)*100):0, r.spvpp.pacing.status==='over'?COL.over:(r.spvpp.pacing.status==='under'?COL.under:COL.ok))},
+      {t:'Aktivita kmene v čase',svg:App.chartLine(App.monthlySeries(allIds,from,to))},
+      {t:'SPVPP podle účelu (ilustrativní)',svg:App.chartDonut(spvppByCat(r.spvpp.vycerpano),{suffix:' Kč'})},
+    ]); }
+    let rows=fam.map(x=>`<tr><td><a href="hub.html?typ=pestoun&id=${x.f.id}">${x.h.name.replace('Domácnost ','')}</a></td><td>${x.m.visits}</td><td>${x.m.contacts}</td><td>${x.m.daysSince==null?'—':x.m.daysSince+' d'+(x.m.daysSince>60?'':'')}</td><td>${x.m.respitV}/${x.m.respitLim}</td><td>${x.m.edu?x.m.edu.done+'/'+x.m.edu.req+' h':'—'}</td><td>${x.sp.r?x.sp.v.toLocaleString('cs')+' / '+x.sp.r.toLocaleString('cs'):'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">Žádné rodiny.</td></tr>';
+    body.innerHTML=hdr
+      + card('Moje práce za období',
+        `<p class="muted" style="font-size:13px">Klíčová osoba <b>${App.workerFull(worker)}</b> · ${r.rodin} rodin · období <b>${label}</b>.</p>
+         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px"><span> Návštěvy: <b>${r.visits}</b></span><span> Kontakty: <b>${r.contacts}</b></span><span> Činností celkem: <b>${r.prace}</b></span><span>⏱ Rodiny bez kontaktu &gt;60 dní: <b style="${poTermFamilies.length?'color:var(--alert-due)':''}">${poTermFamilies.length}</b></span></div>
+         ${poTermFamilies.length?`<div class="muted" style="font-size:12px;margin-top:6px">Pozor na: ${poTermFamilies.map(x=>x.h.name.replace('Domácnost ','')).join(', ')}</div>`:''}`)
+      + card('Čerpání SPVPP mého kmene (nad/podčerpání)',
+        `<p class="muted" style="font-size:13px">Roční rozpočet kmene ${r.spvpp.rozpocet.toLocaleString('cs')} Kč. Černá ryska = očekávané tempo k dnešku.</p>${pacingBar(r.spvpp.pacing)}`)
+      + (charts?card('Grafy',charts):'')
+      + card('Rodiny – metriky za období',
+        `<table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Rodina</th><th>Návštěvy</th><th>Kontakty</th><th>Od posl. kont.</th><th>Respit</th><th>Vzděláv.</th><th>SPVPP</th></tr></thead><tbody>${rows}</tbody></table>`);
+    lastModel={title:'Report KO '+App.workerFull(worker),meta:{Obdobi:label,KlicovaOsoba:App.workerFull(worker),Rodin:r.rodin,Navstevy:r.visits,Kontakty:r.contacts},
+      tables:[{name:'Rodiny',head:['Rodina','Návštěvy','Kontakty','Od posl. kontaktu (dní)','Respit vyk./limit','Vzdělávání (h)','SPVPP čerpáno','SPVPP rozpočet'],
+        rows:fam.map(x=>[x.h.name.replace('Domácnost ',''),x.m.visits,x.m.contacts,x.m.daysSince==null?'':x.m.daysSince,x.m.respitV+'/'+x.m.respitLim,x.m.edu?x.m.edu.done+'/'+x.m.edu.req:'',x.sp.v,x.sp.r])}]};
+    return;
+  }
+
+  // ---------- VEDENÍ / SUPERADMIN ----------
+  const workers=[...new Set(App.households.map(h=>h.worker))];
+  let totV=0,totC=0,totRoz=0,totVyc=0; const perKO=workers.map(w=>{ const r=App.reportKO(w,from,to); totV+=r.visits; totC+=r.contacts; totRoz+=r.spvpp.rozpocet; totVyc+=r.spvpp.vycerpano; return {w,r}; });
+  const allIds=App.households.flatMap(h=>[...h.fosters.map(f=>f.id),...h.kids.map(k=>k.id)]);
+  const orgPacing=App.spvppPacing(totRoz,totVyc,to);
+  let charts=''; if(chartsOn){ charts=chartGrid([
+    {t:'Návštěvy podle klíčových osob',svg:App.chartBars(perKO.map(x=>({label:App.workerFull(x.w).split(' ').pop().slice(0,8),value:x.r.visits})))},
+    {t:'Čerpání ročního SPVPP organizace',svg:App.chartGauge(orgPacing.frac?Math.round(orgPacing.actual/(orgPacing.expected/orgPacing.frac||1)*100):0, orgPacing.status==='over'?COL.over:(orgPacing.status==='under'?COL.under:COL.ok))},
+    {t:'Aktivita organizace v čase',svg:App.chartLine(App.monthlySeries(allIds,from,to))},
+    {t:'SPVPP rozpočet podle KO',svg:App.chartDonut(perKO.map((x,i)=>({label:App.workerFull(x.w),color:SPVPP_CATS[i%SPVPP_CATS.length][1],value:x.r.spvpp.vycerpano})),{suffix:' Kč'})},
+  ]); }
+  let rows=perKO.map(x=>{ const p=x.r.spvpp.pacing; const c=p.status==='over'?COL.over:(p.status==='under'?COL.under:COL.ok); const stav=p.status==='over'?'přečerpává':(p.status==='under'?'nedočerpává':'v plánu');
+    return `<tr><td>${App.workerFull(x.w)}</td><td>${x.r.rodin}</td><td>${x.r.visits}</td><td>${x.r.contacts}</td><td>${x.r.spvpp.vycerpano.toLocaleString('cs')} / ${x.r.spvpp.rozpocet.toLocaleString('cs')}</td><td><b style="color:${c}">${stav}</b></td></tr>`; }).join('');
+  body.innerHTML=hdr
+    + card('Organizace – souhrn za období',
+      `<p class="muted" style="font-size:13px">Období <b>${label}</b> · ${workers.length} klíčových osob · ${App.households.length} rodin.</p>
+       <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px"><span> Návštěvy: <b>${totV}</b></span><span> Kontakty: <b>${totC}</b></span><span> SPVPP: <b>${totVyc.toLocaleString('cs')}</b> / ${totRoz.toLocaleString('cs')} Kč</span></div>`)
+    + card('Čerpání ročního SPVPP celé organizace',
+      `<p class="muted" style="font-size:13px">Hlídání, aby organizace ani nepřečerpala, ani nenechala prostředky propadnout. Černá ryska = očekávané tempo k dnešku.</p>${pacingBar(orgPacing)}`)
+    + (charts?card('Grafy',charts):'')
+    + card('Podle klíčových osob',
+      `<table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Klíčová osoba</th><th>Rodin</th><th>Návštěvy</th><th>Kontakty</th><th>SPVPP čerpáno/rozpočet</th><th>Stav</th></tr></thead><tbody>${rows}</tbody></table>
+       <div class="no-print" style="margin-top:10px"><a class="btn-secondary" style="width:auto;padding:8px 14px;text-decoration:none;display:inline-block" href="reporty-manazerske.html">Ekonomický manažerský report (export CSV) →</a></div>`);
+  lastModel={title:'Report organizace',meta:{Obdobi:label,KlicovychOsob:workers.length,Rodin:App.households.length,Navstevy:totV,Kontakty:totC,SPVPP_cerpano:totVyc,SPVPP_rozpocet:totRoz},
+    tables:[{name:'Podle klíčových osob',head:['Klíčová osoba','Rodin','Návštěvy','Kontakty','SPVPP čerpáno','SPVPP rozpočet'],rows:perKO.map(x=>[App.workerFull(x.w),x.r.rodin,x.r.visits,x.r.contacts,x.r.spvpp.vycerpano,x.r.spvpp.rozpocet])}]};
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>

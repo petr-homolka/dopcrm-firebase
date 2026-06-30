@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Externisté · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Externisté</div>
+    <div class="nav"><div class="nav-item active">Externí pracovníci & výkazy</div></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Externisté & výkazy</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Přímá péče (hlídání/doučování) → náklad na SPVPP dítěte + den respitu. Provozní režie (IT/marketing) → režie organizace. Schválením výkazu počítá systém, ne klíčová osoba.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Externisté');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+const canManage=App.can('users.manage'), canApprove=App.can('tasks.manage')||App.can('users.manage');
+const Ex={
+  approve(id,d){ App.vykazApprove(id,d); toast(d==='schvaleno'?'Schváleno – systém spočítal náklad ✓':'Zamítnuto'); render(); },
+  addExt(){ const j=document.getElementById('ex-jm').value.trim(); if(!j){toast('Zadej jméno');return;}
+    App.externistaAdd({jmeno:j,typPrace:document.getElementById('ex-typ').value,cinnost:document.getElementById('ex-cin').value,smlouva:document.getElementById('ex-sml').value,sazba:parseInt(document.getElementById('ex-saz').value,10)||0});
+    toast('Externista přidán ✓'); render(); },
+  addVykaz(){ const exId=document.getElementById('vk-ex').value; const ex=App.externistaGet(exId);
+    const v={externistaId:exId,diteId:ex&&ex.typPrace==='prima_pece'?document.getElementById('vk-dite').value:'',datum:document.getElementById('vk-datum').value,hodiny:parseFloat(document.getElementById('vk-hod').value)||0,popis:document.getElementById('vk-popis').value};
+    if(!v.hodiny){toast('Zadej hodiny');return;} App.vykazAdd(v); toast('Výkaz přidán (čeká na schválení)'); render(); },
+};
+window.Ex=Ex;
+function render(){
+  if(!canManage){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Jen vedení/superadmin.</p></div></div>'; return; }
+  const exs=App.externiste(); const cek=App.vykazy({stav:'cekajici'});
+  const childOpt=App.allChildren().map(k=>`<option value="${k.id}">${k.n}</option>`).join('');
+  const exOpt=exs.map(e=>`<option value="${e.id}">${e.jmeno} (${e.cinnost})</option>`).join('');
+  body.innerHTML=`
+  <div class="pcard"><div class="psection"><h3>Výkazy ke schválení (${cek.length})</h3>
+    ${cek.length?cek.map(v=>{const e=App.externistaGet(v.externistaId);const kid=v.diteId?App.diteById(v.diteId):null;const kc=Math.round((v.hodiny||0)*(e?e.sazba:0));
+      return `<div class="vrow" style="grid-template-columns:1fr auto;align-items:center"><div class="k"><b>${e?e.jmeno:'?'}</b> · ${v.hodiny} h · ${e?e.cinnost:''}${kid?' · '+kid.n:''}<div class="muted" style="font-size:12px">${App.fmtDate(v.datum)} · ${v.popis||''} → ${kc} Kč ${e&&e.typPrace==='prima_pece'?'(SPVPP+respit)':'(režie)'}</div></div>
+      <div class="v">${canApprove?`<button class="btn-primary" style="width:auto;padding:7px 12px" onclick="Ex.approve('${v.id}','schvaleno')">✓ Schválit</button> <button class="vact" style="color:var(--alert-due)" onclick="Ex.approve('${v.id}','zamitnuto')">Zamítnout</button>`:'<span class="muted">čeká</span>'}</div></div>`;}).join(''):'<p class="muted">Žádné čekající výkazy.</p>'}
+  </div></div>
+  <div class="pcard"><div class="psection"><h3>Přidat výkaz (simulace zápisu externisty)</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div><label class="muted" style="font-size:12px;display:block">Externista</label><select id="vk-ex" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)">${exOpt}</select></div>
+      <div><label class="muted" style="font-size:12px;display:block">Dítě (přímá péče)</label><select id="vk-dite" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)">${childOpt}</select></div>
+      <div><label class="muted" style="font-size:12px;display:block">Datum</label><input type="date" id="vk-datum" value="${App.todayISO}" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Hodiny</label><input type="number" id="vk-hod" value="2" step="0.5" style="width:80px;border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div style="flex:1;min-width:160px"><label class="muted" style="font-size:12px;display:block">Popis</label><input id="vk-popis" placeholder="Doučování matematiky" style="width:100%;border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <button class="btn-primary" style="width:auto;padding:8px 16px" onclick="Ex.addVykaz()">Přidat výkaz</button>
+    </div></div></div>
+  <div class="pcard"><div class="psection"><h3>Číselník externistů (${exs.length})</h3>
+    <table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Jméno</th><th>Typ</th><th>Činnost</th><th>Smlouva</th><th>Sazba</th><th>Schváleno (Kč)</th></tr></thead><tbody>
+    ${exs.map(e=>{const s=App.vykazSum(e.id);return `<tr><td>${e.jmeno}</td><td>${e.typPrace==='prima_pece'?'Přímá péče':'Provozní režie'}</td><td>${e.cinnost}</td><td>${e.smlouva}</td><td>${e.sazba} Kč/h</td><td>${s.kc.toLocaleString('cs')} (${s.hodiny} h)</td></tr>`;}).join('')}
+    </tbody></table>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">
+      <div><label class="muted" style="font-size:12px;display:block">Jméno</label><input id="ex-jm" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Typ</label><select id="ex-typ" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)"><option value="prima_pece">Přímá péče</option><option value="provozni_rezie">Provozní režie</option></select></div>
+      <div><label class="muted" style="font-size:12px;display:block">Činnost</label><input id="ex-cin" placeholder="Doučování / IT…" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <div><label class="muted" style="font-size:12px;display:block">Smlouva</label><select id="ex-sml" style="border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;background:var(--surface)"><option>DPP</option><option>DPČ</option><option>OSVČ</option></select></div>
+      <div><label class="muted" style="font-size:12px;display:block">Sazba Kč/h</label><input type="number" id="ex-saz" value="250" style="width:90px;border:1px solid var(--border-2);border-radius:8px;padding:7px 9px"></div>
+      <button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="Ex.addExt()">+ Externista</button>
+    </div></div></div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

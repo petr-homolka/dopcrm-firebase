@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manažerské reporty · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="sprava.html" style="text-decoration:none;text-align:center">← Správa</a>
+    <div class="sec-label">Reporty</div>
+    <div class="nav"><div class="nav-item active">Manažerské reporty</div></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">MD</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Manažerské reporty & výroční zprávy</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Agregace pro vedení a kontrolní orgány. Definovatelné období (čtvrtletí / rok / víceleté / vlastní). Export pro ekonomku.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Reporty');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop)';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1600);}
+let from='2026-01-01', to='2026-06-30';
+const R={ set(f,t){from=f;to=t;render();}, custom(){from=document.getElementById('r-from').value||from;to=document.getElementById('r-to').value||to;render();},
+  exportCsv(){ const ex=App.externiste(); let rows=[['Externista','Typ smlouvy','Hodiny (schválené)','Částka Kč','Středisko']];
+    ex.forEach(e=>{const s=App.vykazSum(e.id,from,to); if(s.hodiny)rows.push([e.jmeno,e.smlouva,s.hodiny,s.kc,e.typPrace==='prima_pece'?'SPVPP (přímá péče)':'Režie']);});
+    const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv); a.download='vykazy_'+from+'_'+to+'.csv'; a.click(); toast('Export CSV stažen ✓'); } };
+window.R=R;
+function agg(){
+  const kids=App.allChildren();
+  let rozpocet=0,vycerpano=0; kids.forEach(k=>{const w=App.spvppWallet(k.id);rozpocet+=w.rozpocet;vycerpano+=w.vycerpano;});
+  let respitDny=0,respitReal=0; App.households.forEach(h=>{respitDny+=App.respitVykazano(h.id);respitReal+=App.respitRealny(h.id);});
+  const ex=App.externiste(); let extHod=0,extKcPrima=0,extKcRezie=0; const top=[];
+  ex.forEach(e=>{const s=App.vykazSum(e.id,from,to);extHod+=s.hodiny;if(e.typPrace==='prima_pece')extKcPrima+=s.kc;else extKcRezie+=s.kc;if(s.hodiny)top.push({jmeno:e.jmeno,hod:s.hodiny,kc:s.kc});});
+  top.sort((a,b)=>b.hod-a.hod);
+  const mzdy=App.zamestnanci().reduce((a,z)=>a+z.mzda,0);
+  const rezie=App.provozNaklady().filter(p=>p.typ==='smlouva').reduce((a,p)=>a+p.castka,0);
+  return {rozpocet,vycerpano,respitDny,respitReal,extHod,extKcPrima,extKcRezie,top,mzdy,rezie,rodin:App.households.length,limitRodin:App.households.filter(h=>App.respitVykazano(h.id)>=14).length};
+}
+function render(){
+  if(!App.can('users.manage')){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Jen vedení/superadmin.</p></div></div>'; return; }
+  const a=agg();
+  const presets=[['1. pol. 2026','2026-01-01','2026-06-30'],['2. pol. 2026','2026-07-01','2026-12-31'],['Rok 2026','2026-01-01','2026-12-31'],['Posl. 3 měsíce','2026-03-20','2026-06-20']];
+  const kpi=(l,v,c)=>`<div class="stat"><div class="lbl">${l}</div><div class="num"${c?` style="color:${c}"`:''}>${v}</div></div>`;
+  body.innerHTML=`
+  <div class="report-presets no-print" style="margin-bottom:10px">${presets.map(([l,f,t])=>`<button class="chip" style="cursor:pointer;border:1px solid var(--border-2);${from===f&&to===t?'background:var(--active);font-weight:600':''}" onclick="R.set('${f}','${t}')">${l}</button>`).join('')}</div>
+  <div class="no-print" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+    <div><label class="muted" style="font-size:12px;display:block">Od</label><input type="date" id="r-from" value="${from}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+    <div><label class="muted" style="font-size:12px;display:block">Do</label><input type="date" id="r-to" value="${to}" style="border:1px solid var(--border-2);border-radius:10px;padding:8px 10px"></div>
+    <button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="R.custom()">Přepočítat</button>
+    <button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="R.exportCsv()">⬇ Export výkazů (CSV)</button>
+    <button class="btn-secondary" style="width:auto;margin:0;padding:9px 16px" onclick="window.print()"> Tisk</button>
+  </div>
+  <h2 style="margin:0 0 4px">Report za období ${App.fmtDate(from)} – ${App.fmtDate(to)}</h2>
+  <div class="stats">${kpi('Rodin',a.rodin)}${kpi('Respit dny (vykázáno)',a.respitDny)}${kpi('Respit dny (reálné)',a.respitReal,'var(--alert-warn)')}${kpi('Rodin na limitu 14',a.limitRodin)}</div>
+  <div class="dash-cols">
+    <div class="panel"><h3>1. Finance SPVPP</h3>
+      <div class="prow"><div class="meta"><div class="n">Alokovaný rozpočet (děti)</div></div><b>${a.rozpocet.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n">Vyčerpáno (respit/pobyty)</div></div><b>${a.vycerpano.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n">Zůstatek polštář</div></div><b style="color:${a.rozpocet-a.vycerpano<0?'var(--alert-due)':'var(--alert-ok)'}">${(a.rozpocet-a.vycerpano).toLocaleString('cs')} Kč</b></div></div>
+    <div class="panel"><h3>2. Náklady na externisty</h3>
+      <div class="prow"><div class="meta"><div class="n">Přímá péče (doučování/hlídání)</div></div><b>${a.extKcPrima.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n">Provozní režie (IT/marketing)</div></div><b>${a.extKcRezie.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n">Odpracováno celkem</div></div><b>${a.extHod} h</b></div></div>
+    <div class="panel"><h3>3. Personál (top externisté)</h3>
+      ${a.top.length?a.top.slice(0,5).map(t=>`<div class="prow"><div class="meta"><div class="n">${t.jmeno}</div></div><span class="muted">${t.hod} h · ${t.kc.toLocaleString('cs')} Kč</span></div>`).join(''):'<div class="prow muted">Bez schválených výkazů v období.</div>'}</div>
+    <div class="panel"><h3>4. Manažerská bilance (orientačně)</h3>
+      <div class="prow"><div class="meta"><div class="n">Mzdy (interní tým / měs.)</div></div><b>${a.mzdy.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n">Provozní režie (smlouvy / měs.)</div></div><b>${a.rezie.toLocaleString('cs')} Kč</b></div>
+      <div class="prow"><div class="meta"><div class="n" style="color:var(--text-2)">Detail v Provoz & zaměstnanci</div></div></div></div>
+  </div>`;
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+

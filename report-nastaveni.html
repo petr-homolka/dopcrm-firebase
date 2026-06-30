@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nastavení reportů · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+<style>
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.fld label{font-size:12px;color:var(--text-2)}
+.fld input,.fld select,.fld textarea{border:1px solid var(--border-2);border-radius:8px;padding:8px 10px;background:var(--surface);font:inherit}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row .fld{flex:1;min-width:160px}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin:4px 0}
+.sw input{display:none}.sw .track{width:38px;height:22px;border-radius:12px;background:var(--border-2,#ccc);position:relative;transition:.2s}
+.sw .track::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sw input:checked + .track{background:var(--accent)}.sw input:checked + .track::after{transform:translateX(16px)}
+.previewdoc{border:1px solid var(--border);border-radius:10px;padding:16px;background:#fff;color:#1a1a1a;font-size:12px}
+</style>
+</head>
+<body class="rpage">
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <div class="org"><div class="org-logo">D</div><div class="org-meta"><div class="t">Doprovázení, z.s.</div><div class="s">Pobočka Brno</div></div></div>
+    <a class="btn-secondary" href="reporty.html" style="text-decoration:none;text-align:center">← Reporty</a>
+    <div class="sec-label">Nastavení reportů</div>
+    <div class="nav" id="nav"></div>
+    <div class="side-foot"><div class="sep-line"></div><div class="account"><span class="avatar" style="width:34px;height:34px;font-size:12px;background:var(--avatar-neutral)">⚙︎</span><div class="meta"><div class="n">—</div><div class="r">—</div></div></div></div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px" id="ttl">Nastavení reportů</h2><div class="spacer"></div><div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div></div>
+    <div class="content"><div id="body"></div>
+      <div class="footnote">Šablony a branding se promítají do tisku/PDF i exportů. Automatizace (plánované rozesílání) je v prototypu náhledová – v ostré verzi poběží na Google Cloud Scheduler + odesílání e-mailem.</div>
+    </div>
+  </main>
+</div>
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Reporty');
+App.initTheme(document.getElementById('themeseg'));
+const body=document.getElementById('body');
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:11px 18px;border-radius:10px;z-index:300;box-shadow:var(--shadow-pop);transition:opacity .3s';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1700);}
+let tab='design';
+const S={
+  tab(t){tab=t;render();},
+  cfgSet(k,v){ const c=App.reportCfgLoad(); if(k.indexOf('sekce.')===0){c.sekce[k.slice(6)]=v;}else{c[k]=v;} App.reportCfgSave(c); render(); },
+  addJob(){ const j={nazev:val('j-nazev')||'Nový report',report:val('j-report'),perioda:val('j-perioda'),den:parseInt(val('j-den'),10)||1,cas:val('j-cas')||'07:00',prijemci:val('j-prijemci'),predmet:val('j-predmet')||'Report {{obdobi}}',format:val('j-format'),sablona:App.reportCfgLoad().template}; if(!j.prijemci){toast('Zadej e-mail příjemce');return;} App.reportJobAdd(j); toast('Automatizace přidána ✓'); render(); },
+  toggle(id){ App.reportJobToggle(id); render(); },
+  del(id){ App.reportJobDel(id); toast('Smazáno'); render(); },
+  run(id){ App.reportJobRun(id); toast('Report vytvořen a odeslán (simulace) ✓'); render(); },
+};
+window.S=S; function val(id){const e=document.getElementById(id);return e?e.value:'';}
+
+function render(){
+  if(!App.can('users.manage')){ body.innerHTML='<div class="pcard"><div class="psection"><h3>Nedostupné</h3><p class="muted">Nastavení reportů spravuje vedení / superadmin.</p></div></div>'; return; }
+  document.getElementById('nav').innerHTML=[['design','Design & šablony'],['auto','Automatizace']].map(([k,l])=>`<div class="nav-item ${tab===k?'active':''}" onclick="S.tab('${k}')">${l}</div>`).join('');
+  const c=App.reportCfgLoad();
+  if(tab==='design'){
+    const sw=(k,lbl,on)=>`<label class="sw"><input type="checkbox" ${on?'checked':''} onchange="S.cfgSet('${k}',this.checked)"><span class="track"></span>${lbl}</label>`;
+    body.innerHTML=`
+    <div class="pcard"><div class="psection"><h3>Šablona reportu</h3>
+      <div class="row">
+        <div class="fld"><label>Šablona</label><select onchange="S.cfgSet('template',this.value)">${Object.entries(App.REPORT_TEMPLATES).map(([k,l])=>`<option value="${k}" ${c.template===k?'selected':''}>${l}</option>`).join('')}</select></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        ${sw('charts','Ve výchozím stavu zobrazovat grafy',c.charts)}
+        ${sw('logo','Logo organizace v hlavičce',c.logo)}
+        ${sw('sekce.souhrn','Sekce: Souhrn / KPI',c.sekce.souhrn)}
+        ${sw('sekce.grafy','Sekce: Grafy',c.sekce.grafy)}
+        ${sw('sekce.tabulky','Sekce: Tabulky',c.sekce.tabulky)}
+        ${sw('sekce.trend','Sekce: Vývoj v čase',c.sekce.trend)}
+      </div></div>
+    <div class="pcard"><div class="psection"><h3>Branding & barvy</h3>
+      ${sw('colorFromBrand','Použít firemní barvu z brandingu organizace',c.colorFromBrand)}
+      <div class="row" style="margin-top:8px">
+        <div class="fld" style="max-width:200px"><label>Akcentní barva reportu ${c.colorFromBrand?'(z brandingu)':''}</label><input type="color" value="${App.reportAccent()}" ${c.colorFromBrand?'disabled':''} onchange="S.cfgSet('accent',this.value)" style="height:40px;padding:3px"></div>
+      </div>
+      <p class="muted" style="font-size:12px">Logo, název a hlavní barvu organizace nastavíte v <a href="nastaveni.html">Nastavení → Branding</a>. Tady se jen rozhoduje, jak se promítnou do reportů.</p>
+      <div class="row">
+        <div class="fld"><label>Vlastní text hlavičky (volitelně)</label><input value="${(c.header||'').replace(/"/g,'&quot;')}" placeholder="např. Výroční zpráva o výkonu SPOD" onchange="S.cfgSet('header',this.value)"></div>
+      </div>
+      <div class="fld"><label>Patička / doložka</label><textarea rows="2" onchange="S.cfgSet('footer',this.value)">${c.footer||''}</textarea></div>
+    </div></div>
+    <div class="pcard"><div class="psection"><h3>Náhled hlavičky</h3>
+      <div class="previewdoc" style="--accent:${App.reportAccent()}">
+        <div style="display:flex;align-items:center;gap:10px;border-bottom:2px solid ${App.reportAccent()};padding-bottom:8px">
+          ${c.logo?`<div style="width:30px;height:30px;border-radius:6px;background:${App.reportAccent()};color:#1a1a1a;display:flex;align-items:center;justify-content:center;font-weight:800">D</div>`:''}
+          <div><div style="font-weight:700">Doprovázení, z.s. — Report${c.header?' · '+c.header:''}</div><div style="font-size:11px;color:#666">${App.REPORT_TEMPLATES[c.template]} · období · vytištěno ${App.fmtDate(App.todayISO)}</div></div>
+        </div>
+        <p style="margin:10px 0 0;font-size:11px;color:#888">${c.footer||''}</p>
+      </div></div></div>`;
+  } else {
+    const jobs=App.reportJobs(); const PER=App.REPORT_PERIODY;
+    const reports={org:'Organizace (souhrn)',ko:'Po klíčových osobách',ekonomika:'Ekonomický (manažerský)'};
+    body.innerHTML=`
+    <div class="pcard"><div class="psection"><h3>Naplánované reporty (${jobs.length})</h3>
+      ${jobs.length?`<table class="rd-rows" style="font-size:13px;width:100%"><thead><tr><th>Název</th><th>Report</th><th>Frekvence</th><th>Příjemci</th><th>Formát</th><th>Stav</th><th></th></tr></thead><tbody>
+      ${jobs.map(j=>`<tr><td><b>${j.nazev}</b><div class="muted" style="font-size:11px">předmět: ${j.predmet}</div></td><td>${reports[j.report]||j.report}</td><td>${PER[j.perioda]||j.perioda}, ${j.perioda==='mesicne'?j.den+'. den':''} ${j.cas}</td><td>${j.prijemci}</td><td>${j.format.toUpperCase()}</td>
+        <td>${j.aktivni?'<span class="badge ok">aktivní</span>':'<span class="badge">pozastaveno</span>'}${j.posledni?'<div class="muted" style="font-size:11px">naposled '+App.fmtDate(j.posledni)+'</div>':''}</td>
+        <td style="white-space:nowrap"><button class="vact" onclick="S.run('${j.id}')">Spustit teď</button> <button class="vact" onclick="S.toggle('${j.id}')">${j.aktivni?'Pozastavit':'Aktivovat'}</button> <button class="vact" style="color:var(--alert-due)" onclick="S.del('${j.id}')">Smazat</button></td></tr>`).join('')}
+      </tbody></table>`:'<p class="muted">Zatím žádná automatizace.</p>'}
+    </div></div>
+    <div class="pcard"><div class="psection"><h3>Nová automatizace</h3>
+      <p class="muted" style="font-size:13px">Vytvoř a rozesílej report automaticky. V předmětu lze použít <code>{{obdobi}}</code> (doplní se např. „červen 2026").</p>
+      <div class="row">
+        <div class="fld"><label>Název</label><input id="j-nazev" placeholder="Měsíční přehled pro vedení"></div>
+        <div class="fld"><label>Report</label><select id="j-report">${Object.entries(reports).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Frekvence</label><select id="j-perioda">${Object.entries(PER).map(([k,l])=>`<option value="${k}" ${k==='mesicne'?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="fld" style="max-width:110px"><label>Den</label><input id="j-den" type="number" value="1" min="1" max="28"></div>
+        <div class="fld" style="max-width:120px"><label>Čas</label><input id="j-cas" type="time" value="07:00"></div>
+        <div class="fld" style="max-width:130px"><label>Formát</label><select id="j-format"><option value="pdf">PDF</option><option value="xls">Excel</option><option value="csv">CSV</option><option value="md">Markdown</option><option value="xml">XML</option></select></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Příjemci (e-maily, čárkou)</label><input id="j-prijemci" placeholder="vedeni@doprovazeni.cz, reditel@…"></div>
+        <div class="fld"><label>Předmět e-mailu</label><input id="j-predmet" value="Report doprovázení – {{obdobi}}"></div>
+      </div>
+      <button class="btn-primary" style="width:auto;padding:9px 18px" onclick="S.addJob()">+ Přidat automatizaci</button>
+    </div></div>`;
+  }
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>

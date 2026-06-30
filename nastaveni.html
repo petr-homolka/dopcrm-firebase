@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nastavení · Doprovázení CRM</title>
+<link rel="stylesheet" href="style.css?v=35">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Doprovázení"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="mobile.css?v=37">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" id="rail"></nav>
+  <aside class="side">
+    <h1>Nastavení</h1>
+    <div class="sec-label">Sekce</div>
+    <div class="nav" id="setnav"></div>
+    <div class="side-foot">
+      <div class="sep-line"></div>
+      <button class="btn-primary" onclick="SetUI.save()">Uložit změny</button>
+      <button class="btn-secondary" onclick="SetUI.reset()">Obnovit výchozí</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><h2 style="margin-right:8px">Nastavení organizace</h2><div class="spacer"></div>
+      <div class="seg theme-switch" id="themeseg"><button class="on" data-theme="">Klasický</button><button data-theme="b">Čistý</button></div>
+    </div>
+    <div class="content"><div id="body" style="max-width:760px"></div></div>
+  </main>
+</div>
+
+<script src="app.js?v=65"></script>
+<script>
+document.getElementById('rail').innerHTML = App.renderRail('Nastavení');
+App.initTheme(document.getElementById('themeseg'));
+
+let brand = App.loadBrand();
+const SECS=[['org','Organizace & branding','M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5','settings.branding'],
+  ['barvy','Barvy','M12 3a9 9 0 1 0 0 18 2 2 0 0 0 0-4h-1a2 2 0 0 1 0-4h2a4 4 0 0 0 0-8z','settings.branding'],
+  ['integrace','Integrace a účty','M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8','settings.access'],
+  ['kontakty','Kontakty organizace','M4 4h16v16H4zM8 9h8M8 13h5','settings.access'],
+  ['prava','Práva a role','M12 2 4 6v6c0 5 8 8 8 8s8-3 8-8V6z','roles.manage'],
+  ['sablony','Šablony karet','M4 4h16v16H4zM4 9h16M9 9v11','templates.manage'],
+  ['instituce-reg','Číselník institucí','M3 21h18M6 21V9l6-4 6 4v12M10 21v-6h4v6','templates.manage']];
+function allowedSecs(){ return SECS.filter(([k,l,d,cap])=>!cap||App.can(cap)); }
+let sec=(allowedSecs()[0]||['org'])[0];
+const SetUI={
+  go(s){sec=s;render();},
+  set(k,v){brand[k]=v;App.applyBrand(brand);render(true);},
+  save(){ if(!App.can('settings.branding')){toast('Nemáte oprávnění');return;} App.saveBrand(brand);App.applyBrand(brand);toast('Uloženo ✓');},
+  reset(){brand=Object.assign({},App.BRAND_DEFAULTS);App.applyBrand(brand);render();toast('Obnoveno na výchozí');},
+  toggleI(k){const i=App.integLoad();i[k]=!i[k];App.integSave(i);render();toast(i[k]?'Připojeno ✓':'Odpojeno');},
+  cap(role,c,on){App.setRoleCap(role,c,on);render();},
+  userRole(id,role){App.setUserRole(id,role);render();toast('Role změněna');},
+  resetPerms(){App.resetPerms();render();toast('Matice práv obnovena');},
+  addInst(){ const n=document.getElementById('ni-name').value.trim(); if(!n){toast('Zadej název');return;}
+    App.addInstitution({name:n,cat:document.getElementById('ni-cat').value,type:document.getElementById('ni-type').value,org:document.getElementById('ni-org').value.trim()});
+    render();toast('Instituce přidána ✓');},
+  delInst(id){App.removeInstitution(id);render();toast('Odebráno');},
+  resetInst(){App.resetInstitutions();render();toast('Číselník obnoven');},
+  tplAddField(key,si){ const inp=document.getElementById('tplf-'+key+'-'+si),sel=document.getElementById('tplt-'+key+'-'+si);
+    App.tplAddField(key,si,inp?inp.value.trim():'',sel?sel.value:'text');render();},
+  tplDelField(key,si,fi){App.tplRemoveField(key,si,fi);render();},
+  tplAddSection(key){ const inp=document.getElementById('tpls-'+key); App.tplAddSection(key,inp?inp.value.trim():'');render();},
+  resetTpl(){App.resetCardTemplates();render();toast('Šablony obnoveny');},
+  saveAI(){const u=document.getElementById('ai-endpoint').value.trim();App.AI.setEndpoint(u);render();toast(u?'AI proxy uložena ✓':'Prázdné – běží mock');},
+  clearAI(){App.AI.setEndpoint('');render();toast('AI přepnuto na simulaci (mock)');},
+  resetAI(){App.AI.resetEndpoint();render();toast('Obnoveno na výchozí proxy ✓');},
+  aiCfg(k,v){const c=App.aiConfigLoad();c[k]=v;App.aiConfigSave(c);render();toast('Uloženo ✓');},
+  aiCfgText(v){const c=App.aiConfigLoad();c.disclaimerText=v;App.aiConfigSave(c);},
+};
+window.SetUI=SetUI;
+function toast(t){let e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#fff;padding:10px 18px;border-radius:10px;z-index:200;box-shadow:var(--shadow-pop)';document.body.appendChild(e);}e.textContent=t;e.style.opacity='1';clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity='0',1600);}
+
+function renderNav(){document.getElementById('setnav').innerHTML=allowedSecs().map(([k,l,d])=>`<div class="nav-item ${sec===k?'active':''}" onclick="SetUI.go('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${d}"/></svg> ${l}</div>`).join('');}
+
+function colorRow(k,label,hint){return `<div class="vrow" style="grid-template-columns:200px 1fr">
+  <div class="k"><span style="width:14px;height:14px;border-radius:4px;background:${brand[k]};display:inline-block;margin-right:8px;border:1px solid var(--border-2)"></span>${label}</div>
+  <div class="v"><input type="color" value="${brand[k]}" oninput="SetUI.set('${k}',this.value)" style="width:42px;height:30px;border:1px solid var(--border-2);border-radius:8px;background:none;cursor:pointer">
+    <input type="text" value="${brand[k]}" oninput="SetUI.set('${k}',this.value)" style="width:96px;border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;font-family:monospace">
+    ${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:''}</div></div>`;}
+
+function render(soft){
+  renderNav();
+  const b=document.getElementById('body');
+  if(!App.can('settings.access')){
+    b.innerHTML=`<div class="pcard"><div class="psection"><h3>Nastavení není dostupné</h3>
+      <p class="muted">Vaše role <b>(${App.roleOf().label})</b> nemá přístup do nastavení organizace. Tuto sekci spravuje vedení organizace.</p>
+      <button class="btn-secondary" style="width:auto;padding:8px 16px;margin-top:8px" onclick="App.openRoleSwitcher()">Přepnout uživatele…</button></div></div>`;
+    return;
+  }
+  const allowed=allowedSecs().map(s=>s[0]);
+  if(!allowed.includes(sec)) sec=allowed[0]||'integrace';
+  if(sec==='org'){
+    b.innerHTML=`<div class="pcard"><div class="psection"><h3>Organizace</h3>
+      <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Název organizace</div><div class="v"><input value="${brand.orgName.replace(/"/g,'&quot;')}" oninput="SetUI.set('orgName',this.value)" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px"></div></div>
+      <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Pobočka</div><div class="v"><input value="${brand.branch.replace(/"/g,'&quot;')}" oninput="SetUI.set('branch',this.value)" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px"></div></div>
+      <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Logo (písmeno/zkratka)</div><div class="v"><input maxlength="2" value="${brand.logo}" oninput="SetUI.set('logo',this.value)" style="width:60px;text-align:center;border:1px solid var(--border-2);border-radius:10px;padding:9px"></div></div>
+      </div>
+      <div class="psection"><h3>Hlavní barva</h3>${colorRow('accent','Akcent (tlačítka, aktivní prvky)','např. firemní barva')}
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center"><button class="btn-primary" style="width:auto;padding:9px 18px">Ukázkové tlačítko</button><span class="chip">Chip</span><span class="badge ok">Stav</span></div>
+      </div></div>
+      <p class="muted" style="font-size:13px;margin-top:14px">Změny se projeví okamžitě na všech obrazovkách (uloženo v prohlížeči). V ostré verzi půjde branding per organizace včetně loga a kontaktů.</p>`;
+  } else if(sec==='barvy'){
+    b.innerHTML=`<div class="pcard">
+      <div class="psection"><h3>Barvy typů péče</h3>${colorRow('careLong','Dlouhodobá')}${colorRow('careTemp','Přechodná')}${colorRow('careKin','Příbuzenská')}
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge" style="background:var(--care-long-soft);color:var(--care-long)">Dlouhodobá</span><span class="badge" style="background:var(--care-temp-soft);color:var(--care-temp)">Přechodná</span><span class="badge" style="background:var(--care-kin-soft);color:var(--care-kin)">Příbuzenská</span></div></div>
+      <div class="psection"><h3>Barvy upozornění / stavů</h3>${colorRow('alertOk','V pořádku')}${colorRow('alertWarn','Pozornost')}${colorRow('alertDue','Po termínu')}
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><span class="badge ok">V pořádku</span><span class="badge warn">Pozornost</span><span class="badge due">Po termínu</span></div></div>
+      <div class="psection"><h3>Ostatní</h3>${colorRow('neutral','Neutrální avatar (pěstoun/ostatní bez fotky)')}
+        <div style="margin-top:10px"><span class="avatar sq" style="background:var(--avatar-neutral)">PN</span></div></div>
+    </div>`;
+  } else if(sec==='integrace'){
+    const i=App.integLoad();
+    const row=(k,name,desc,d)=>`<div class="vrow" style="grid-template-columns:1fr auto"><div class="k"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="${d}"/></svg> ${name}<div class="muted" style="font-size:12px;margin-top:2px;margin-left:26px">${desc}</div></div><div class="v">${i[k]?`<span class="badge ok">Připojeno</span> <button class="vact" onclick="SetUI.toggleI('${k}')">Odpojit</button>`:`<button class="btn-primary" style="width:auto;padding:7px 14px" onclick="SetUI.toggleI('${k}')">Připojit</button>`}</div></div>`;
+    b.innerHTML=`<div class="pcard"><div class="psection"><h3>Připojené kalendáře</h3>
+      ${row('google','Google Calendar','Události KO se obousměrně propíší do jejího Google kalendáře.','M3 5h18v16H3zM3 9h18M8 3v4M16 3v4')}
+      ${row('outlook','Microsoft Outlook','Synchronizace s kalendářem Microsoft 365 / Outlook.','M3 5h18v16H3zM3 9h18M8 3v4M16 3v4')}
+      <p class="muted" style="font-size:12px;margin-top:10px">Připojení je <b>per uživatel</b> (každá KO si připojí svůj účet). V prototypu jen přepínač; reálné OAuth napojení přijde s backendem (V8 / M5).</p></div>
+      <div class="psection"><h3>AI asistent</h3>
+        <p class="muted" style="font-size:13px;margin-top:0">URL Google Apps Script proxy (Vertex AI / Gemini, EU). <b>Výchozí proxy je předvyplněná</b> – AI běží rovnou. „Vypnout" = simulovaný režim (mock). <b>Jen fiktivní data.</b></p>
+        <div class="vrow" style="grid-template-columns:160px 1fr"><div class="k">AI proxy URL</div><div class="v"><input id="ai-endpoint" placeholder="https://script.google.com/macros/s/.../exec" value="${(App.AI.endpoint()||'').replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px;font-family:monospace;font-size:12px"></div></div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn-primary" style="width:auto;padding:8px 16px" onclick="SetUI.saveAI()">Uložit</button><button class="btn-secondary" style="width:auto;padding:8px 16px;margin:0" onclick="SetUI.clearAI()">Vypnout (mock)</button><button class="btn-secondary" style="width:auto;padding:8px 16px;margin:0" onclick="SetUI.resetAI()">Výchozí</button><span class="badge ${App.AI.live()?'ok':''}">${App.AI.live()?'Reálné AI (Gemini · EU)':'Simulace (mock)'}</span></div></div>
+      ${App.can('templates.manage')?(()=>{const c=App.aiConfigLoad();return `<div class="psection"><h3>AI disclaimer (jen Superadmin)</h3>
+        <p class="muted" style="font-size:13px;margin-top:0">Vy rozhodujete, zda a kde se objeví upozornění „vytvořila AI". Odpovědnost za obsah nese vždy klíčová osoba (kontroluje a podepisuje).</p>
+        <label style="display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" ${c.disclaimerShow!==false?'checked':''} onchange="SetUI.aiCfg('disclaimerShow',this.checked)" style="width:16px;height:16px"> Zobrazovat disclaimer v aplikaci (náhledy AI)</label>
+        <label style="display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" ${c.disclaimerPrint===true?'checked':''} onchange="SetUI.aiCfg('disclaimerPrint',this.checked)" style="width:16px;height:16px"> Tisknout disclaimer v reportu pro OSPOD</label>
+        <div class="vrow" style="grid-template-columns:160px 1fr;margin-top:6px"><div class="k">Text disclaimeru</div><div class="v"><textarea id="ai-disc-text" oninput="SetUI.aiCfgText(this.value)" style="width:100%;min-height:60px;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px;font-size:13px">${(c.disclaimerText||'').replace(/</g,'&lt;')}</textarea></div></div>
+        <div style="margin-top:6px"><span class="muted" style="font-size:12px">Náhled: ${App.AI.showDisclaimer()?'<i>'+(c.disclaimerText||'').replace(/</g,'&lt;')+'</i>':'<b>skryto</b>'}</span></div></div>`;})():''}
+      <div class="psection"><h3>Další integrace (připravujeme)</h3>
+      <p class="muted" style="font-size:13px">Google/Microsoft přihlášení (SSO), úložiště dokumentů (Google Drive / OneDrive), e-mail a videohovory.</p></div></div>`;
+  } else if(sec==='kontakty'){
+    b.innerHTML=`<div class="pcard"><div class="psection"><h3>Kontaktní údaje organizace</h3>
+      <p class="muted">IČO, adresa, telefon, e-mail, statutární zástupce, číslo pověření k SPOD… (doplníme). Tyto údaje se použijí v hlavičkách generovaných reportů.</p></div></div>`;
+  } else if(sec==='prava'){
+    const editable=App.can('roles.manage');
+    const roles=App.ROLES, caps=App.CAPS, perms=App.rolePerms();
+    const groups=[...new Set(caps.map(c=>c[2]))];
+    const scopeLabel=s=>s==='all'?'celá organizace':s==='own'?'přidělené rodiny':'jen vlastní karta';
+    const usersHtml=App.ORG_USERS.map(u=>{
+      const sel=`<select onchange="SetUI.userRole('${u.id}',this.value)" ${editable?'':'disabled'} style="border:1px solid var(--border-2);border-radius:8px;padding:6px 9px;background:var(--surface);color:var(--text);${editable?'cursor:pointer':'opacity:.7'}">${roles.map(r=>`<option value="${r.key}" ${u.role===r.key?'selected':''}>${r.label}</option>`).join('')}</select>`;
+      return `<div class="vrow" style="grid-template-columns:1fr auto;align-items:center"><div class="k" style="display:flex;align-items:center"><span class="avatar sq" style="width:32px;height:32px;font-size:11px;background:var(--avatar-neutral);margin-right:10px">${App.ini(u.name)}</span><div><div style="font-weight:500">${u.name}</div><div class="muted" style="font-size:12px">${u.email||''}</div></div></div><div class="v">${sel}</div></div>`;
+    }).join('');
+    const head=`<tr><th style="text-align:left">Oprávnění</th>${roles.map(r=>`<th title="${r.desc}" style="font-size:11px;writing-mode:horizontal-tb;min-width:64px">${r.label.replace(/ \(.*\)/,'').replace(' / admin DO','')}</th>`).join('')}</tr>`;
+    const scopeRow=`<tr style="background:var(--active)"><td><b>Rozsah dat</b></td>${roles.map(r=>`<td style="text-align:center;font-size:11px;color:var(--text-2)">${scopeLabel(r.scope)}</td>`).join('')}</tr>`;
+    const rows=groups.map(g=>{
+      const gh=`<tr><td colspan="${roles.length+1}" style="background:var(--active);font-weight:600;font-size:12px;color:var(--text-2);padding:6px 8px">${g}</td></tr>`;
+      const crows=caps.filter(c=>c[2]===g).map(c=>{
+        const cells=roles.map(r=>{ const on=(perms[r.key]||[]).includes(c[0]); const locked=r.key==='superadmin';
+          return `<td style="text-align:center">${(editable&&!locked)?`<input type="checkbox" ${on?'checked':''} onchange="SetUI.cap('${r.key}','${c[0]}',this.checked)" style="cursor:pointer;width:16px;height:16px">`:(on?'<span style="color:var(--alert-ok);font-weight:700">✓</span>':'<span style="color:var(--text-3)">–</span>')}</td>`;
+        }).join('');
+        return `<tr><td>${c[1]}</td>${cells}</tr>`;
+      }).join('');
+      return gh+crows;
+    }).join('');
+    b.innerHTML=`<div class="pcard">
+      <div class="psection"><h3>Zobrazit aplikaci jako</h3>
+        <p class="muted" style="font-size:13px">Náhled, jak aplikaci vidí jednotlivé role — rozsah dat i dostupné akce. Aktuálně přihlášen: <b>${App.currentUser().name}</b> · ${App.roleOf().label}.</p>
+        <button class="btn-secondary" style="width:auto;padding:8px 16px;margin-top:6px" onclick="App.openRoleSwitcher()">Přepnout uživatele…</button>
+      </div>
+      <div class="psection"><h3>Uživatelé organizace</h3>${usersHtml}
+        ${editable?'':'<p class="muted" style="font-size:12px;margin-top:8px">Pro úpravy je potřeba oprávnění „Spravovat role a práva".</p>'}</div>
+      <div class="psection"><h3>Role a oprávnění</h3>
+        ${roles.map(r=>`<div style="font-size:13px;margin:3px 0"><b>${r.label}</b> <span class="muted">— ${r.desc}</span></div>`).join('')}
+        <div style="overflow-x:auto;margin-top:14px"><table class="rd-rows" style="font-size:13px;min-width:600px"><thead>${head}</thead><tbody>${scopeRow}${rows}</tbody></table></div>
+        ${editable?`<div style="margin-top:14px"><button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="SetUI.resetPerms()">Obnovit výchozí matici</button></div>
+        <p class="muted" style="font-size:12px;margin-top:10px">Superadmin má vždy plná práva (nelze odebrat). Změny se projeví po přepnutí role / načtení stránky. V ostré verzi budou práva vynucena na serveru (Supabase RLS) a každá změna verzována v auditním logu.</p>`:''}
+      </div>
+    </div>`;
+  } else if(sec==='sablony'){
+    const tpls=App.cardTemplates();
+    const FT=[['text','Text'],['tel','Telefon'],['email','E-mail'],['date','Datum'],['number','Číslo'],['textarea','Adresa/pozn.'],['select','Výběr']];
+    const ftLabel=t=>(FT.find(x=>x[0]===t)||['',t])[1];
+    b.innerHTML=`<div class="pcard">
+      <div class="psection"><h3>Šablony karet (Superadmin)</h3>
+        <p class="muted" style="font-size:13px">Definice sekcí a polí pro jednotlivé typy karet. Šablony jsou <b>sdílené napříč organizacemi</b> a určují, jaká pole má nová karta. (V ostré verzi řízeno provozovatelem; M1.x.)</p></div>
+      ${tpls.map(tpl=>`<div class="psection"><h3>${tpl.label}</h3>
+        ${tpl.sections.map((s,si)=>`<div style="margin:10px 0;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px">${s.title}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${s.fields.map((f,fi)=>`<span class="tag" style="background:var(--active);display:inline-flex;align-items:center;gap:6px">${f.label} <span class="muted" style="font-size:11px">(${ftLabel(f.type)})</span> <span style="cursor:pointer;color:var(--alert-due);font-weight:700" onclick="SetUI.tplDelField('${tpl.key}',${si},${fi})">✕</span></span>`).join('')||'<span class="muted" style="font-size:12px">Žádná pole</span>'}</div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <input id="tplf-${tpl.key}-${si}" placeholder="Název pole…" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 9px;flex:1;min-width:120px">
+            <select id="tplt-${tpl.key}-${si}" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 9px;background:var(--surface)">${FT.map(([t,l])=>`<option value="${t}">${l}</option>`).join('')}</select>
+            <button class="chip" style="cursor:pointer;background:var(--active)" onclick="SetUI.tplAddField('${tpl.key}',${si})">+ pole</button>
+          </div></div>`).join('')}
+        <div style="display:flex;gap:6px;margin-top:8px"><input id="tpls-${tpl.key}" placeholder="Název nové sekce…" style="border:1px solid var(--border-2);border-radius:8px;padding:6px 9px;flex:1"><button class="chip" style="cursor:pointer;background:var(--active)" onclick="SetUI.tplAddSection('${tpl.key}')">+ sekce</button></div>
+      </div>`).join('')}
+      <div class="psection"><button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="SetUI.resetTpl()">Obnovit výchozí šablony</button></div>
+    </div>`;
+  } else if(sec==='instituce-reg'){
+    const inst=App.institutions(), cats=App.instCats();
+    const catOpts=cats.map(([g,items])=>`<optgroup label="${g}">${items.map(([id,l])=>`<option value="${id}">${l}</option>`).join('')}</optgroup>`).join('');
+    const byCat={}; inst.forEach(i=>(byCat[i.cat]=byCat[i.cat]||[]).push(i));
+    b.innerHTML=`<div class="pcard">
+      <div class="psection"><h3>Globální číselník institucí</h3>
+        <p class="muted" style="font-size:13px">Sdílený seznam úřadů, soudů, škol, lékařů a dalších institucí — <b>společný napříč organizacemi</b>. Používá se v sekci „Ostatní" a při přiřazování ke kartám. Celkem <b>${inst.length}</b> položek.</p></div>
+      <div class="psection"><h3>Přidat instituci</h3>
+        <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Název</div><div class="v"><input id="ni-name" placeholder="Např. OSPOD Praha 4" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px"></div></div>
+        <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Kategorie</div><div class="v"><select id="ni-cat" style="border:1px solid var(--border-2);border-radius:10px;padding:9px 11px;background:var(--surface)">${catOpts}</select></div></div>
+        <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Typ</div><div class="v"><select id="ni-type" style="border:1px solid var(--border-2);border-radius:10px;padding:9px 11px;background:var(--surface)"><option value="PO">Právnická osoba</option><option value="FO">Fyzická osoba</option></select></div></div>
+        <div class="vrow" style="grid-template-columns:200px 1fr"><div class="k">Zřizovatel / org.</div><div class="v"><input id="ni-org" placeholder="(nepovinné)" style="width:100%;border:1px solid var(--border-2);border-radius:10px;padding:9px 11px"></div></div>
+        <button class="btn-primary" style="width:auto;padding:9px 18px;margin-top:8px" onclick="SetUI.addInst()">+ Přidat do číselníku</button>
+      </div>
+      ${cats.map(([g,items])=>{ const rows=items.filter(([id])=>byCat[id]).map(([id,l])=>`<div style="margin:6px 0"><div class="muted" style="font-size:12px;font-weight:600">${l}</div>${byCat[id].map(i=>`<div class="vrow" style="grid-template-columns:1fr auto;align-items:center"><div class="k"><span class="avatar sq" style="width:28px;height:28px;font-size:10px;background:var(--avatar-neutral);margin-right:8px">${App.ini(i.name)}</span>${i.name}<span class="muted" style="font-size:12px;margin-left:6px">${i.type}${i.org?' · '+i.org:''}</span></div><div class="v"><button class="vact" style="color:var(--alert-due)" onclick="SetUI.delInst('${i.id}')">Odebrat</button></div></div>`).join('')}</div>`).join('');
+        return rows?`<div class="psection"><h3>${g}</h3>${rows}</div>`:''; }).join('')}
+      <div class="psection"><button class="btn-secondary" style="width:auto;padding:8px 16px" onclick="SetUI.resetInst()">Obnovit výchozí číselník</button></div>
+    </div>`;
+  }
+}
+render();
+</script>
+<script src="mobile.js?v=66"></script>
+</body>
+</html>
+
