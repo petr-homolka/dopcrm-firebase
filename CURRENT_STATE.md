@@ -1,6 +1,8 @@
 # CURRENT_STATE
-**Verze:** 0.9.9 (Firebase Hosting konfigurace připravena)
-**Aktuální cíl:** Příprava aplikace pro nasazení na Firebase Hosting.
+**Verze:** 1.0.1 (Vlastní doména nastavena)
+**Živá URL:** https://opportune-cairn-500111-b-b2bea.web.app
+**Vlastní doména:** https://moje.doprovazeni.com (CNAME → opportune-cairn-500111-b-b2bea.web.app, Firebase Hosting custom domain, status: successfully verified)
+**Aktuální cíl:** Rozšířit Bento Grid layout na další moduly (Pěstouni, Děti, Kontakty…), naplnit Firestore testovacími daty.
 
 **Mobil (pestouni-crm-mobile) — POZASTAVENO (2026-06-30):**
 Expo Go na zařízení uživatele stále hlásí nekompatibilitu i po downgradu na SDK 56 a aktualizaci appky.
@@ -14,6 +16,8 @@ až se k tomu vrátíme. Web pokračuje samostatně.
 - `firebase-tools` doinstalován jako devDependency (CLI binárka `firebase` nebyla v systému, bez ní by `npm run deploy` nešel spustit)
 - Ověřeno: oba JSON soubory syntakticky validní, `./node_modules/.bin/firebase --version` funguje (15.22.4)
 - `.claudesignore` zkontrolován — `firebase.json`/`.firebaserc` nejsou blokované
+- **NASAZENO (2026-06-30):** `npm run deploy` proběhl úspěšně — 51 souborů, `Deploy complete!`. Živá appka: https://opportune-cairn-500111-b-b2bea.web.app
+- **Vlastní doména (2026-06-30):** `moje.doprovazeni.com` přidána ve Firebase Console → Hosting → Add custom domain, CNAME záznam u DNS providera nasměrován na `opportune-cairn-500111-b-b2bea.web.app`, status „Custom domain setup successfully". Pozn.: `claude.doprovazeni.com` (FTP, vanilla prototyp) zůstává nedotčena — jde o jinou subdoménu.
 
 **Co je funkční (web, beze změny od v0.9.8):**
 - Firebase Auth (Email/Password, uživatel petr.homolka@doprovazeni.com)
