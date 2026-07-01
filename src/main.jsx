@@ -12,6 +12,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initPersistence } from './services/firebase.js';
+import { bootstrapAuthStore } from './store/authStore.js';
 import App from './App.js';
 
 async function bootstrap() {
@@ -21,6 +22,9 @@ async function bootstrap() {
   } catch (err) {
     console.warn('[CRM] IndexedDB persistence nedostupná:', err.code ?? err.message);
   }
+
+  // Nový B2B SaaS auth store (Zustand) — sleduje Firebase Auth + users/{uid}
+  bootstrapAuthStore();
 
   const root = document.getElementById('root');
   if (!root) throw new Error('[CRM] Element #root nenalezen v index.html');

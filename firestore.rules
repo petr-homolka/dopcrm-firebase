@@ -1,128 +1,241 @@
 rules_version = '2';
 
 // ============================================================
-// Firestore Security Rules — Doprovázení CRM (MVP)
+// Firestore Security Rules — Doprovázení CRM
 //
-// ROLE MODEL:
-//   Role a oprávnění se NIKDY nečtou z Custom Claims.
-//   Jediný zdroj pravdy: user_roles/{uid} dokument v Firestore.
+// Sekce A (níže) = PŮVODNÍ generický prototyp (tenants/{tenantId}/data_objects
+// + user_roles/{uid}, role: superadmin/vedeni/ko/asistent/pestoun/dite/externista).
+// Ponecháno funkční kvůli zpětné kompatibilitě starších modulů (Kalendář,
+// Dokumenty, Reporty, Workflow…), které na tomto modelu zatím stojí.
 //
-//   Schéma dokumentu user_roles/{uid}:
+// Sekce B (níže) = NOVÉ explicitní B2B SaaS multi-tenant schéma
+// (2026-07-01, zadání "SaaS hierarchie"), které nahrazuje user_roles/data_objects
+// jako zdroj pravdy pro identitu/hierarchii organizace → zaměstnanci → pěstouni →
+// děti. Nové přihlašování a role-based dashboardy (SuperAdmin/OrgAdmin/Klíčová
+// osoba) čtou VÝHRADNĚ ze sekce B. Cíl V8: sekce B se stává jediným modelem,
+// sekce A se postupně vyřadí.
+//
+// ROLE MODEL (sekce B), dokument users/{uid}:
 //   {
-//     role: "superadmin" | "vedeni" | "ko" | "asistent" | "pestoun" | "dite" | "externista",
-//     tenantId: string,        // organizace uživatele
-//     scope: "all" | "own" | "self" | "extern",
-//     caps: string[],          // granulární oprávnění
-//     assignedFamilies: string[] // jen pro scope=own (KO)
+//     email: string,
+//     displayName: string,
+//     role: "superadmin" | "org_admin" | "klicova_osoba",
+//     organizationId: string | null,   // null jen pro superadmina (cross-tenant)
+//     department: "management" | "service" | "terenni" | null,
+//     active: boolean,
+//     createdAt, createdBy, updatedAt
 //   }
 //
-// TENANT MODEL:
-//   Všechna data klientů VÝHRADNĚ v: tenants/{tenantId}/data_objects/{docId}
-//   Root kolekce data_objects se NEPOUŽÍVÁ (viz pravidla níže).
+// HIERARCHIE:
+//   organizations/{orgId}                       — tenant (platící zákazník)
+//   users/{uid}                                  — zaměstnanci (žádní pěstouni/děti!)
+//   foster_families/{familyId}                   — klientské rodiny (NEJSOU Auth uživatelé)
+//     .organizationId, .assignedTo (uid klíčové osoby)
+//   children/{childId}                           — děti svěřené do péče
+//     .organizationId, .fosterFamilyId, .assignedTo (denormalizováno z rodiny)
+//
+// BEZPEČNÝ MODEL PRO "KLÍČOVOU OSOBU":
+//   - čtení: všechny foster_families/children VE SVÉ organizaci (potřebuje
+//     přehled o kolezích, zastupitelnost při nemoci apod.)
+//   - zápis (update/delete): jen záznamy, kde assignedTo == její uid
+//   - založení nové rodiny (create): NE — jen org_admin/superadmin (přiřazení
+//     řeší management), klíčová osoba může jen navrhnout přes org_admina.
 // ============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpery ─────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════
+    // SEKCE B — NOVÉ B2B SaaS schéma (2026-07-01)
+    // ════════════════════════════════════════════════════════
 
-    function isAuthenticated() {
+    function signedIn() {
       return request.auth != null;
     }
 
-    // Čtení role z Firestore — NIKDY z custom claims
+    // Profil VOLAJÍCÍHO uživatele z users/{uid} — jediný zdroj pravdy o roli.
+    // (Custom Claims se nepoužívají, viz auth.js — konzistentní s ROLE_MODEL sekce A.)
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function myRole() {
+      return signedIn() ? myProfile().role : null;
+    }
+
+    function myOrgId() {
+      return signedIn() ? myProfile().organizationId : null;
+    }
+
+    function isSuperadmin() {
+      return signedIn() && myRole() == 'superadmin';
+    }
+
+    function isOrgAdmin() {
+      return signedIn() && myRole() == 'org_admin';
+    }
+
+    function isKlicovaOsoba() {
+      return signedIn() && myRole() == 'klicova_osoba';
+    }
+
+    function sameOrg(orgId) {
+      return signedIn() && myOrgId() == orgId;
+    }
+
+    // ── organizations (tenanti) ──────────────────────────────
+    // Superadmin: plný přístup (zakládá nové organizace, mění stav předplatného).
+    // Zaměstnanci organizace: jen čtení metadat vlastní organizace.
+    match /organizations/{orgId} {
+      allow read:  if isSuperadmin() || sameOrg(orgId);
+      allow write: if isSuperadmin();
+    }
+
+    // ── users (zaměstnanci: superadmin / org_admin / klicova_osoba) ──
+    // Pěstouni a děti NEJSOU v této kolekci (nemají Auth účet v MVP).
+    match /users/{uid} {
+      allow read: if isSuperadmin()
+                     || request.auth.uid == uid
+                     || (isOrgAdmin() && sameOrg(resource.data.organizationId));
+
+      // Vytvoření nového zaměstnance:
+      //   superadmin -> kohokoli, kdekoli (typicky prvního org_admina nové organizace)
+      //   org_admin  -> jen do VLASTNÍ organizace a jen role org_admin/klicova_osoba
+      //                 (nesmí založit dalšího superadmina ani cizí organizaci)
+      allow create: if isSuperadmin()
+                       || (isOrgAdmin()
+                           && request.resource.data.organizationId == myOrgId()
+                           && request.resource.data.role in ['org_admin', 'klicova_osoba']);
+
+      // Úprava: superadmin cokoli; org_admin své zaměstnance (nesmí je povýšit na
+      // superadmina ani přehodit do jiné organizace); uživatel sám smí upravit
+      // jen svůj profil (displayName) — role/organizationId řeší jen výš postavení.
+      allow update: if isSuperadmin()
+                       || (isOrgAdmin()
+                           && sameOrg(resource.data.organizationId)
+                           && resource.data.role != 'superadmin'
+                           && request.resource.data.role != 'superadmin'
+                           && request.resource.data.organizationId == resource.data.organizationId)
+                       || (request.auth.uid == uid
+                           && request.resource.data.role == resource.data.role
+                           && request.resource.data.organizationId == resource.data.organizationId);
+
+      allow delete: if isSuperadmin()
+                       || (isOrgAdmin() && sameOrg(resource.data.organizationId) && resource.data.role != 'superadmin');
+    }
+
+    // ── foster_families (klientské rodiny) ───────────────────
+    match /foster_families/{familyId} {
+      // Čtení: superadmin vše; kdokoli ze STEJNÉ organizace (org_admin i klíčová
+      // osoba vidí i rodiny kolegů — potřeba přehledu/zastupitelnosti).
+      allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
+
+      // Založení nové rodiny: jen management (org_admin) nebo superadmin.
+      allow create: if isSuperadmin()
+                       || (isOrgAdmin() && sameOrg(request.resource.data.organizationId));
+
+      // Úprava/mazání: org_admin v rámci organizace VŽDY;
+      // klíčová osoba JEN u rodin, které má přímo přidělené (assignedTo == její uid).
+      allow update, delete: if isSuperadmin()
+                                || (isOrgAdmin() && sameOrg(resource.data.organizationId))
+                                || (isKlicovaOsoba()
+                                    && sameOrg(resource.data.organizationId)
+                                    && resource.data.assignedTo == request.auth.uid);
+    }
+
+    // ── children (děti svěřené do péče) ──────────────────────
+    // organizationId + assignedTo jsou denormalizované z rodičovské foster_family
+    // (viz orgService.js) — umožňuje stejná pravidla bez cross-collection get().
+    match /children/{childId} {
+      allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
+
+      allow create: if isSuperadmin()
+                       || (isOrgAdmin() && sameOrg(request.resource.data.organizationId))
+                       || (isKlicovaOsoba()
+                           && sameOrg(request.resource.data.organizationId)
+                           && request.resource.data.assignedTo == request.auth.uid);
+
+      allow update, delete: if isSuperadmin()
+                                || (isOrgAdmin() && sameOrg(resource.data.organizationId))
+                                || (isKlicovaOsoba()
+                                    && sameOrg(resource.data.organizationId)
+                                    && resource.data.assignedTo == request.auth.uid);
+    }
+
+    // ════════════════════════════════════════════════════════
+    // SEKCE A — PŮVODNÍ generický prototyp (zachováno, legacy)
+    // ════════════════════════════════════════════════════════
+
+    // Čtení role z Firestore — NIKDY z custom claims (legacy model)
     function userRole() {
       return get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data;
     }
 
     function hasRole(roleKey) {
-      return isAuthenticated() && userRole().role == roleKey;
+      return isAuthenticatedLegacy() && userRole().role == roleKey;
     }
 
     function hasCap(cap) {
-      return isAuthenticated() && cap in userRole().caps;
+      return isAuthenticatedLegacy() && cap in userRole().caps;
     }
 
     function isSameTenant(tenantId) {
-      return isAuthenticated() && userRole().tenantId == tenantId;
+      return isAuthenticatedLegacy() && userRole().tenantId == tenantId;
     }
 
-    function isSuperadmin() {
+    function isSuperadminLegacy() {
       return hasRole('superadmin');
     }
 
-    // ── Vlastní role dokumenty ───────────────────────────────
+    function isAuthenticatedLegacy() {
+      return request.auth != null;
+    }
 
     // user_roles: číst smí jen vlastník nebo superadmin; psát jen superadmin/vedení
     match /user_roles/{uid} {
-      allow read: if isAuthenticated() && (request.auth.uid == uid || isSuperadmin());
-      allow write: if isSuperadmin() || hasRole('vedeni');
+      allow read: if isAuthenticatedLegacy() && (request.auth.uid == uid || isSuperadminLegacy());
+      allow write: if isSuperadminLegacy() || hasRole('vedeni');
     }
 
-    // ── ROOT kolekce data_objects — ZAKÁZÁNA ─────────────────
-    // Všechna data musí být v tenants/{tenantId}/data_objects, ne zde.
+    // ROOT kolekce data_objects — ZAKÁZÁNA (data musí být v tenants/{tenantId}/data_objects)
     match /data_objects/{docId} {
-      allow read, write: if false;  // explicitní zákaz root kolekce
+      allow read, write: if false;
     }
-
-    // ── Tenant data (hlavní datový model) ────────────────────
 
     match /tenants/{tenantId} {
 
-      // Metadata tenanta: číst/psát smí jen superadmin nebo vedení daného tenanta
-      allow read:  if isSameTenant(tenantId) || isSuperadmin();
-      allow write: if isSuperadmin() || (hasRole('vedeni') && isSameTenant(tenantId));
-
-      // ── Hlavní datová kolekce (tenant-scoped) ────────────────
+      allow read:  if isSameTenant(tenantId) || isSuperadminLegacy();
+      allow write: if isSuperadminLegacy() || (hasRole('vedeni') && isSameTenant(tenantId));
 
       match /data_objects/{docId} {
-
-        // Superadmin: plný přístup napříč tenanty
-        allow read, write: if isSuperadmin();
-
-        // Vedení: plný přístup v rámci svého tenanta
+        allow read, write: if isSuperadminLegacy();
         allow read, write: if hasRole('vedeni') && isSameTenant(tenantId);
-
-        // KO: čtení a zápis jen pro přidělené rodiny (scope=own)
         allow read:  if hasRole('ko') && isSameTenant(tenantId);
         allow write: if hasRole('ko') && isSameTenant(tenantId) && hasCap('contacts.edit');
-
-        // Asistentka: čtení pro přidělené, zápis jen poznámek/dokumentů
         allow read:  if hasRole('asistent') && isSameTenant(tenantId);
         allow write: if hasRole('asistent') && isSameTenant(tenantId)
                         && (hasCap('notes.add') || hasCap('docs.upload'));
-
-        // Pěstoun: číst jen svůj záznam a vlastní dokumenty
         allow read: if hasRole('pestoun') && isSameTenant(tenantId)
                        && resource.data.ownerId == request.auth.uid;
         allow write: if hasRole('pestoun') && isSameTenant(tenantId)
                         && resource.data.ownerId == request.auth.uid
                         && hasCap('docs.upload');
-
-        // Dítě: jen vlastní karta, read-only
         allow read: if hasRole('dite') && isSameTenant(tenantId)
                        && resource.data.ownerId == request.auth.uid;
-
-        // Externista: žádný přístup k datům rodin (GDPR)
-        // (výkaz = samostatná kolekce níže)
       }
-
-      // ── Záznamy časové osy / Osa ─────────────────────────────
 
       match /timeline/{entryId} {
         allow read: if isSameTenant(tenantId) && (
-          isSuperadmin() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
+          isSuperadminLegacy() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
           (hasRole('pestoun') && resource.data.scope == 'pestoun' && resource.data.ownerId == request.auth.uid)
         );
         allow create: if isSameTenant(tenantId) && hasCap('notes.add');
-        allow update, delete: if false; // osa je immutable (WORM cíl V8)
+        allow update, delete: if false;
       }
-
-      // ── Dokumenty ────────────────────────────────────────────
 
       match /documents/{docId} {
         allow read: if isSameTenant(tenantId) && (
-          isSuperadmin() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
+          isSuperadminLegacy() || hasRole('vedeni') || hasRole('ko') || hasRole('asistent') ||
           (hasRole('pestoun') && resource.data.ownerId == request.auth.uid)
         );
         allow create: if isSameTenant(tenantId) && hasCap('docs.upload')
@@ -131,58 +244,46 @@ service cloud.firestore {
           hasCap('contacts.edit') ||
           (hasRole('pestoun') && resource.data.ownerId == request.auth.uid && hasCap('docs.upload'))
         );
-        // Mazání: výhradně superadmin
-        allow delete: if isSuperadmin();
+        allow delete: if isSuperadminLegacy();
       }
-
-      // ── Výkazy externistů ────────────────────────────────────
 
       match /vykazy/{vykazId} {
         allow read: if isSameTenant(tenantId) && (
-          isSuperadmin() || hasRole('vedeni') || hasRole('ko') ||
+          isSuperadminLegacy() || hasRole('vedeni') || hasRole('ko') ||
           (hasRole('externista') && resource.data.externistaId == request.auth.uid)
         );
         allow create: if hasRole('externista') && isSameTenant(tenantId)
                          && request.resource.data.externistaId == request.auth.uid;
         allow update: if (hasRole('externista') && resource.data.externistaId == request.auth.uid
                           && resource.data.stav == 'cekajici')
-                      || hasRole('vedeni') || isSuperadmin();
-        allow delete: if isSuperadmin();
+                      || hasRole('vedeni') || isSuperadminLegacy();
+        allow delete: if isSuperadminLegacy();
       }
-
-      // ── Instituce (číselník) ─────────────────────────────────
 
       match /institutions/{instId} {
         allow read: if isSameTenant(tenantId);
-        allow write: if isSuperadmin() || (hasRole('vedeni') && isSameTenant(tenantId));
+        allow write: if isSuperadminLegacy() || (hasRole('vedeni') && isSameTenant(tenantId));
       }
-
-      // ── Šablony karet ────────────────────────────────────────
 
       match /card_templates/{tplId} {
         allow read: if isSameTenant(tenantId);
-        allow write: if isSuperadmin();  // pouze superadmin, globální číselník
+        allow write: if isSuperadminLegacy();
       }
 
-      // ── Audit log ────────────────────────────────────────────
-      // Zápis jen pro kritické chyby (ne běžné operace — viz functions/index.js)
       match /audit_log/{logId} {
-        allow read:   if isSuperadmin() || hasRole('vedeni');
-        allow create: if isAuthenticated() && isSameTenant(tenantId)
+        allow read:   if isSuperadminLegacy() || hasRole('vedeni');
+        allow create: if isAuthenticatedLegacy() && isSameTenant(tenantId)
                          && request.resource.data.severity == 'critical';
-        allow update, delete: if false; // audit je immutable
+        allow update, delete: if false;
       }
     }
 
-    // ── Globální šablony (Superadmin cross-tenant) ────────────
-
     match /global_templates/{tplId} {
-      allow read: if isAuthenticated();
-      allow write: if isSuperadmin();
+      allow read: if isAuthenticatedLegacy();
+      allow write: if isSuperadminLegacy();
     }
 
     // ── Catch-all: vše ostatní zakázat ───────────────────────
-
     match /{document=**} {
       allow read, write: if false;
     }

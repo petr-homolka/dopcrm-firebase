@@ -1,4 +1,123 @@
 # CURRENT_STATE
+**Verze:** 1.2.0 (NOVÉ: B2B SaaS multi-tenant DB vrstva + role dashboardy, 2026-07-01)
+
+## 2026-07-01 — B2B SaaS hierarchie (SuperAdmin → Organizace → Zaměstnanci → Pěstouni → Děti)
+
+**Zadání dne:** vedle stávajícího generického prototypového modelu (`tenants/{tenantId}/data_objects`,
+role superadmin/vedeni/ko/asistent/pestoun/dite/externista, viz níže „Beze změny od v0.9.8") postavit
+**nové, explicitní multi-tenant Firestore schéma** odpovídající SaaS hierarchii: SaaS Poskytovatel →
+Doprovázející organizace (tenant) → Zaměstnanci (Management/Service/Klíčové osoby) → Pěstouni → Děti.
+**Obě vrstvy běží vedle sebe** (staré moduly Kalendář/Dokumenty/Reporty/Workflow dál používají starý model
+beze změny) — nové je jen `/login` + tři nové dashboardy na `/admin/*`.
+
+### Firestore schéma (root kolekce, NE subkolekce tenanta)
+
+```
+organizations/{orgId}
+  name, plan, status: 'trial'|'active'|'suspended'|'cancelled'
+  createdAt, createdBy, updatedAt
+
+users/{uid}                         // JEN zaměstnanci — pěstouni/děti zde NEJSOU (nemají Auth účet)
+  email, displayName
+  role: 'superadmin' | 'org_admin' | 'klicova_osoba'
+  organizationId: string | null     // null jen pro superadmina
+  department: 'management' | 'service' | 'terenni' | null
+  active: boolean
+  createdAt, createdBy, updatedAt
+
+foster_families/{familyId}          // klientské rodiny — NEJSOU Auth uživatelé
+  organizationId, name, address, contactPhone, contactEmail
+  assignedTo: uid                   // klíčová osoba odpovědná za rodinu
+  status: 'active' | 'paused' | 'exited'
+  note
+  createdAt, createdBy, updatedAt
+
+children/{childId}
+  organizationId, assignedTo        // DENORMALIZOVÁNO z rodičovské foster_family (kvůli rules/dotazům)
+  fosterFamilyId, firstName, lastName, birthDate
+  status: 'active' | 'transferred' | 'aged_out'
+  note
+  createdAt, updatedAt
+```
+
+Indexy: `firestore.indexes.json` (foster_families×organizationId/createdAt,
+foster_families×assignedTo/createdAt, children×fosterFamilyId, users×organizationId/role).
+
+### Firestore Security Rules (`firestore.rules`, „SEKCE B" — nová, přidaná vedle staré „SEKCE A")
+
+- **superadmin** — plný přístup napříč organizacemi.
+- **org_admin** — plné CRUD `users`/`foster_families`/`children` VE VLASTNÍ organizaci; nesmí založit
+  superadmina ani zasahovat do cizí organizace.
+- **klicova_osoba** — **čte** celou svou organizaci (přehled/zastupitelnost kolegů), ale **zapisuje/maže**
+  jen `foster_families`/`children`, kde `assignedTo == její uid`. Nesmí zakládat nové rodiny (to řeší
+  org_admin/superadmin).
+- `organizations` — čtení jen vlastní organizace, zápis jen superadmin.
+
+### Web (React) — nové soubory
+
+- `src/store/authStore.js` — **Zustand** store (`currentUser`, `profile`, `organizationId`, `role`,
+  `loading`), `bootstrapAuthStore()` volaný v `main.jsx`, real-time `onSnapshot` na `users/{uid}`.
+- `src/services/orgAuth.js` — `signIn/signOut/dashboardPathForRole` pro nové schéma (odděleno od
+  legacy `services/auth.js`, který zůstává pro starší moduly).
+- `src/services/orgService.js` — CRUD `organizations/users/foster_families/children`. Zvláštnost:
+  `createEmployee()` řeší, že Firebase Auth na klientovi nemá „vytvoř účet, ale nepřihlas mě jako něj" —
+  používá **dočasnou sekundární Firebase App instanci** (`initializeApp(config, 'secondary-...')`), aby
+  založení nového zaměstnance neodhlásilo aktuálního superadmina/org_admina. **TODO V8:** nahradit Cloud
+  Function (Admin SDK, `onCall`) — připraveno jako komentář v souboru.
+- `src/modules/admin/AdminLayout.jsx` — jednoduchý topbar shell (ne stará sidebar `core/Layout.jsx`).
+- `src/modules/admin/SuperAdminDashboard.jsx` — `/admin/superadmin`: seznam organizací + modal
+  „Nová organizace" (založí org + rovnou jejího prvního `org_admin`).
+- `src/modules/admin/OrgAdminDashboard.jsx` — `/admin/organizace`: seznam zaměstnanců organizace +
+  modal „Přidat zaměstnance" (role `org_admin`/`klicova_osoba`, oddělení), aktivace/deaktivace.
+- `src/modules/admin/KlicovaOsobaDashboard.jsx` — `/admin/terenni`: Bento Grid karty přidělených
+  pěstounských rodin (`listFostersAssignedTo`).
+- `src/modules/admin/FosterFamilyDetailPage.jsx` — `/admin/terenni/:familyId`: detail rodiny + seznam
+  svěřených dětí (přístupné i `org_admin` pro čtení).
+- `src/modules/users/Login.jsx` — přepracováno na `orgAuth.signIn` + `authStore`; po přihlášení redirect
+  na `dashboardPathForRole(role)`.
+- `src/core/router.jsx` — přidán `RequireOrgRole` guard (Zustand, nezávislý na legacy `AuthContext`) +
+  routy `/admin/superadmin`, `/admin/organizace`, `/admin/terenni`, `/admin/terenni/:familyId`.
+
+**Nová závislost:** `zustand` (`^5.0.14`).
+
+**⚠️ Bootstrap prvního superadmina (nutný ruční krok, jinak se nikdo nedostane dovnitř nového systému):**
+Appka umí založit organizaci + org_admina JEN pokud už je někdo přihlášený jako superadmin — pro úplně
+první účet je potřeba jednorázově ručně:
+1. Firebase Console → Authentication → Add user (e-mail/heslo).
+2. Firebase Console → Firestore → kolekce `users` → nový dokument s ID = **UID** toho uživatele:
+   `{ email, displayName, role: "superadmin", organizationId: null, department: null, active: true }`.
+3. Přihlásit se na `/login` — appka pozná roli a přesměruje na `/admin/superadmin`.
+
+### Mobil (Expo) — Krok 4, terénní modul klíčové osoby
+
+Viz `pestouni-crm-mobile/CURRENT_STATE.md` pro detail — shrnutí: appka je teď postavená na stejném
+`users/foster_families/children` schématu, session v `expo-secure-store`, Firestore
+`persistentLocalCache` (offline-first), hlavní obrazovka = jen rodiny přidělené přihlášené klíčové osobě.
+
+### Ověření (2026-07-01)
+
+- `npm run build` (web) — ✅ bez chyb.
+- `npx expo export --platform web` a `--platform android` (mobil) — ✅ bez chyb (625, resp. 940 modulů).
+- Vizuální ověření `/login` v Preview (Bento styl, MUI) — načítá se a renderuje správně; jediné console
+  warningy jsou pre-existující MUI prop-forwarding hlášky (`textAlign`/`InputProps` na DOM elementu),
+  nesouvisí s dnešní změnou.
+- **`firebase deploy --only firestore:rules,firestore:indexes`** — ✅ nasazeno do produkčního projektu
+  `opportune-cairn-500111-b-b2bea` (rules zkompilovány a released, indexy nasazeny).
+- End-to-end proklik SuperAdmin→OrgAdmin→KlíčováOsoba **nebyl** ověřen živě (chybí jen bootstrap
+  prvního superadmin účtu, viz výše — appka i pravidla jsou už nasazená a připravená).
+
+### Chybí / TODO (nové schéma)
+
+- Bootstrap prvního superadmina (ruční, viz výše) — zvážit jednorázový seed skript pro V8.
+- `createEmployee()` (sekundární Firebase App instance) nahradit Cloud Function (Admin SDK) ve V8 —
+  bezpečnější a nevyžaduje duplicitní `firebaseConfig` na klientovi.
+- Reálné end-to-end ověření (založit org → org_admin přidá KO → přiřadit rodinu → KO vidí na
+  webu i mobilu) — po bootstrapu prvního superadmina už nic dalšího nebrání.
+- Sjednotit/legacy: staré moduly (`Pěstouni`/`Děti`/`Kontakty` v MVP_NAV) pořád běží na
+  `tenants/{tenantId}/data_objects` — do budoucna zvážit migraci na nové schéma nebo explicitní zánik.
+
+---
+
 **Verze:** 1.1.0 (CI/CD — automatický deploy z GitHubu)
 **Živá URL:** https://opportune-cairn-500111-b-b2bea.web.app
 **Vlastní doména:** https://moje.doprovazeni.com (CNAME → opportune-cairn-500111-b-b2bea.web.app, Firebase Hosting custom domain, status: successfully verified)

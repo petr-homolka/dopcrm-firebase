@@ -1,12 +1,12 @@
 /**
- * Login.jsx — přihlašovací obrazovka (MVP), MUI verze
+ * Login.jsx — přihlašovací obrazovka (B2B SaaS), MUI + Bento Grid
  *
- * Využívá signIn() ze src/services/auth.js:
+ * Využívá services/orgAuth.js (NOVÉ schéma, 2026-07-01):
  *   - identita ověřena přes Firebase Auth (e-mail + heslo)
- *   - role načtena z Firestore user_roles/{uid}, NIKDY z Custom Claims
- *
- * Po úspěšném přihlášení přesměruje na /prehled (Dashboard).
- * Pokud je uživatel již přihlášen, rovnou přesměruje.
+ *   - role/organizace načtena z Firestore users/{uid}, NIKDY z Custom Claims
+ *   - po přihlášení redirect podle role: superadmin/org_admin/klicova_osoba
+ *     mají každý svůj dashboard (dashboardPathForRole), ostatní (legacy
+ *     user_roles účty) padají na starší /prehled.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -29,7 +29,10 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-import { signIn, currentUser } from '../../services/auth.js';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase.js';
+import { signIn, dashboardPathForRole } from '../../services/orgAuth.js';
+import { useAuthStore } from '../../store/authStore.js';
 
 // ── Mapování Firebase chybových kódů na čitelné zprávy ─────────
 
@@ -49,9 +52,10 @@ function mapFirebaseError(code) {
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser: authUser, role: authRole, loading: authLoading } = useAuthStore();
 
-  // Kam přesměrovat po přihlášení (zachová původní URL pokud existuje)
-  const from = location.state?.from?.pathname ?? '/prehled';
+  // Explicitní "from" (deep-link) má přednost; jinak se určí až podle role po přihlášení.
+  const explicitFrom = location.state?.from?.pathname;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,12 +64,12 @@ export default function Login() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
 
-  // Pokud je uživatel již přihlášen, přesměruj okamžitě
+  // Pokud je uživatel už přihlášen (store stihl dotáhnout roli), přesměruj okamžitě.
   useEffect(() => {
-    if (currentUser()) {
-      navigate(from, { replace: true });
+    if (!authLoading && authUser) {
+      navigate(explicitFrom ?? dashboardPathForRole(authRole), { replace: true });
     }
-  }, [from, navigate]);
+  }, [authLoading, authUser, authRole, explicitFrom, navigate]);
 
   // Validace polí před odesláním
   function validate() {
@@ -100,9 +104,13 @@ export default function Login() {
 
     setLoading(true);
     try {
-      // signIn() z auth.js: Firebase Auth + načtení role z Firestore user_roles/{uid}
-      await signIn(email.trim(), password);
-      navigate(from, { replace: true });
+      // signIn(): Firebase Auth. Role/organizace se čte z users/{uid} (nikdy z tokenu) —
+      // authStore ji dotáhne přes onSnapshot asynchronně, ale pro okamžitý redirect
+      // po loginu ji zde ještě jednou přečteme přímo (rychlejší než čekat na store).
+      const user = await signIn(email.trim(), password);
+      const profileSnap = await getDoc(doc(db, 'users', user.uid));
+      const role = profileSnap.exists() ? profileSnap.data().role : null;
+      navigate(explicitFrom ?? dashboardPathForRole(role), { replace: true });
     } catch (err) {
       setError(mapFirebaseError(err.code));
     } finally {

@@ -19,6 +19,8 @@
 import React, { lazy, Suspense, useState, useEffect, useRef, createContext, useContext } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { initAuth, currentUser } from '../services/auth.js';
+import { useAuthStore } from '../store/authStore.js';
+import { dashboardPathForRole } from '../services/orgAuth.js';
 
 // ── Auth context ──────────────────────────────────────────────
 // Sdílí stav přihlášení napříč stromem komponent.
@@ -71,6 +73,13 @@ const UsersPage        = lazy(() => import('../modules/users/UsersPage'));
 const SettingsPage     = lazy(() => import('../modules/users/SettingsPage'));
 const HubPage          = lazy(() => import('../modules/families/HubPage'));
 const Layout           = lazy(() => import('./Layout.jsx'));
+
+// ── Nové B2B SaaS dashboardy (2026-07-01, viz modules/admin) ──
+const AdminLayout            = lazy(() => import('../modules/admin/AdminLayout.jsx'));
+const SuperAdminDashboard    = lazy(() => import('../modules/admin/SuperAdminDashboard.jsx'));
+const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashboard.jsx'));
+const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
+const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
 
 // Non-MVP (zakomentováno):
 // const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));
@@ -129,6 +138,23 @@ function RequireAuth() {
   );
 }
 
+// ── Nový B2B SaaS role guard (Zustand authStore, ne legacy AuthContext) ──
+// Používá se jen na /admin/* větvi — starší /prehled apod. zůstávají na
+// RequireAuth výše (jen ověří přihlášení, ne konkrétní roli).
+
+function RequireOrgRole({ allowed }) {
+  const { loading, currentUser: user, role } = useAuthStore();
+  const location = useLocation();
+
+  if (loading) return <Loading />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!allowed.includes(role)) {
+    // Přihlášen, ale jiná role — pošli na JEHO vlastní dashboard, ne na login.
+    return <Navigate to={dashboardPathForRole(role)} replace />;
+  }
+  return <Outlet />;
+}
+
 // ── Login route ───────────────────────────────────────────────
 // Pokud je uživatel přihlášen, přesměruje na dashboard.
 
@@ -176,6 +202,38 @@ const router = createBrowserRouter([
       // { path: '/monetizace',           element: <MonetizationPage /> },
       // { path: '/ai-agenti',            element: <AIAgentsPage /> },
     ],
+  },
+
+  // ── Nové B2B SaaS dashboardy (2026-07-01) ────────────────────
+  // Vlastní AdminLayout (topbar, ne stará sidebar), guard přes RequireOrgRole.
+  {
+    element: <Suspense fallback={<Loading />}><AdminLayout title="SuperAdmin" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['superadmin']} />,
+      children: [
+        { path: '/admin/superadmin', element: <Suspense fallback={<Loading />}><SuperAdminDashboard /></Suspense> },
+      ],
+    }],
+  },
+  {
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Organizace" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['org_admin']} />,
+      children: [
+        { path: '/admin/organizace', element: <Suspense fallback={<Loading />}><OrgAdminDashboard /></Suspense> },
+      ],
+    }],
+  },
+  {
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Terén" /></Suspense>,
+    children: [{
+      // org_admin smí nahlédnout na terénní přehled/detail rodiny stejně jako KO (čtení).
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin']} />,
+      children: [
+        { path: '/admin/terenni',            element: <Suspense fallback={<Loading />}><KlicovaOsobaDashboard /></Suspense> },
+        { path: '/admin/terenni/:familyId',  element: <Suspense fallback={<Loading />}><FosterFamilyDetailPage /></Suspense> },
+      ],
+    }],
   },
 
   { path: '*', element: <Navigate to="/prehled" replace /> },
