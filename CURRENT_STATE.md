@@ -1,7 +1,8 @@
 # CURRENT_STATE
-**Verze:** 1.0.1 (Vlastní doména nastavena)
+**Verze:** 1.1.0 (CI/CD — automatický deploy z GitHubu)
 **Živá URL:** https://opportune-cairn-500111-b-b2bea.web.app
 **Vlastní doména:** https://moje.doprovazeni.com (CNAME → opportune-cairn-500111-b-b2bea.web.app, Firebase Hosting custom domain, status: successfully verified)
+**GitHub repo:** https://github.com/petr-homolka/dopcrm-firebase (branch `main`)
 **Aktuální cíl:** Rozšířit Bento Grid layout na další moduly (Pěstouni, Děti, Kontakty…), naplnit Firestore testovacími daty.
 
 **Mobil (pestouni-crm-mobile) — POZASTAVENO (2026-06-30):**
@@ -9,15 +10,22 @@ Expo Go na zařízení uživatele stále hlásí nekompatibilitu i po downgradu 
 Mobilní vývoj se dál neřeší dnes — viz `pestouni-crm-mobile/CURRENT_STATE.md` pro plný stav a TODO,
 až se k tomu vrátíme. Web pokračuje samostatně.
 
-**Firebase Hosting — nově připraveno:**
+**CI/CD — GitHub → Firebase Hosting (2026-06-30, NOVĚ HOTOVO):**
+- Git repo (lokální, `main` branch) propojen s GitHubem: `git remote origin` → `https://github.com/petr-homolka/dopcrm-firebase.git`
+- **Push permission fix:** uložený git credential na tomto PC patřil účtu „Doprovazeni" bez zápisu do repa → uživatel přidal „Doprovazeni" jako collaborator s právem zápisu → push funguje
+- `firebase init hosting:github` (spuštěno uživatelem interaktivně, autorizace GitHub App v prohlížeči jako `petr-homolka`):
+  - Vytvořen GCP service account `github-action-1285520940` s Firebase Hosting Admin právy
+  - JSON klíč nahrán jako GitHub secret `FIREBASE_SERVICE_ACCOUNT_OPPORTUNE_CAIRN_500111_B_B2BEA` (repo Settings → Secrets)
+  - `.github/workflows/firebase-hosting-merge.yml` — **push do `main`** → `npm ci && npm run build` → deploy na live kanál (`moje.doprovazeni.com`)
+  - `.github/workflows/firebase-hosting-pull-request.yml` — PR → preview deploy (vygenerováno automaticky, i když jsme původně chtěli jen merge-deploy; ponecháno, nevadí)
+- **Od teď: `git push` do `main` = automatický build + deploy.** `npm run deploy` (ruční) zůstává funkční jako fallback, ale už není potřeba.
+- Workflow soubory zacommitované a pushnuté (`98f7e7e`) — první automatický běh spuštěn tímto pushem, ověřit stav na https://github.com/petr-homolka/dopcrm-firebase/actions
+
+**Firebase Hosting — konfigurace:**
 - `firebase.json` — `hosting.public = "dist"`, `ignore` (firebase.json, dotfiles, node_modules), `rewrites` `**` → `/index.html` (SPA fallback)
-- `.firebaserc` — `default` projekt `opportune-cairn-500111-b-b2bea` (vyčteno z `.env.local` → `VITE_FIREBASE_PROJECT_ID`)
-- `package.json` → nový skript `"deploy": "vite build && firebase deploy --only hosting"`
-- `firebase-tools` doinstalován jako devDependency (CLI binárka `firebase` nebyla v systému, bez ní by `npm run deploy` nešel spustit)
-- Ověřeno: oba JSON soubory syntakticky validní, `./node_modules/.bin/firebase --version` funguje (15.22.4)
-- `.claudesignore` zkontrolován — `firebase.json`/`.firebaserc` nejsou blokované
-- **NASAZENO (2026-06-30):** `npm run deploy` proběhl úspěšně — 51 souborů, `Deploy complete!`. Živá appka: https://opportune-cairn-500111-b-b2bea.web.app
-- **Vlastní doména (2026-06-30):** `moje.doprovazeni.com` přidána ve Firebase Console → Hosting → Add custom domain, CNAME záznam u DNS providera nasměrován na `opportune-cairn-500111-b-b2bea.web.app`, status „Custom domain setup successfully". Pozn.: `claude.doprovazeni.com` (FTP, vanilla prototyp) zůstává nedotčena — jde o jinou subdoménu.
+- `.firebaserc` — `default` projekt `opportune-cairn-500111-b-b2bea`
+- `package.json` → skript `"deploy": "vite build && firebase deploy --only hosting"` (ruční fallback)
+- `firebase-tools` jako devDependency
 
 **Co je funkční (web, beze změny od v0.9.8):**
 - Firebase Auth (Email/Password, uživatel petr.homolka@doprovazeni.com)
@@ -29,15 +37,14 @@ až se k tomu vrátíme. Web pokračuje samostatně.
 - Production build ověřen bez chyb (978 modulů)
 
 **Vite dev server:** `npm run dev` → localhost:5173 (nebo 5174 je-li 5173 obsazený)
-**Vanilla prototyp:** stále funkční (prehled.html, hub.html atd. — nedotčeno)
+**Vanilla prototyp:** stále funkční (prehled.html, hub.html atd. — nedotčeno), FTP deploy nezměněn
 
 **Tenant:** `tenantId: "doprovazeni-brno"` (v user_roles dokumentu)
 
 **Chybí / TODO (nasazení):**
-- Před prvním `npm run deploy` je nutné jednou spustit `firebase login` (interaktivní přihlášení v prohlížeči) — nelze provést automatizovaně
-- Ověřit, že Firebase Hosting je v projektu `opportune-cairn-500111-b-b2bea` aktivovaný (Console → Hosting → Get started, pokud ještě nebylo)
-- Po prvním nasazení zkontrolovat živou URL (`<project>.web.app` / `<project>.firebaseapp.com`)
+- Ověřit v GitHubu (Actions tab), že první automatický běh workflow proběhl úspěšně
 - Zvážit nasazení Firestore Security Rules zároveň (`firebase deploy --only hosting,firestore:rules`), zatím test mode
+- `FIREBASE_SERVICE_ACCOUNT_...` secret obsahuje citlivý JSON klíč — nikdy ho nevypisovat do chatu/logů, spravovat jen přes GitHub repo Settings → Secrets
 
 **Chybí / TODO (web, obecně):**
 - Bento Grid layout rozšířit na ostatní stub stránky (Pěstouni, Děti, Kontakty, Kalendář, Dokumenty, Vzdělávání, Uživatelé, Nastavení, Hub)
