@@ -12,8 +12,34 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "**/!(*.js|*.mjs|*.css|*.map|*.json|*.ico|*.png|*.jpg|*.jpeg|*.svg|*.webp|*.woff|*.woff2|*.ttf|*.webmanifest)",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.@(html|webmanifest)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/sw.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/registerSW.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
       }
     ]
   }
