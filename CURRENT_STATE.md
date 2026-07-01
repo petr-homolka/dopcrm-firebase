@@ -41,8 +41,16 @@ až se k tomu vrátíme. Web pokračuje samostatně.
 
 **Tenant:** `tenantId: "doprovazeni-brno"` (v user_roles dokumentu)
 
+**Známá neškodná chyba CI/CD (2026-07-01):** První 2 automatické běhy skončily červeně —
+`FAILED_PRECONDITION: Can't release ... supplied version is the current active version`.
+Příčina: push obsahoval jen změny v `.md`/`.yml` souborech, ne v `src/`, takže `npm run build`
+vyprodukoval bajt-přesně stejný `dist/` jako už nasazená verze (z předchozího ručního
+`npm run deploy`) → Firebase odmítne "vydat" verzi, která je už aktivní. **Appka zůstává
+správně nasazená a funkční**, jde jen o kosmetický červený status. Ověří se automaticky
+zeleně při příštím pushi se skutečnou změnou v `src/`.
+
 **Chybí / TODO (nasazení):**
-- Ověřit v GitHubu (Actions tab), že první automatický běh workflow proběhl úspěšně
+- Ověřit v GitHubu (Actions tab), že při příští reálné změně kódu (`src/`) proběhne běh zeleně
 - Zvážit nasazení Firestore Security Rules zároveň (`firebase deploy --only hosting,firestore:rules`), zatím test mode
 - `FIREBASE_SERVICE_ACCOUNT_...` secret obsahuje citlivý JSON klíč — nikdy ho nevypisovat do chatu/logů, spravovat jen přes GitHub repo Settings → Secrets
 
