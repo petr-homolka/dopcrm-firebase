@@ -249,8 +249,17 @@ export async function reassignFoster(familyId, newAssignedTo) {
     const familySnap = await tx.get(familyRef);
     if (!familySnap.exists()) throw new Error('Rodina nenalezena.');
 
+    // Dotaz MUSÍ obsahovat organizationId jako rovnostní filtr — firestore.rules
+    // pro `children` ověřuje sameOrg(resource.data.organizationId), a Firestore
+    // list dotazy povolí jen když je pravidlem kontrolované pole SOUČASNĚ i ve
+    // filtru dotazu (jinak "Missing or insufficient permissions", viz
+    // [[crm-firestore-list-query-rule-pole]] — objeveno 2026-07-02).
     const childrenSnap = await getDocs(
-      query(collection(db, 'children'), where('fosterFamilyId', '==', familyId))
+      query(
+        collection(db, 'children'),
+        where('fosterFamilyId', '==', familyId),
+        where('organizationId', '==', familySnap.data().organizationId)
+      )
     );
 
     tx.update(familyRef, { assignedTo: newAssignedTo, ...meta() });
@@ -264,13 +273,122 @@ export async function deleteFoster(familyId) {
   await deleteDoc(doc(db, 'foster_families', familyId));
 }
 
+function genId(prefix = '') {
+  return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// ── Pěstouni (osoby v domácnosti): adresy + vzdělávání ──────────
+
+/** Přidá novou osobu (pěstouna) do domácnosti — přiděluje stabilní `id` pro navazující akce (kurzy). */
+export async function addFosterPerson(familyId, person) {
+  const family = await getFoster(familyId);
+  if (!family) throw new Error('Rodina nenalezena.');
+  const fosters = [...(family.fosters ?? []), { id: genId('p'), courses: [], ...person }];
+  await setFosterPersons(familyId, fosters);
+  return fosters;
+}
+
+/** Upraví údaje (jméno/RČ/kontakt/adresy) konkrétní osoby v domácnosti. */
+export async function updateFosterPerson(familyId, personId, patch) {
+  const family = await getFoster(familyId);
+  if (!family) throw new Error('Rodina nenalezena.');
+  const fosters = (family.fosters ?? []).map((p) => (p.id === personId ? { ...p, ...patch } : p));
+  await setFosterPersons(familyId, fosters);
+  return fosters;
+}
+
+/**
+ * Zapíše absolvovaný/plánovaný kurz vzdělávání pěstouna. Struktura dle zadání
+ * 2026-07-02: kód kurzu / kde / kdy / forma / pořadatel / certifikát (+ hodiny
+ * pro součet do CARE_TYPES.requiredHours).
+ */
+export async function addFosterCourse(familyId, personId, course) {
+  const family = await getFoster(familyId);
+  if (!family) throw new Error('Rodina nenalezena.');
+  const fosters = (family.fosters ?? []).map((p) => {
+    if (p.id !== personId) return p;
+    const courses = [...(p.courses ?? []), { id: genId('c'), ...course }];
+    return { ...p, courses };
+  });
+  await setFosterPersons(familyId, fosters);
+  return fosters;
+}
+
+// ── Respit (odlehčovací volno) — per rodina/dohoda, ne per dítě ─
+
+/** Historie čerpání respitu jedné rodiny (subkolekce — může časem narůst, na rozdíl od `fosters[]`). */
+export async function listRespitEvents(familyId) {
+  const snap = await getDocs(
+    query(collection(db, 'foster_families', familyId, 'respitEvents'), orderBy('from', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Zapíše čerpání respitu. Pokud je uvedena částka (`kc`, náklad na tábor/pobyt),
+ * rozpočítá se ROVNÝM DÍLEM mezi uvedené děti a odečte z jejich SPVPP peněženky
+ * (položkové rozúčtování dle konkrétního dokladu řeší UI voláním `chargeSpvpp`
+ * přímo s jiným podílem).
+ */
+export async function addRespitEvent(familyId, { childIds = [], from, to, typ = 'tabor_pobyt', kc = 0, doklad = '' }) {
+  const ref = await addDoc(collection(db, 'foster_families', familyId, 'respitEvents'), {
+    childIds, from, to: to || from, typ, kc, doklad, ...createMeta(),
+  });
+  if (kc > 0 && childIds.length) {
+    const each = kc / childIds.length;
+    await Promise.all(childIds.map((childId) => chargeSpvpp(childId, each)));
+  }
+  return ref.id;
+}
+
+/** Nadstandard nad zákonných 14 dní (§47a) — řešeno individuálním plánem ochrany dítěte (IPOD). */
+export async function setRespitNadstandard(familyId, nadstandard) {
+  await updateDoc(doc(db, 'foster_families', familyId), {
+    respitNadstandard: Math.max(0, parseInt(nadstandard, 10) || 0),
+    ...meta(),
+  });
+}
+
+// ── SPVPP — finanční peněženka dítěte (na respit/pobyty) ────────
+
+const SPVPP_DEFAULT_ROZPOCET = 48000;
+
+export async function getSpvppWallet(childId) {
+  const child = await getChild(childId);
+  return child?.spvpp ?? { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 };
+}
+
+export async function chargeSpvpp(childId, kc) {
+  const wallet = await getSpvppWallet(childId);
+  wallet.vycerpano = Math.round((wallet.vycerpano || 0) + kc);
+  await updateDoc(doc(db, 'children', childId), { spvpp: wallet, ...meta() });
+  return wallet;
+}
+
+// ── Sociální prostor domácnosti (manžel/partner, biologické děti, rodiče) ─
+
+export async function setFamilySocialSpace(familyId, socialSpace) {
+  await updateDoc(doc(db, 'foster_families', familyId), { socialSpace, ...meta() });
+}
+
 // ══════════════════════════════════════════════════════════════
 // children (děti svěřené do péče)
 // ══════════════════════════════════════════════════════════════
 
-export async function listChildrenByFamily(fosterFamilyId) {
+/**
+ * `organizationId` je POVINNÝ argument, ne jen pohodlí — firestore.rules pro
+ * `children` ověřuje `sameOrg(resource.data.organizationId)`, a Firestore
+ * zakáže celý "list" dotaz, pokud toto pole není SOUČASNĚ i rovnostním
+ * filtrem dotazu (jinak "Missing or insufficient permissions" pro každého
+ * kromě superadmina — objeveno a opraveno 2026-07-02 při ověřování Fáze 2).
+ */
+export async function listChildrenByFamily(fosterFamilyId, organizationId) {
   const snap = await getDocs(
-    query(collection(db, 'children'), where('fosterFamilyId', '==', fosterFamilyId))
+    query(
+      collection(db, 'children'),
+      where('fosterFamilyId', '==', fosterFamilyId),
+      where('organizationId', '==', organizationId)
+    )
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
@@ -303,8 +421,21 @@ export async function createChild({ fosterFamilyId, firstName, lastName, rc = ''
     status, // 'active' | 'transferred' | 'aged_out'
     note,
     // Biologičtí/širší rodinní příbuzní — jmenovití, viz shared/domainConstants.js
-    // REL_TYPES. Každá položka: { name, rc, rel (REL_TYPES key), legal, note }
+    // REL_TYPES. Každá položka: { id, name, rc, rel (REL_TYPES key), legal,
+    // addressPermanent, addressResidence, phone, email, note }
     relatives,
+    // Doklady — volitelně doplňované později (OP se dětem vydává i po založení karty)
+    idCard: null,        // { number, issuedAt, validUntil }
+    passport: null,      // { number, issuedAt, validUntil }
+    addressPermanent: null,   // { street, city, zip } — trvalé bydliště
+    addressResidence: null,   // { street, city, zip } — adresa pobytu (může se lišit)
+    school: null,         // { nazev, adresa, telefon, email, tridniUcitel, rocnik }
+    ospod: null,          // { nazev, osoba }
+    courtCase: null,      // { spisZnacka, soudNazev, soudAdresa, kontaktniOsoba, rozsudky:[] }
+    permanentNotes: [],   // append-only — { text, by, at }, nikdy se needituje/nemaže
+    previousFosters: [],  // append-only — { name, from, to, note }
+    socialSpace: [],      // osoby v okolí dítěte bez biologické vazby — stejný tvar jako relatives
+    spvpp: { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 },
     ...createMeta(),
   });
   return ref.id;
@@ -326,4 +457,63 @@ export async function getChild(childId) {
 
 export async function deleteChild(childId) {
   await deleteDoc(doc(db, 'children', childId));
+}
+
+// ── Historie změn dítěte — "nic se nepřepisuje" ─────────────────
+// Port vanilla App.histAdd/histList: append-only subkolekce, {field,from,to,by,at}.
+// Volající (UI) sám rozhodne, CO se má logovat jako historická změna — orgService
+// jen ukládá; nikdy needituje/nemaže existující záznam (viz firestore.rules).
+
+export async function listChildHistory(childId) {
+  const snap = await getDocs(
+    query(collection(db, 'children', childId, 'history'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function addChildHistory(childId, { field, from = '—', to }) {
+  const ref = await addDoc(collection(db, 'children', childId, 'history'), {
+    field, from, to, ...createMeta(),
+  });
+  return ref.id;
+}
+
+/** Upraví pole na dítěti a ZÁROVEŇ zaloguje historii (volitelně víc položek najednou — např. celá adresa). */
+export async function updateChildTracked(childId, patch, historyEntries = []) {
+  await updateDoc(doc(db, 'children', childId), { ...patch, ...meta() });
+  await Promise.all(historyEntries.map((entry) => addChildHistory(childId, entry)));
+}
+
+/** Trvalé poznámky KO — append-only, nikdy se needituje ani nemaže (citlivý obsah, důkazní hodnota). */
+export async function addPermanentNote(childId, text) {
+  const child = await getChild(childId);
+  if (!child) throw new Error('Dítě nenalezeno.');
+  const uid = useAuthStore.getState().currentUser?.uid ?? 'system';
+  const notes = [...(child.permanentNotes ?? []), { text, by: uid, at: new Date().toISOString() }];
+  await updateDoc(doc(db, 'children', childId), { permanentNotes: notes, ...meta() });
+  return notes;
+}
+
+/** Předchozí pěstounské rodiny dítěte — append-only historie umístění. */
+export async function addPreviousFoster(childId, entry) {
+  const child = await getChild(childId);
+  if (!child) throw new Error('Dítě nenalezeno.');
+  const previousFosters = [...(child.previousFosters ?? []), { id: genId('pf'), ...entry }];
+  await updateDoc(doc(db, 'children', childId), { previousFosters, ...meta() });
+  return previousFosters;
+}
+
+/** Rozsudky/usnesení v rámci soudního spisu dítěte — append-only. */
+export async function addCourtVerdict(childId, entry) {
+  const child = await getChild(childId);
+  if (!child) throw new Error('Dítě nenalezeno.');
+  const courtCase = child.courtCase ?? { spisZnacka: '', soudNazev: '', soudAdresa: '', kontaktniOsoba: '', rozsudky: [] };
+  courtCase.rozsudky = [...(courtCase.rozsudky ?? []), { id: genId('v'), ...entry }];
+  await updateDoc(doc(db, 'children', childId), { courtCase, ...meta() });
+  return courtCase;
+}
+
+/** Sociální prostor dítěte (osoby v okolí bez biologické vazby) — stejný tvar jako relatives[]. */
+export async function setChildSocialSpace(childId, socialSpace) {
+  await updateDoc(doc(db, 'children', childId), { socialSpace, ...meta() });
 }

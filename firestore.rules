@@ -119,9 +119,15 @@ service cloud.firestore {
     // (podpůrný personál bez řídicí role — sekretářka, ekonomka…).
     // Pěstouni a děti NEJSOU v této kolekci (nemají Auth účet v MVP).
     match /users/{uid} {
+      // Čtení: superadmin vše; kdokoli přihlášený vidí SVŮJ profil; a kdokoli ze
+      // STEJNÉ organizace vidí celý zaměstnanecký rozpis (2026-07-02 — dřív jen
+      // org_admin, ale i klíčová osoba potřebuje vidět kolegy kvůli přiřazování
+      // rodin a zastupitelnosti; navíc to opravuje Firestore "list" dotaz, který
+      // jinak vždy spadne na permission-denied bez rovnostního filtru, jenž by
+      // odpovídal pravidlu).
       allow read: if isSuperadmin()
                      || request.auth.uid == uid
-                     || (isOrgAdmin() && sameOrg(resource.data.organizationId));
+                     || sameOrg(resource.data.organizationId);
 
       // Založení zaměstnance:
       //   superadmin      -> kohokoli, kdekoli
@@ -156,8 +162,14 @@ service cloud.firestore {
     // ── foster_families (klientské rodiny) ───────────────────
     match /foster_families/{familyId} {
       // Čtení: superadmin vše; kdokoli ze STEJNÉ organizace (management i klíčová
-      // osoba vidí i rodiny kolegů — potřeba přehledu/zastupitelnosti).
-      allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
+      // osoba vidí i rodiny kolegů — potřeba přehledu/zastupitelnosti). Třetí
+      // disjunkt (assignedTo) není jen zástupný — bez něj Firestore odmítne CELÝ
+      // "list" dotaz filtrovaný přes `where('assignedTo', '==', uid)` (klíčová
+      // osoba, "Moje rodiny"), protože se rovnostní pole dotazu neshoduje s
+      // polem v pravidle (organizationId) — objeveno 2026-07-02.
+      allow read: if isSuperadmin()
+                     || sameOrg(resource.data.organizationId)
+                     || resource.data.assignedTo == request.auth.uid;
 
       // Založení nové rodiny: management organizace kdekoli v ní; klíčová osoba
       // jen rovnou jako přidělenou sobě (terénní realita — potká rodinu, založí ji).
@@ -174,13 +186,30 @@ service cloud.firestore {
                                 || (isKlicovaOsoba()
                                     && sameOrg(resource.data.organizationId)
                                     && resource.data.assignedTo == request.auth.uid);
+
+      // Respit (odlehčovací volno) — historie čerpání per rodina/dohoda (2026-07-02).
+      // Append-heavy log, proto subkolekce místo pole na rodičovském dokumentu.
+      match /respitEvents/{eventId} {
+        function parentFamily() {
+          return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentFamily().organizationId);
+        allow create, update, delete: if isSuperadmin()
+          || (isManagement() && sameOrg(parentFamily().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentFamily().organizationId)
+              && parentFamily().assignedTo == request.auth.uid);
+      }
     }
 
     // ── children (děti svěřené do péče) ──────────────────────
     // organizationId + assignedTo jsou denormalizované z rodičovské foster_family
     // (viz orgService.js) — umožňuje stejná pravidla bez cross-collection get().
     match /children/{childId} {
-      allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
+      // Viz shodná poznámka u foster_families — assignedTo disjunkt kvůli
+      // Firestore "list" dotazům filtrovaným přes assignedTo (budoucí použití).
+      allow read: if isSuperadmin()
+                     || sameOrg(resource.data.organizationId)
+                     || resource.data.assignedTo == request.auth.uid;
 
       allow create: if isSuperadmin()
                        || (isManagement() && sameOrg(request.resource.data.organizationId))
@@ -193,6 +222,20 @@ service cloud.firestore {
                                 || (isKlicovaOsoba()
                                     && sameOrg(resource.data.organizationId)
                                     && resource.data.assignedTo == request.auth.uid);
+
+      // Historie změn dítěte ("nic se nepřepisuje", port z vanilla App.histAdd) —
+      // append-only: založit smí kdokoli s právem k dítěti, upravit/smazat NIKDO.
+      match /history/{historyId} {
+        function parentChild() {
+          return get(/databases/$(database)/documents/children/$(childId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentChild().organizationId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(parentChild().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentChild().organizationId)
+              && parentChild().assignedTo == request.auth.uid);
+        allow update, delete: if false;
+      }
     }
 
     // ════════════════════════════════════════════════════════

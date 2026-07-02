@@ -141,6 +141,21 @@ function RequireAuth() {
   );
 }
 
+// ── Index route (kořen "/") ──────────────────────────────────
+// Bug (2026-07-02): byl to natvrdo <Navigate to="/prehled">, takže KAŽDÝ
+// přihlášený uživatel (i superadmin/org_admin/klíčová osoba z nového B2B
+// schématu) skončil v LEGACY MVP shellu místo svého /admin/* dashboardu —
+// legacy Layout navíc hlásil chybu "currentTenantId() je null", protože noví
+// uživatelé žádný user_roles/{uid} záznam nemají. Teď se rozhoduje podle role
+// z nového authStore (Zustand); jen uživatelé BEZ nové role (staré demo účty)
+// padají na legacy /prehled.
+function IndexRedirect() {
+  const { loading, role } = useAuthStore();
+  if (loading) return <Loading />;
+  if (role) return <Navigate to={dashboardPathForRole(role)} replace />;
+  return <Navigate to="/prehled" replace />;
+}
+
 // ── Nový B2B SaaS role guard (Zustand authStore, ne legacy AuthContext) ──
 // Používá se jen na /admin/* větvi — starší /prehled apod. zůstávají na
 // RequireAuth výše (jen ověří přihlášení, ne konkrétní roli).
@@ -200,7 +215,7 @@ const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { index: true,              element: <Navigate to="/prehled" replace /> },
+      { index: true,              element: <IndexRedirect /> },
       { path: '/prehled',         element: <Suspense fallback={<Loading />}><DashboardPage /></Suspense> },
       { path: '/pestouni',        element: <Suspense fallback={<Loading />}><FamiliesPage /></Suspense> },
       { path: '/pestouni/:id',    element: <Suspense fallback={<Loading />}><FamilyDetailPage /></Suspense> },

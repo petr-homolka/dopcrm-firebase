@@ -88,9 +88,9 @@ const DEMO_ORGS = [
           {
             firstName: 'Tereza', lastName: 'Nováková', rc: '150312/6789', birthDate: '2015-03-12',
             relatives: [
-              { name: 'Markéta Marková', rc: '900101/1111', rel: 'mat_mimo', legal: 'birth', note: 'styk 1× měsíčně' },
-              { name: 'Petr Novák', rc: '880202/2222', rel: 'ot_nevlastni', legal: false, note: 'partner matky' },
-              { name: 'Nela Svobodová', rc: '161120/3333', rel: 'sib_polo', legal: false, note: 'sdílí bio matku, jiná rodina' },
+              { name: 'Markéta Marková', rc: '900101/1111', rel: 'biomatka_mimo', legal: 'birth', note: 'styk 1× měsíčně' },
+              { name: 'Petr Novák', rc: '880202/2222', rel: 'otec_nevlastni', legal: false, note: 'partner matky' },
+              { name: 'Nela Svobodová', rc: '161120/3333', rel: 'sour_polo', legal: 'na', note: 'sdílí bio matku, jiná rodina' },
             ],
           },
           { firstName: 'Matěj', lastName: 'Novák', rc: '180701/4444', birthDate: '2018-07-01', relatives: [] },
@@ -103,7 +103,7 @@ const DEMO_ORGS = [
         children: [
           {
             firstName: 'Nela', lastName: 'Svobodová', rc: '161120/3333', birthDate: '2016-11-20',
-            relatives: [{ name: 'Markéta Marková', rc: '900101/1111', rel: 'mat_mimo', legal: 'birth', note: 'sdílí matku s Terezou Novákovou' }],
+            relatives: [{ name: 'Markéta Marková', rc: '900101/1111', rel: 'biomatka_mimo', legal: 'birth', note: 'sdílí matku s Terezou Novákovou' }],
           },
         ],
       },
@@ -143,7 +143,7 @@ const DEMO_ORGS = [
         children: [
           {
             firstName: 'Eliška', lastName: 'Kučerová', rc: '170214/3030', birthDate: '2017-02-14',
-            relatives: [{ name: 'Vojtěch Kučera', rc: '190930/4040', rel: 'sib_vlastni', legal: false, note: 'vlastní sourozenec, stejná rodina' }],
+            relatives: [{ name: 'Vojtěch Kučera', rc: '190930/4040', rel: 'sour_vlastni', legal: 'na', note: 'vlastní sourozenec, stejná rodina' }],
           },
           { firstName: 'Vojtěch', lastName: 'Kučera', rc: '190930/4040', birthDate: '2019-09-30', relatives: [] },
         ],

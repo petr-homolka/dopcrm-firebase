@@ -55,7 +55,12 @@ export default function Login() {
   const { currentUser: authUser, role: authRole, loading: authLoading } = useAuthStore();
 
   // Explicitní "from" (deep-link) má přednost; jinak se určí až podle role po přihlášení.
-  const explicitFrom = location.state?.from?.pathname;
+  // Bug (2026-07-02): "/" NENÍ opravdový deep-link — je to jen index route, kterou legacy
+  // RequireAuth zagarduje ještě PŘED vlastním <Navigate to="/prehled">, takže by jinak KAŽDÉ
+  // přihlášení (i org_admin/klíčová osoba) skončilo na "/" → legacy MVP dashboardu místo
+  // správného /admin/* dashboardu dle role. Bere se proto jen skutečný hlubší odkaz.
+  const rawFrom = location.state?.from?.pathname;
+  const explicitFrom = rawFrom && rawFrom !== '/' ? rawFrom : undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
