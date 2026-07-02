@@ -18,6 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Button, TextField,
   Table, TableHead, TableBody, TableRow, TableCell, Chip, Alert,
@@ -26,6 +27,7 @@ import {
 import AddBusinessIcon from '@mui/icons-material/AddBusiness';
 import BusinessIcon from '@mui/icons-material/Business';
 import DomainAddOutlinedIcon from '@mui/icons-material/DomainAddOutlined';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { alpha } from '@mui/material/styles';
 
 import { bento } from '../../core/theme.js';
@@ -62,6 +64,7 @@ const emptyForm = {
 };
 
 export default function SuperAdminDashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [orgs, setOrgs] = useState([]);
@@ -173,7 +176,10 @@ export default function SuperAdminDashboard() {
 
           <Card>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Organizace</Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>Organizace</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Klikněte na řádek pro pohled Org. Admina dané organizace (zaměstnanci, přidávání).
+              </Typography>
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
@@ -182,17 +188,24 @@ export default function SuperAdminDashboard() {
                       <TableCell>Plán</TableCell>
                       <TableCell>Stav předplatného</TableCell>
                       <TableCell>ID</TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {orgs.map((org) => (
-                      <TableRow key={org.id} hover>
+                      <TableRow
+                        key={org.id}
+                        hover
+                        onClick={() => navigate(`/admin/superadmin/organizace/${org.id}`)}
+                        sx={{ cursor: 'pointer' }}
+                      >
                         <TableCell sx={{ fontWeight: 600 }}>{org.name}</TableCell>
                         <TableCell sx={{ textTransform: 'capitalize' }}>{org.plan ?? '—'}</TableCell>
                         <TableCell>
                           <Chip size="small" label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} />
                         </TableCell>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary' }}>{org.id}</TableCell>
+                        <TableCell align="right" sx={{ color: 'text.disabled' }}><ChevronRightIcon fontSize="small" /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

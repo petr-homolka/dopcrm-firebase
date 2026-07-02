@@ -80,6 +80,7 @@ const SuperAdminDashboard    = lazy(() => import('../modules/admin/SuperAdminDas
 const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashboard.jsx'));
 const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
 const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
+const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
 
 // Non-MVP (zakomentováno):
 // const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));
@@ -212,6 +213,7 @@ const router = createBrowserRouter([
       element: <RequireOrgRole allowed={['superadmin']} />,
       children: [
         { path: '/admin/superadmin', element: <Suspense fallback={<Loading />}><SuperAdminDashboard /></Suspense> },
+        { path: '/admin/superadmin/organizace/:orgId', element: <Suspense fallback={<Loading />}><OrganizationDetailPage /></Suspense> },
       ],
     }],
   },
