@@ -19,8 +19,12 @@ import {
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Konfigurace z environment variables (nikdy natvrdo v kódu)
-const firebaseConfig = {
+// Konfigurace z environment variables (nikdy natvrdo v kódu).
+// Exportováno (ne jen lokální const) — orgService.js potřebuje stejný config
+// pro dočasné SEKUNDÁRNÍ Firebase App instance (zakládání zaměstnanců bez
+// odhlášení aktuálního uživatele, viz orgService.js). Používá ho i
+// scripts/dev-seed.mjs, ale ten čte svůj vlastní process.env, ne tenhle export.
+export const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,

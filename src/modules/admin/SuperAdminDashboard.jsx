@@ -1,5 +1,5 @@
 /**
- * SuperAdminDashboard.jsx — Krok 3 zadání (2026-07-01)
+ * SuperAdminDashboard.jsx — Krok 3 zadání (2026-07-01), redesign 2026-07-02
  *
  * Pohled SaaS poskytovatele: seznam všech organizací (tenantů) + formulář
  * pro založení nové organizace SPOLU s jejím prvním org_admin uživatelem
@@ -7,6 +7,14 @@
  *
  * Bezpečnost: firestore.rules povolují organizations/users write jen roli
  * superadmin — chráněno i na klientovi přes RequireOrgRole (router.jsx).
+ *
+ * Testovací data (seed/wipe) VĚDOMĚ NEJSOU v této appce — viz
+ * scripts/dev-seed.mjs. Dřívější pokus je zabalit do UI přes
+ * `{import.meta.env.DEV && ...}` byl zrušen: ověřilo se, že Vite/Rollup
+ * dynamický import() i tak zabalí do samostatného chunku v produkčním
+ * `dist/`, i když se tlačítko nikdy nevykreslí — nesplňuje to zadání
+ * "v ostrém provozu tam být nesmí". Skript mimo src/ je strukturálně
+ * bezpečný: appka ho nikdy neimportuje, nemůže se dostat do buildu.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,12 +25,15 @@ import {
 } from '@mui/material';
 import AddBusinessIcon from '@mui/icons-material/AddBusiness';
 import BusinessIcon from '@mui/icons-material/Business';
+import DomainAddOutlinedIcon from '@mui/icons-material/DomainAddOutlined';
 import { alpha } from '@mui/material/styles';
 
 import { bento } from '../../core/theme.js';
 import { listOrganizations, createOrganization, createEmployee } from '../../services/orgService.js';
+import EmptyState from './EmptyState.jsx';
 
 const STATUS_COLOR = { trial: 'warning', active: 'success', suspended: 'default', cancelled: 'error' };
+const STATUS_LABEL = { trial: 'Zkušební doba', active: 'Aktivní', suspended: 'Pozastaveno', cancelled: 'Zrušeno' };
 
 function StatCard({ icon, label, value, color = 'primary' }) {
   return (
@@ -112,6 +123,7 @@ export default function SuperAdminDashboard() {
 
   const activeCount = orgs.filter((o) => o.status === 'active').length;
   const trialCount = orgs.filter((o) => o.status === 'trial').length;
+  const hasOrgs = orgs.length > 0;
 
   return (
     <Box>
@@ -120,9 +132,11 @@ export default function SuperAdminDashboard() {
           <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>SuperAdmin</Typography>
           <Typography variant="body2" color="text.secondary">Správa doprovázejících organizací (tenantů) a jejich předplatného.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddBusinessIcon />} onClick={() => setDialogOpen(true)}>
-          Nová organizace
-        </Button>
+        {hasOrgs && (
+          <Button variant="contained" size="large" startIcon={<AddBusinessIcon />} onClick={() => setDialogOpen(true)}>
+            Nová organizace
+          </Button>
+        )}
       </Stack>
 
       {loading && (
@@ -134,7 +148,22 @@ export default function SuperAdminDashboard() {
 
       {!loading && error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {!loading && !error && (
+      {!loading && !error && !hasOrgs && (
+        <Card>
+          <EmptyState
+            icon={<DomainAddOutlinedIcon sx={{ fontSize: 32 }} />}
+            title="Zatím žádné organizace"
+            description="Doprovázející organizace (tenanti) jsou platící zákazníci systému. Založte první a rovnou i jejího administrátora — ten si pak sám přidá zaměstnance."
+            action={
+              <Button variant="contained" size="large" startIcon={<AddBusinessIcon />} onClick={() => setDialogOpen(true)}>
+                Založit první organizaci
+              </Button>
+            }
+          />
+        </Card>
+      )}
+
+      {!loading && !error && hasOrgs && (
         <>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: bento.gap, mb: 3 }}>
             <StatCard icon={<BusinessIcon />} label="Organizací celkem" value={orgs.length} color="primary" />
@@ -156,19 +185,12 @@ export default function SuperAdminDashboard() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {orgs.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                          Zatím žádné organizace — založte první přes tlačítko „Nová organizace“.
-                        </TableCell>
-                      </TableRow>
-                    )}
                     {orgs.map((org) => (
                       <TableRow key={org.id} hover>
-                        <TableCell>{org.name}</TableCell>
-                        <TableCell>{org.plan ?? '—'}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{org.name}</TableCell>
+                        <TableCell sx={{ textTransform: 'capitalize' }}>{org.plan ?? '—'}</TableCell>
                         <TableCell>
-                          <Chip size="small" label={org.status} color={STATUS_COLOR[org.status] ?? 'default'} />
+                          <Chip size="small" label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} />
                         </TableCell>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary' }}>{org.id}</TableCell>
                       </TableRow>

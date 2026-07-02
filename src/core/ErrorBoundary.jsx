@@ -52,7 +52,14 @@ export default class ErrorBoundary extends React.Component {
           color: '#1A1A2E',
         }}
       >
-        <div style={{ fontSize: 40 }}>⚠</div>
+        {/* Lineart ikona (Feather styl), ne emoji — viz CLAUDE.md "Emoji = 0". Raw inline SVG,
+            záměrně BEZ importu @mui/icons-material: boundary musí přežít i kdyby problém byl
+            někde v MUI/theme stromu, proto je nezávislý na čemkoli, co by mohlo spadnout. */}
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Něco se nepovedlo</h1>
         <p style={{ fontSize: 14, color: '#6B6B80', maxWidth: 420, margin: 0 }}>
           Aplikace narazila na neočekávanou chybu a nemůže pokračovat. Zkuste stránku obnovit;

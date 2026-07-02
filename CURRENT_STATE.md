@@ -1,5 +1,43 @@
 # CURRENT_STATE
-**Verze:** 1.2.1 (Oprava bílé obrazovky v produkci — chybějící Firebase env proměnné v CI, 2026-07-02)
+**Verze:** 1.2.2 (UI/UX polish + emoji cleanup + dev-only seed nástroj, 2026-07-02)
+
+## 2026-07-02 — UI/UX vylepšení, emoji pryč, testovací data (mimo web bundle)
+
+**Zpětná vazba uživatele:** (1) dashboardy jsou "formálně správně, ale z lidského pohledu se na
+to nedá koukat" — přepracovat UI/UX; (2) žádné emoji ikony nikde (platí odjakživa i pro vanilla
+prototyp); (3) systém nesmí být nikdy úplně prázdný pro vývoj/nastavování, ale **testovací data
+nesmí a nebudou v ostrém provozu**.
+
+**1) UI/UX:** nová sdílená `src/modules/admin/EmptyState.jsx` (ikona v kolečku + nadpis + popisek
++ CTA) nahrazuje fádní "prázdnou tabulku" v `SuperAdminDashboard.jsx` (0 organizací) i
+`KlicovaOsobaDashboard.jsx` (0 přidělených rodin) — KPI karty se zobrazí až když jsou reálná data,
+jinak jeden jasný "hero" empty-state. Design tokeny (barvy/stíny/radius) ověřeny proti vanilla
+prototypu (`style.css`) — MUI theme (`core/theme.js`, `bento.*`) už na ně byl navržen konzistentně.
+
+**2) Emoji:** jediný nález v celém React/mobil kódu byl `⚠` v `src/core/ErrorBoundary.jsx` (a
+neškodná `⚠️` v komentáři `orgService.js`, neviditelná v UI). Nahrazeno inline lineart SVG (Feather
+styl, bez závislosti na @mui/icons-material — boundary musí přežít i chybu v MUI stromu).
+
+**3) Testovací data — `scripts/dev-seed.mjs` (⚠️ DŮLEŽITÉ POUČENÍ):**
+Původní implementace žila v `src/services/devSeedService.js` a byla volaná dynamickým `import()`
+z UI zabaleného v `{import.meta.env.DEV && ...}` v `SuperAdminDashboard.jsx`. **Po ověření přímo v
+`dist/` se ukázalo, že Vite/Rollup dynamický import i tak zabalí do samostatného chunku v
+produkčním buildu** — i když se tlačítko nikdy nevykreslí, KÓD (a jeho texty) v nasazeném bundlu
+FYZICKY BYL. To nesplňovalo výslovné zadání "v ostrém provozu tam být nesmí a nebudou" — přesunuto
+do **`scripts/dev-seed.mjs`**, samostatného Node skriptu MIMO `src/` (appka ho nikdy neimportuje →
+nemůže se dostat do `vite build` grafu → ověřeno `grep` přes `dist/`, 0 výskytů).
+- `npm run seed` — smaže stará testovací data a založí 2 demo organizace (org_admin + klíčové
+  osoby + přiřazené pěstounské rodiny s dětmi); idempotentní (lze spouštět opakovaně).
+- `npm run seed:wipe` — jen smaže (organizace/uživatelé kromě vlastního účtu/rodiny/děti).
+- Vyžaduje `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` v `.env.local` (gitignored, stejně jako
+  `VITE_FIREBASE_*`) — skript se pod tímto účtem přihlásí, firestore.rules pak zápis povolí.
+- Omezení: Firebase Auth účty demo zaměstnanců nejde z klienta smazat (jen Firestore dokumenty) —
+  proto idempotence přes rozpoznání existujícího e-mailu (přihlásí se místo založení).
+- **Poučení pro V8/budoucí práci:** cokoli, co "nesmí být v produkci", patří MIMO `src/` (samostatný
+  skript/nástroj), NE za `import.meta.env.DEV` uvnitř appky — dynamický import bundler
+  nespolehlivě odstraní, i když se cesta k němu za běhu nikdy nevykoná.
+
+---
 
 ## 2026-07-02 — Incident: bílá obrazovka na moje.doprovazeni.com (VYŘEŠENO)
 

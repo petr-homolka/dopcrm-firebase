@@ -9,13 +9,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, Card, CardActionArea, CardContent, Chip, CircularProgress, Alert, Avatar } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import HomeIcon from '@mui/icons-material/Home';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import PhoneIcon from '@mui/icons-material/Phone';
 import PlaceIcon from '@mui/icons-material/Place';
 
 import { bento } from '../../core/theme.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { listFostersAssignedTo } from '../../services/orgService.js';
+import EmptyState from './EmptyState.jsx';
 
 const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
 const STATUS_COLOR = { active: 'success', paused: 'warning', exited: 'default' };
@@ -98,9 +99,13 @@ export default function KlicovaOsobaDashboard() {
       {!loading && error && <Alert severity="error">{error}</Alert>}
 
       {!loading && !error && families.length === 0 && (
-        <Alert severity="info" icon={<HomeIcon fontSize="inherit" />}>
-          Zatím vám nejsou přidělené žádné rodiny. Přiřazení řeší Org. Admin vaší organizace.
-        </Alert>
+        <Card>
+          <EmptyState
+            icon={<HomeOutlinedIcon sx={{ fontSize: 32 }} />}
+            title="Zatím nemáte přidělené žádné rodiny"
+            description="Přiřazení pěstounských rodin ke klíčovým osobám řeší Org. Admin vaší organizace — ozvěte se mu, ať vám nějaké přidělí."
+          />
+        </Card>
       )}
 
       {!loading && !error && families.length > 0 && (

@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx --report-unused-disable-directives --max-warnings 0",
     "check": "tsc --noEmit",
-    "deploy": "vite build && firebase deploy --only hosting"
+    "deploy": "vite build && firebase deploy --only hosting",
+    "seed": "node scripts/dev-seed.mjs seed",
+    "seed:wipe": "node scripts/dev-seed.mjs wipe"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -26,6 +28,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "dotenv": "^17.4.2",
     "firebase-tools": "^15.22.4",
     "vite": "^5.3.1",
     "vite-plugin-pwa": "^0.20.0",
