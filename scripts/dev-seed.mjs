@@ -30,7 +30,11 @@
  * opakovaně bez chyby "e-mail už existuje" a bez hromadění duplicit.
  */
 
-import 'dotenv/config';
+// `dotenv/config` bez parametrů čte jen `.env` — tenhle projekt drží configy
+// v `.env.local` (konvence sdílená s Vite, které .env.local načítá samo).
+import { config as loadEnv } from 'dotenv';
+loadEnv({ path: new URL('../.env.local', import.meta.url) });
+
 import { initializeApp, deleteApp } from 'firebase/app';
 import {
   getAuth,
