@@ -1,5 +1,5 @@
 /**
- * Login.jsx — přihlašovací obrazovka (B2B SaaS), MUI + Bento Grid
+ * Login.jsx — přihlašovací obrazovka (B2B SaaS), Tailwind + sdílené ui/ komponenty
  *
  * Využívá services/orgAuth.js (NOVÉ schéma, 2026-07-01):
  *   - identita ověřena přes Firebase Auth (e-mail + heslo)
@@ -11,28 +11,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Paper,
-  Avatar,
-  Typography,
-  TextField,
-  Button,
-  Alert,
-  IconButton,
-  InputAdornment,
-  CircularProgress,
-} from '@mui/material';
-import MailOutlineIcon from '@mui/icons-material/MailOutlined';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase.js';
 import { signIn, dashboardPathForRole } from '../../services/orgAuth.js';
 import { useAuthStore } from '../../store/authStore.js';
+import Button from '../../components/ui/Button.jsx';
+import Card from '../../components/ui/Card.jsx';
 
 // ── Mapování Firebase chybových kódů na čitelné zprávy ─────────
 
@@ -48,6 +34,11 @@ function mapFirebaseError(code) {
   };
   return map[code] ?? 'Přihlášení se nezdařilo. Zkuste to znovu.';
 }
+
+const fieldBaseClass =
+  'w-full rounded-xl bg-stone-100 py-2.5 pl-10 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
+const emailFieldClass = `${fieldBaseClass} pr-4`;
+const passwordFieldClass = `${fieldBaseClass} pr-10`;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -136,138 +127,110 @@ export default function Login() {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        py: 4,
-      }}
-    >
-      <Container maxWidth="sm">
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 3, sm: 5 },
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 2px 16px rgba(20,20,43,.08)',
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <Avatar
-              variant="rounded"
-              sx={{
-                bgcolor: 'secondary.main',
-                color: 'secondary.contrastText',
-                width: 56,
-                height: 56,
-                fontSize: 26,
-                fontWeight: 800,
-                mb: 2,
-              }}
-            >
+    <div className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 py-8">
+      <div className="w-full max-w-sm">
+        <Card className="p-6 sm:p-8">
+          <div className="mb-6 flex flex-col items-center">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-semibold text-white">
               D
-            </Avatar>
-            <Typography variant="h5" fontWeight={700} textAlign="center">
-              Přihlaste se
-            </Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 0.5 }}>
+            </span>
+            <h1 className="text-center text-lg font-semibold text-stone-800">Přihlaste se</h1>
+            <p className="mt-1 text-center text-sm text-stone-500">
               Doprovázení CRM — podpora pěstounských rodin
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} role="alert">
-              {error}
-            </Alert>
+            <div
+              role="alert"
+              className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <TextField
-              id="login-email"
-              label="E-mail"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              fullWidth
-              value={email}
-              onChange={handleEmailChange}
-              placeholder="vas@email.cz"
-              disabled={loading}
-              error={!!fieldErrors.email}
-              helperText={fieldErrors.email || ' '}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <MailOutlineIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <div>
+              <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-stone-700">
+                E-mail
+              </label>
+              <div className="relative">
+                <Mail
+                  size={18}
+                  strokeWidth={1.75}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                />
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  value={email}
+                  onChange={handleEmailChange}
+                  placeholder="vas@email.cz"
+                  disabled={loading}
+                  className={emailFieldClass}
+                />
+              </div>
+              <p className="mt-1 min-h-[1rem] text-xs text-red-600">{fieldErrors.email || ' '}</p>
+            </div>
 
-            <TextField
-              id="login-password"
-              label="Heslo"
-              type={showPass ? 'text' : 'password'}
-              autoComplete="current-password"
-              fullWidth
-              value={password}
-              onChange={handlePasswordChange}
-              placeholder="••••••••"
-              disabled={loading}
-              error={!!fieldErrors.password}
-              helperText={fieldErrors.password || ' '}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockOutlinedIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPass((v) => !v)}
-                      aria-label={showPass ? 'Skrýt heslo' : 'Zobrazit heslo'}
-                      edge="end"
-                      tabIndex={-1}
-                      disabled={loading}
-                    >
-                      {showPass ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <div>
+              <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-stone-700">
+                Heslo
+              </label>
+              <div className="relative">
+                <Lock
+                  size={18}
+                  strokeWidth={1.75}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                />
+                <input
+                  id="login-password"
+                  type={showPass ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={handlePasswordChange}
+                  placeholder="••••••••"
+                  disabled={loading}
+                  className={passwordFieldClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  aria-label={showPass ? 'Skrýt heslo' : 'Zobrazit heslo'}
+                  tabIndex={-1}
+                  disabled={loading}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-50"
+                >
+                  {showPass ? (
+                    <EyeOff size={18} strokeWidth={1.75} />
+                  ) : (
+                    <Eye size={18} strokeWidth={1.75} />
+                  )}
+                </button>
+              </div>
+              <p className="mt-1 min-h-[1rem] text-xs text-red-600">{fieldErrors.password || ' '}</p>
+            </div>
 
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              size="large"
-              fullWidth
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={18} color="inherit" /> : null}
-              sx={{ mt: 0.5, py: 1.2 }}
-            >
+            <Button type="submit" variant="primary" size="lg" disabled={loading} className="mt-1 w-full">
+              {loading && <Loader2 size={18} strokeWidth={2} className="animate-spin" />}
               {loading ? 'Přihlašuji…' : 'Přihlásit se'}
             </Button>
-          </Box>
+          </form>
 
-          <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ display: 'block', mt: 3 }}>
+          <p className="mt-6 text-center text-xs text-stone-500">
             Zapomenuté heslo? Kontaktujte správce organizace.
-          </Typography>
-          <Typography variant="body2" textAlign="center" sx={{ mt: 1.5 }}>
+          </p>
+          <p className="mt-2 text-center text-sm text-stone-700">
             Nemáte organizaci v systému?{' '}
-            <Box component="a" href="/registrace" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>
+            <a href="/registrace" className="font-semibold text-primary-600 hover:text-primary-700">
               Založte si ji zdarma
-            </Box>
-          </Typography>
-        </Paper>
-      </Container>
-    </Box>
+            </a>
+          </p>
+        </Card>
+      </div>
+    </div>
   );
 }

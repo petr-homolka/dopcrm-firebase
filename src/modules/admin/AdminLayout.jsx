@@ -10,11 +10,11 @@
 
 import React, { useCallback } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Avatar, Chip, IconButton, Tooltip, Box, Container } from '@mui/material';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { LogOut } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore.js';
 import { signOut } from '../../services/orgAuth.js';
+import Badge from '../../components/ui/Badge.jsx';
 
 const ROLE_LABELS = {
   superadmin: 'SaaS Superadmin',
@@ -32,35 +32,34 @@ export default function AdminLayout({ title }) {
   }, [navigate]);
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
-      <AppBar position="sticky" color="default" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Toolbar sx={{ gap: 1.5 }}>
-          <Avatar variant="rounded" sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', fontWeight: 800 }}>
+    <div className="min-h-dvh bg-stone-50">
+      <header className="sticky top-0 z-30 border-b border-stone-100 bg-white">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 font-bold text-white">
             D
-          </Avatar>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mr: 1 }}>
-            Doprovázení CRM
-          </Typography>
-          {title && (
-            <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-              / {title}
-            </Typography>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <Chip size="small" label={ROLE_LABELS[role] ?? role ?? '—'} color="primary" variant="outlined" sx={{ mr: 1 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+          </span>
+          <span className="mr-1 font-semibold text-stone-800">Doprovázení CRM</span>
+          {title && <span className="hidden text-sm text-stone-400 sm:block">/ {title}</span>}
+          <div className="flex-1" />
+          <Badge tone="neutral" className="mr-1">
+            {ROLE_LABELS[role] ?? role ?? '—'}
+          </Badge>
+          <span className="hidden text-sm text-stone-500 sm:block">
             {currentUser?.displayName ?? currentUser?.email}
-          </Typography>
-          <Tooltip title="Odhlásit se">
-            <IconButton onClick={handleSignOut} size="small" aria-label="Odhlásit se">
-              <LogoutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth="lg" sx={{ py: { xs: 2.5, sm: 4 } }}>
+          </span>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            aria-label="Odhlásit se"
+            className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+          >
+            <LogOut size={18} strokeWidth={1.75} />
+          </button>
+        </div>
+      </header>
+      <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
         <Outlet />
-      </Container>
-    </Box>
+      </div>
+    </div>
   );
 }

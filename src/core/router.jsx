@@ -28,6 +28,8 @@ import { dashboardPathForRole } from '../services/orgAuth.js';
 
 const AuthContext = createContext(undefined);
 
+// Hook žije vedle AuthProvider záměrně, přesun by rozbil stávající strukturu kontextu.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (ctx === undefined) throw new Error('useAuth musí být uvnitř <AuthProvider>');
@@ -94,6 +96,8 @@ const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPa
 
 // ── Navigační definice (odpovídá RAIL v prototypu) ───────────
 
+// Datová konstanta sdílená s Layout.jsx, ne komponenta.
+// eslint-disable-next-line react-refresh/only-export-components
 export const MVP_NAV = [
   { path: '/prehled',    label: 'Přehled',     icon: 'grid' },
   { path: '/pestouni',   label: 'Pěstouni',    icon: 'user' },

@@ -29,7 +29,6 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    // eslint-disable-next-line no-console
     console.error('[ErrorBoundary] Neočekávaná chyba při renderu:', error, info?.componentStack);
   }
 
@@ -53,8 +52,8 @@ export default class ErrorBoundary extends React.Component {
         }}
       >
         {/* Lineart ikona (Feather styl), ne emoji — viz CLAUDE.md "Emoji = 0". Raw inline SVG,
-            záměrně BEZ importu @mui/icons-material: boundary musí přežít i kdyby problém byl
-            někde v MUI/theme stromu, proto je nezávislý na čemkoli, co by mohlo spadnout. */}
+            záměrně BEZ importu z lucide-react: boundary musí přežít i kdyby problém byl
+            v samotném UI stromu, proto je nezávislý na čemkoli, co by mohlo spadnout. */}
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
           <line x1="12" y1="9" x2="12" y2="13" />

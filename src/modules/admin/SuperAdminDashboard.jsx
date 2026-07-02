@@ -19,39 +19,26 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box, Typography, Card, CardContent, Button, TextField,
-  Table, TableHead, TableBody, TableRow, TableCell, Chip, Alert,
-  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Stack,
-} from '@mui/material';
-import AddBusinessIcon from '@mui/icons-material/AddBusiness';
-import BusinessIcon from '@mui/icons-material/Business';
-import DomainAddOutlinedIcon from '@mui/icons-material/DomainAddOutlined';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { alpha } from '@mui/material/styles';
+import { Building2, Landmark, ChevronRight } from 'lucide-react';
 
-import { bento } from '../../core/theme.js';
+import Card from '../../components/ui/Card.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import EmptyState from '../../components/ui/EmptyState.jsx';
 import { listOrganizations, createOrganization, createEmployee } from '../../services/orgService.js';
-import EmptyState from './EmptyState.jsx';
+import NewOrganizationModal from './NewOrganizationModal.jsx';
 
-const STATUS_COLOR = { trial: 'warning', active: 'success', suspended: 'default', cancelled: 'error' };
+const STATUS_TONE = { trial: 'warning', active: 'success', suspended: 'neutral', cancelled: 'error' };
 const STATUS_LABEL = { trial: 'Zkušební doba', active: 'Aktivní', suspended: 'Pozastaveno', cancelled: 'Zrušeno' };
 
-function StatCard({ icon, label, value, color = 'primary' }) {
+function StatCard({ icon, label, value }) {
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 3 }}>
-        <Box sx={{
-          width: 44, height: 44, borderRadius: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backgroundColor: (theme) => alpha(theme.palette[color].main, 0.12), color: `${color}.main`,
-        }}>
-          {icon}
-        </Box>
-        <Typography sx={{ fontSize: 32, fontWeight: 700, lineHeight: 1.1, mt: 1 }}>{value}</Typography>
-        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '.06em', color: 'text.secondary', fontWeight: 600 }}>
-          {label}
-        </Typography>
-      </CardContent>
+    <Card>
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+        {icon}
+      </div>
+      <p className="mt-3 text-3xl font-semibold leading-none text-stone-800 tabular-nums">{value}</p>
+      <p className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
     </Card>
   );
 }
@@ -130,36 +117,40 @@ export default function SuperAdminDashboard() {
   const hasOrgs = orgs.length > 0;
 
   return (
-    <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>SuperAdmin</Typography>
-          <Typography variant="body2" color="text.secondary">Správa doprovázejících organizací (tenantů) a jejich předplatného.</Typography>
-        </Box>
+    <div>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-stone-800 sm:text-xl">SuperAdmin</h1>
+          <p className="mt-0.5 text-sm text-stone-500">Správa doprovázejících organizací (tenantů) a jejich předplatného.</p>
+        </div>
         {hasOrgs && (
-          <Button variant="contained" size="large" startIcon={<AddBusinessIcon />} onClick={() => setDialogOpen(true)}>
+          <Button size="lg" onClick={() => setDialogOpen(true)}>
+            <Building2 size={18} strokeWidth={1.75} />
             Nová organizace
           </Button>
         )}
-      </Stack>
+      </div>
 
       {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">Načítám organizace…</Typography>
-        </Box>
+        <div className="flex items-center justify-center gap-3 py-16 text-sm text-stone-500">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-200 border-t-primary-600" />
+          Načítám organizace…
+        </div>
       )}
 
-      {!loading && error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {!loading && error && (
+        <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
 
       {!loading && !error && !hasOrgs && (
         <Card>
           <EmptyState
-            icon={<DomainAddOutlinedIcon sx={{ fontSize: 32 }} />}
+            icon={<Landmark size={28} strokeWidth={1.75} />}
             title="Zatím žádné organizace"
             description="Doprovázející organizace (tenanti) jsou platící zákazníci systému. Založte první a rovnou i jejího administrátora — ten si pak sám přidá zaměstnance."
             action={
-              <Button variant="contained" size="large" startIcon={<AddBusinessIcon />} onClick={() => setDialogOpen(true)}>
+              <Button size="lg" onClick={() => setDialogOpen(true)}>
+                <Building2 size={18} strokeWidth={1.75} />
                 Založit první organizaci
               </Button>
             }
@@ -169,79 +160,65 @@ export default function SuperAdminDashboard() {
 
       {!loading && !error && hasOrgs && (
         <>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: bento.gap, mb: 3 }}>
-            <StatCard icon={<BusinessIcon />} label="Organizací celkem" value={orgs.length} color="primary" />
-            <StatCard icon={<BusinessIcon />} label="Aktivní předplatné" value={activeCount} color="success" />
-            <StatCard icon={<BusinessIcon />} label="Ve zkušební době" value={trialCount} color="warning" />
-          </Box>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard icon={<Building2 size={20} strokeWidth={1.75} />} label="Organizací celkem" value={orgs.length} />
+            <StatCard icon={<Building2 size={20} strokeWidth={1.75} />} label="Aktivní předplatné" value={activeCount} />
+            <StatCard icon={<Building2 size={20} strokeWidth={1.75} />} label="Ve zkušební době" value={trialCount} />
+          </div>
 
           <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>Organizace</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Klikněte na řádek pro pěstounské rodiny a zaměstnance dané organizace.
-              </Typography>
-              <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Název</TableCell>
-                      <TableCell>IČO</TableCell>
-                      <TableCell>Plán</TableCell>
-                      <TableCell>Stav předplatného</TableCell>
-                      <TableCell>ID</TableCell>
-                      <TableCell />
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {orgs.map((org) => (
-                      <TableRow
-                        key={org.id}
-                        hover
-                        onClick={() => navigate(`/admin/superadmin/organizace/${org.id}`)}
-                        sx={{ cursor: 'pointer' }}
-                      >
-                        <TableCell sx={{ fontWeight: 600 }}>{org.name}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>{org.ico || '—'}</TableCell>
-                        <TableCell sx={{ textTransform: 'capitalize' }}>{org.plan ?? '—'}</TableCell>
-                        <TableCell>
-                          <Chip size="small" label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} />
-                        </TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary' }}>{org.id}</TableCell>
-                        <TableCell align="right" sx={{ color: 'text.disabled' }}><ChevronRightIcon fontSize="small" /></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </CardContent>
+            <h2 className="text-base font-semibold text-stone-800">Organizace</h2>
+            <p className="mb-3 mt-0.5 text-sm text-stone-500">
+              Klikněte na řádek pro pěstounské rodiny a zaměstnance dané organizace.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+                    <th className="py-2 pr-3 font-semibold">Název</th>
+                    <th className="py-2 pr-3 font-semibold">IČO</th>
+                    <th className="py-2 pr-3 font-semibold">Plán</th>
+                    <th className="py-2 pr-3 font-semibold">Stav předplatného</th>
+                    <th className="py-2 pr-3 font-semibold">ID</th>
+                    <th className="py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {orgs.map((org) => (
+                    <tr
+                      key={org.id}
+                      onClick={() => navigate(`/admin/superadmin/organizace/${org.id}`)}
+                      className="cursor-pointer border-t border-stone-100 transition duration-150 hover:bg-stone-50"
+                    >
+                      <td className="py-3 pr-3 font-medium text-stone-800">{org.name}</td>
+                      <td className="py-3 pr-3 text-stone-500">{org.ico || '—'}</td>
+                      <td className="py-3 pr-3 capitalize text-stone-600">{org.plan ?? '—'}</td>
+                      <td className="py-3 pr-3">
+                        <Badge tone={STATUS_TONE[org.status] ?? 'neutral'}>{STATUS_LABEL[org.status] ?? org.status}</Badge>
+                      </td>
+                      <td className="py-3 pr-3 font-mono text-xs text-stone-400">{org.id}</td>
+                      <td className="py-3 text-right text-stone-300">
+                        <ChevronRight size={18} strokeWidth={1.75} className="ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={handleCreateOrg}>
-          <DialogTitle>Nová doprovázející organizace</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Založí novou organizaci a rovnou i jejího prvního administrátora (Org. Admin),
-              který si dál sám přidá zaměstnance.
-            </Typography>
-            {submitError && <Alert severity="error">{submitError}</Alert>}
-            <TextField label="Název organizace" value={form.orgName} onChange={updateForm('orgName')} fullWidth required disabled={submitting} autoFocus />
-            <TextField label="IČO" placeholder="např. 12345678" value={form.orgIco} onChange={updateForm('orgIco')} fullWidth disabled={submitting} />
-            <TextField label="Jméno administrátora" value={form.adminName} onChange={updateForm('adminName')} fullWidth required disabled={submitting} />
-            <TextField label="E-mail administrátora" type="email" value={form.adminEmail} onChange={updateForm('adminEmail')} fullWidth required disabled={submitting} />
-            <TextField label="Počáteční heslo" type="password" value={form.adminPassword} onChange={updateForm('adminPassword')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků — doporučeno vyzvat k okamžité změně." />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={() => setDialogOpen(false)} disabled={submitting}>Zrušit</Button>
-            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}>
-              {submitting ? 'Zakládám…' : 'Založit organizaci'}
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      {dialogOpen && (
+        <NewOrganizationModal
+          form={form}
+          submitting={submitting}
+          submitError={submitError}
+          onChange={updateForm}
+          onClose={() => !submitting && setDialogOpen(false)}
+          onSubmit={handleCreateOrg}
+        />
+      )}
+    </div>
   );
 }

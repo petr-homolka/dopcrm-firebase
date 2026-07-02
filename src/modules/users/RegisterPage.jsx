@@ -8,12 +8,17 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box, Container, Paper, Avatar, Typography, TextField, Button, Alert,
-  CircularProgress, Divider, Checkbox, FormControlLabel, Grid,
-} from '@mui/material';
+import { Loader2 } from 'lucide-react';
+
 import { registerOrganization } from '../../services/registrationService.js';
 import { dashboardPathForRole } from '../../services/orgAuth.js';
+import Button from '../../components/ui/Button.jsx';
+import Card from '../../components/ui/Card.jsx';
+
+const inputClass =
+  'w-full rounded-xl bg-stone-100 px-4 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
+const labelClass = 'mb-1 block text-xs font-medium text-stone-500';
+const sectionLabelClass = 'text-xs font-semibold uppercase tracking-wide text-stone-400';
 
 function mapFirebaseError(code) {
   const map = {
@@ -33,6 +38,15 @@ const emptyForm = {
   zFirstName: '', zLastName: '', zFunkce: 'Zástupce organizace', zRc: '', zPhone: '',
   email: '', password: '',
 };
+
+function Field({ label, colSpan, ...props }) {
+  return (
+    <label className={colSpan ? `block ${colSpan}` : 'block'}>
+      <span className={labelClass}>{label}</span>
+      <input className={inputClass} {...props} />
+    </label>
+  );
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -78,74 +92,94 @@ export default function RegisterPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="sm">
-        <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, borderRadius: 4, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 16px rgba(20,20,43,.08)' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <Avatar variant="rounded" sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', width: 56, height: 56, fontSize: 26, fontWeight: 800, mb: 2 }}>D</Avatar>
-            <Typography variant="h5" fontWeight={700} textAlign="center">Založit organizaci</Typography>
-            <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 0.5 }}>
+    <div className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 py-8">
+      <div className="w-full max-w-lg">
+        <Card className="p-6 sm:p-8">
+          <div className="mb-6 flex flex-col items-center gap-2">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-600 text-2xl font-semibold text-white">
+              D
+            </span>
+            <h1 className="text-center text-lg font-semibold text-stone-800">Založit organizaci</h1>
+            <p className="text-center text-sm text-stone-500">
               Doprovázení CRM — registrace nové doprovázející organizace
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }} role="alert">{error}</Alert>}
+          {error && (
+            <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            <Typography variant="overline" color="text.secondary" fontWeight={700}>Organizace</Typography>
-            <TextField label="Název organizace" value={form.orgName} onChange={updateForm('orgName')} fullWidth required disabled={submitting} autoFocus />
-            <Grid container spacing={2}>
-              <Grid item xs={6}><TextField label="IČO" value={form.ico} onChange={updateForm('ico')} fullWidth disabled={submitting} /></Grid>
-              <Grid item xs={6}><TextField label="Datová schránka" value={form.dataBoxId} onChange={updateForm('dataBoxId')} fullWidth disabled={submitting} /></Grid>
-            </Grid>
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <p className={sectionLabelClass}>Organizace</p>
+            <Field label="Název organizace" value={form.orgName} onChange={updateForm('orgName')} required disabled={submitting} autoFocus />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="IČO" value={form.ico} onChange={updateForm('ico')} disabled={submitting} />
+              <Field label="Datová schránka" value={form.dataBoxId} onChange={updateForm('dataBoxId')} disabled={submitting} />
+            </div>
 
-            <Divider />
-            <Typography variant="overline" color="text.secondary" fontWeight={700}>Adresa sídla</Typography>
-            <TextField label="Ulice a číslo" value={form.sidloStreet} onChange={updateForm('sidloStreet')} fullWidth disabled={submitting} />
-            <Grid container spacing={2}>
-              <Grid item xs={8}><TextField label="Město" value={form.sidloCity} onChange={updateForm('sidloCity')} fullWidth disabled={submitting} /></Grid>
-              <Grid item xs={4}><TextField label="PSČ" value={form.sidloZip} onChange={updateForm('sidloZip')} fullWidth disabled={submitting} /></Grid>
-            </Grid>
+            <div className="h-px bg-stone-100" />
+            <p className={sectionLabelClass}>Adresa sídla</p>
+            <Field label="Ulice a číslo" value={form.sidloStreet} onChange={updateForm('sidloStreet')} disabled={submitting} />
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Město" colSpan="col-span-2" value={form.sidloCity} onChange={updateForm('sidloCity')} disabled={submitting} />
+              <Field label="PSČ" value={form.sidloZip} onChange={updateForm('sidloZip')} disabled={submitting} />
+            </div>
 
-            <FormControlLabel
-              control={<Checkbox checked={form.sameAsSidlo} onChange={(e) => setForm((f) => ({ ...f, sameAsSidlo: e.target.checked }))} disabled={submitting} />}
-              label="Adresa provozovny je stejná jako sídlo"
-            />
+            <label className="flex items-center gap-2.5 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                checked={form.sameAsSidlo}
+                onChange={(e) => setForm((f) => ({ ...f, sameAsSidlo: e.target.checked }))}
+                disabled={submitting}
+                className="h-4 w-4 rounded border-0 bg-stone-100 text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600"
+              />
+              Adresa provozovny je stejná jako sídlo
+            </label>
+
             {!form.sameAsSidlo && (
               <>
-                <Typography variant="overline" color="text.secondary" fontWeight={700}>Adresa provozovny</Typography>
-                <TextField label="Ulice a číslo" value={form.provStreet} onChange={updateForm('provStreet')} fullWidth disabled={submitting} />
-                <Grid container spacing={2}>
-                  <Grid item xs={8}><TextField label="Město" value={form.provCity} onChange={updateForm('provCity')} fullWidth disabled={submitting} /></Grid>
-                  <Grid item xs={4}><TextField label="PSČ" value={form.provZip} onChange={updateForm('provZip')} fullWidth disabled={submitting} /></Grid>
-                </Grid>
+                <p className={sectionLabelClass}>Adresa provozovny</p>
+                <Field label="Ulice a číslo" value={form.provStreet} onChange={updateForm('provStreet')} disabled={submitting} />
+                <div className="grid grid-cols-3 gap-3">
+                  <Field label="Město" colSpan="col-span-2" value={form.provCity} onChange={updateForm('provCity')} disabled={submitting} />
+                  <Field label="PSČ" value={form.provZip} onChange={updateForm('provZip')} disabled={submitting} />
+                </div>
               </>
             )}
 
-            <Divider />
-            <Typography variant="overline" color="text.secondary" fontWeight={700}>Zástupce organizace (váš účet)</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}><TextField label="Jméno" value={form.zFirstName} onChange={updateForm('zFirstName')} fullWidth required disabled={submitting} /></Grid>
-              <Grid item xs={6}><TextField label="Příjmení" value={form.zLastName} onChange={updateForm('zLastName')} fullWidth required disabled={submitting} /></Grid>
-            </Grid>
-            <TextField label="Funkce v organizaci" value={form.zFunkce} onChange={updateForm('zFunkce')} fullWidth disabled={submitting} />
-            <Grid container spacing={2}>
-              <Grid item xs={6}><TextField label="Rodné číslo" placeholder="např. 765912/3210" value={form.zRc} onChange={updateForm('zRc')} fullWidth disabled={submitting} /></Grid>
-              <Grid item xs={6}><TextField label="Telefon" value={form.zPhone} onChange={updateForm('zPhone')} fullWidth disabled={submitting} /></Grid>
-            </Grid>
-            <TextField label="Přihlašovací e-mail" type="email" value={form.email} onChange={updateForm('email')} fullWidth required disabled={submitting} />
-            <TextField label="Heslo" type="password" value={form.password} onChange={updateForm('password')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků." />
+            <div className="h-px bg-stone-100" />
+            <p className={sectionLabelClass}>Zástupce organizace (váš účet)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Jméno" value={form.zFirstName} onChange={updateForm('zFirstName')} required disabled={submitting} />
+              <Field label="Příjmení" value={form.zLastName} onChange={updateForm('zLastName')} required disabled={submitting} />
+            </div>
+            <Field label="Funkce v organizaci" value={form.zFunkce} onChange={updateForm('zFunkce')} disabled={submitting} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Rodné číslo" placeholder="např. 765912/3210" value={form.zRc} onChange={updateForm('zRc')} disabled={submitting} />
+              <Field label="Telefon" value={form.zPhone} onChange={updateForm('zPhone')} disabled={submitting} />
+            </div>
+            <Field label="Přihlašovací e-mail" type="email" value={form.email} onChange={updateForm('email')} required disabled={submitting} />
+            <div>
+              <Field label="Heslo" type="password" value={form.password} onChange={updateForm('password')} required disabled={submitting} />
+              <p className="mt-1 text-xs text-stone-400">Alespoň 6 znaků.</p>
+            </div>
 
-            <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting} startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : null} sx={{ mt: 1, py: 1.2 }}>
+            <Button type="submit" size="lg" disabled={submitting} className="mt-1 w-full">
+              {submitting && <Loader2 size={18} className="animate-spin" />}
               {submitting ? 'Zakládám organizaci…' : 'Založit organizaci a pokračovat'}
             </Button>
-          </Box>
+          </form>
 
-          <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ display: 'block', mt: 3 }}>
-            Už máte účet? <Box component="a" href="/login" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>Přihlaste se</Box>
-          </Typography>
-        </Paper>
-      </Container>
-    </Box>
+          <p className="mt-6 text-center text-xs text-stone-500">
+            Už máte účet?{' '}
+            <a href="/login" className="font-semibold text-primary-600 no-underline">
+              Přihlaste se
+            </a>
+          </p>
+        </Card>
+      </div>
+    </div>
   );
 }

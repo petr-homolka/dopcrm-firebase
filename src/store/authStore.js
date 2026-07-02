@@ -22,7 +22,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../services/firebase.js';
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set) => ({
   currentUser: null,
   profile: null,
   organizationId: null,

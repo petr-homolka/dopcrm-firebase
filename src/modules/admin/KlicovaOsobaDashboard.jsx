@@ -9,55 +9,53 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Typography, Card, CardActionArea, CardContent, Chip, CircularProgress, Alert, Avatar, Tabs, Tab } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import PhoneIcon from '@mui/icons-material/Phone';
-import PlaceIcon from '@mui/icons-material/Place';
+import { Home, Phone, MapPin, Loader2 } from 'lucide-react';
 
-import { bento } from '../../core/theme.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { listFostersAssignedTo } from '../../services/orgService.js';
-import EmptyState from './EmptyState.jsx';
+import Card from '../../components/ui/Card.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import Avatar from '../../components/ui/Avatar.jsx';
+import EmptyState from '../../components/ui/EmptyState.jsx';
+import { cn } from '../../components/ui/cn.js';
 import FosterFamiliesPanel from './FosterFamiliesPanel.jsx';
 
 const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
-const STATUS_COLOR = { active: 'success', paused: 'warning', exited: 'default' };
+const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
 
-function initials(name) {
-  return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('') || '?';
-}
+const TABS = [
+  { value: 'moje', label: 'Moje rodiny' },
+  { value: 'organizace', label: 'Celá organizace' },
+];
 
 function FamilyCard({ family, onClick }) {
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, p: 3, height: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-            <Avatar sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.14), color: 'primary.main', fontWeight: 700 }}>
-              {initials(family.name)}
-            </Avatar>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography fontWeight={700} noWrap>{family.name || '(bez jména)'}</Typography>
-              <Chip size="small" label={STATUS_LABELS[family.status] ?? family.status} color={STATUS_COLOR[family.status] ?? 'default'} sx={{ mt: 0.5 }} />
-            </Box>
-          </Box>
-          {family.address && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-              <PlaceIcon fontSize="small" />
-              <Typography variant="body2" noWrap>{family.address}</Typography>
-            </Box>
-          )}
-          {family.contactPhone && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-              <PhoneIcon fontSize="small" />
-              <Typography variant="body2">{family.contactPhone}</Typography>
-            </Box>
-          )}
-        </CardContent>
-      </CardActionArea>
-    </Card>
+    <button type="button" onClick={onClick} className="text-left">
+      <Card className="flex h-full flex-col gap-3 transition duration-150 hover:shadow-lg active:scale-[0.98]">
+        <div className="flex items-center gap-3">
+          <Avatar name={family.name} size="md" />
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-stone-800">{family.name || '(bez jména)'}</p>
+            <Badge tone={STATUS_TONE[family.status] ?? 'neutral'} className="mt-1">
+              {STATUS_LABELS[family.status] ?? family.status}
+            </Badge>
+          </div>
+        </div>
+        {family.address && (
+          <div className="flex items-center gap-2 text-stone-500">
+            <MapPin size={16} strokeWidth={1.75} className="shrink-0" />
+            <span className="truncate text-sm">{family.address}</span>
+          </div>
+        )}
+        {family.contactPhone && (
+          <div className="flex items-center gap-2 text-stone-500">
+            <Phone size={16} strokeWidth={1.75} className="shrink-0" />
+            <span className="text-sm">{family.contactPhone}</span>
+          </div>
+        )}
+      </Card>
+    </button>
   );
 }
 
@@ -87,17 +85,21 @@ function MyFamilies() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex items-center justify-center gap-2 py-12">
+        <Loader2 size={24} strokeWidth={1.75} className="animate-spin text-primary-600" />
+      </div>
     );
   }
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (error) {
+    return (
+      <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+    );
+  }
   if (families.length === 0) {
     return (
       <Card>
         <EmptyState
-          icon={<HomeOutlinedIcon sx={{ fontSize: 32 }} />}
+          icon={<Home size={28} strokeWidth={1.75} />}
           title="Zatím nemáte přidělené žádné rodiny"
           description="Přiřazení pěstounských rodin ke klíčovým osobám řeší Org. Admin vaší organizace."
         />
@@ -105,11 +107,11 @@ function MyFamilies() {
     );
   }
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: bento.gap }}>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
       {families.map((family) => (
         <FamilyCard key={family.id} family={family} onClick={() => navigate(`/admin/terenni/${family.id}`)} />
       ))}
-    </Box>
+    </div>
   );
 }
 
@@ -118,16 +120,29 @@ export default function KlicovaOsobaDashboard() {
   const [tab, setTab] = useState('moje');
 
   return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>Terén</Typography>
+    <div>
+      <h1 className="mb-6 text-lg font-semibold text-stone-800 sm:text-xl">Terén</h1>
 
-      <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
-        <Tab value="moje" label="Moje rodiny" />
-        <Tab value="organizace" label="Celá organizace" />
-      </Tabs>
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-stone-100">
+        {TABS.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setTab(t.value)}
+            className={cn(
+              'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition',
+              tab === t.value
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-stone-500 hover:text-stone-700'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {tab === 'moje' && <MyFamilies />}
       {tab === 'organizace' && <FosterFamiliesPanel organizationId={organizationId} basePath="/admin/terenni" canCreate={false} />}
-    </Box>
+    </div>
   );
 }

@@ -3,7 +3,7 @@
  *
  * Vizuální styl: Bento Grid (Apple-style) — modulární karty různých
  * velikostí na 4-sloupcové mřížce (2 na tabletu, 1 na mobilu), hover scale
- * a jemné stíny dle tokenů v core/theme.js (`bento`).
+ * a jemné stíny (Tailwind utility třídy, dle DESIGN.md §4).
  *
  * Načítá data přes dataService.js (tenants/{tenantId}/data_objects):
  *   - počet aktivních rodin (type='family', status='active')
@@ -11,44 +11,20 @@
  *   - 5 nejnovějších rodin (seřazeno dle createdAt desc, řazeno na klientovi)
  *
  * Stavy:
- *   - loading  → CircularProgress
- *   - error    → Alert (např. chybějící tenantId nebo Firestore chyba)
+ *   - loading  → skeleton dlaždice (žádný fullscreen spinner, dle DESIGN.md §7)
+ *   - error    → pastelová chybová karta (např. chybějící tenantId nebo Firestore chyba)
  *   - prázdná data → informativní hláška v kartách i tabulce
  */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import PeopleIcon from '@mui/icons-material/People';
-import ChildCareIcon from '@mui/icons-material/ChildCare';
-import WavingHandIcon from '@mui/icons-material/WavingHand';
+import { Users, Baby, PartyPopper, TriangleAlert } from 'lucide-react';
 
+import Card from '../../components/ui/Card.jsx';
 import { fetchFamilies, fetchChildren } from '../../services/dataService.js';
 import { currentUser } from '../../services/auth.js';
-import { bento } from '../../core/theme.js';
+import RecentFamiliesTable from './RecentFamiliesTable.jsx';
 
 // ── Formátování data ─────────────────────────────────────────────
-
-function formatDate(value) {
-  if (!value) return '—';
-  // Firestore Timestamp má metodu toDate(); jinak zkusíme rovnou Date/string.
-  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('cs-CZ');
-}
 
 function formatTodayLong() {
   return new Date().toLocaleDateString('cs-CZ', {
@@ -64,153 +40,68 @@ function firstName(user) {
   return name.split(/[\s.]+/)[0] || 'tam';
 }
 
-// ── Bento bunka pro statistiku (KPI) ──────────────────────────────
+// ── Bento buňka pro statistiku (KPI) ──────────────────────────────
 
-function StatCard({ icon, label, value, color = 'primary' }) {
+const STAT_TONES = {
+  primary: 'bg-primary-50 text-primary-600',
+  secondary: 'bg-entity-family-bg text-entity-family-text',
+};
+
+function StatCard({ icon: Icon, label, value, tone = 'primary' }) {
   return (
-    <Card
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        height: '100%',
-        cursor: 'default',
-        '&:hover': {
-          transform: bento.hoverScale,
-          boxShadow: bento.shadowHover,
-        },
-        '&:hover .bento-accent': { opacity: 1 },
-      }}
-    >
-      <Box
-        className="bento-accent"
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 4,
-          backgroundColor: `${color}.main`,
-          opacity: 0,
-          transition: 'opacity .2s ease',
-        }}
-      />
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 3 }}>
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: (theme) => alpha(theme.palette[color].main, 0.12),
-            color: `${color}.main`,
-          }}
+    <Card className="group relative overflow-hidden transition duration-150 hover:shadow-lg hover:scale-[1.01]">
+      <div className="flex flex-col gap-1">
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${STAT_TONES[tone]}`}
         >
-          {icon}
-        </Box>
-        <Typography sx={{ fontSize: 32, fontWeight: 700, lineHeight: 1.1, mt: 1 }}>
+          <Icon size={22} strokeWidth={1.75} />
+        </div>
+        <p className="mt-1 text-3xl font-semibold leading-tight tabular-nums text-stone-800">
           {value}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            textTransform: 'uppercase',
-            letterSpacing: '.06em',
-            color: 'text.secondary',
-            fontWeight: 600,
-          }}
-        >
-          {label}
-        </Typography>
-      </CardContent>
+        </p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
+      </div>
     </Card>
   );
 }
 
-// ── Bento bunka — pozdrav / hero dlaždice ─────────────────────────
+// ── Bento buňka — pozdrav / hero dlaždice ─────────────────────────
 
 function GreetingCard() {
   const user = currentUser();
   return (
-    <Card
-      sx={{
-        height: '100%',
-        backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.16),
-        border: 'none',
-        boxShadow: 'none',
-        '&:hover': { transform: 'none', boxShadow: 'none' },
-      }}
-    >
-      <CardContent
-        sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: 1,
-          p: 3,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <WavingHandIcon sx={{ color: 'secondary.dark' }} />
-          <Typography variant="h5" fontWeight={700}>
-            Dobrý den, {firstName(user)}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-          {formatTodayLong()}
-        </Typography>
-      </CardContent>
+    <Card className="col-span-1 flex flex-col justify-center gap-1 bg-primary-50 sm:col-span-2">
+      <div className="flex items-center gap-2">
+        <PartyPopper size={22} className="text-primary-700" strokeWidth={1.75} />
+        <h2 className="text-xl font-semibold text-stone-800">Dobrý den, {firstName(user)}</h2>
+      </div>
+      <p className="capitalize text-sm text-stone-500">{formatTodayLong()}</p>
     </Card>
   );
 }
 
-// ── Bento bunka — tabulka nejnovějších rodin ──────────────────────
+// ── Stavy načítání a chyby ─────────────────────────────────────────
 
-function RecentFamiliesCard({ families }) {
+function LoadingSkeleton() {
   return (
-    <Card sx={{ gridColumn: '1 / -1' }}>
-      <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-          Nejnovější rodiny
-        </Typography>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className={`h-32 animate-pulse rounded-2xl bg-stone-100 ${
+            i === 0 ? 'col-span-1 sm:col-span-2' : ''
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
 
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Jméno</TableCell>
-                <TableCell>Stav</TableCell>
-                <TableCell>Vytvořeno</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {families.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                    Žádné rodiny k zobrazení.
-                  </TableCell>
-                </TableRow>
-              )}
-              {families.map((family) => (
-                <TableRow key={family.id} hover>
-                  <TableCell>{family.name ?? '(bez jména)'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={family.status ?? 'neznámý'}
-                      color={family.status === 'active' ? 'success' : 'default'}
-                      variant={family.status === 'active' ? 'filled' : 'outlined'}
-                    />
-                  </TableCell>
-                  <TableCell>{formatDate(family.createdAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
-      </CardContent>
+function ErrorCard({ message }) {
+  return (
+    <Card className="flex items-center gap-3 bg-red-50">
+      <TriangleAlert size={20} className="shrink-0 text-red-700" strokeWidth={1.75} />
+      <p className="text-sm text-red-700">{message}</p>
     </Card>
   );
 }
@@ -254,62 +145,27 @@ export default function DashboardPage() {
   const recentFamilies = families.slice(0, 5);
 
   return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
-        Přehled
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+    <div>
+      <h1 className="mb-0.5 text-xl font-semibold text-stone-800">Přehled</h1>
+      <p className="mb-6 text-sm text-stone-500">
         Souhrn aktuálního stavu doprovázených rodin a dětí.
-      </Typography>
+      </p>
 
-      {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">
-            Načítám data…
-          </Typography>
-        </Box>
-      )}
+      {loading && <LoadingSkeleton />}
 
-      {!loading && error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {!loading && error && <ErrorCard message={error} />}
 
       {!loading && !error && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-            gap: bento.gap,
-          }}
-        >
-          <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 2', md: 'span 2' } }}>
-            <GreetingCard />
-          </Box>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <GreetingCard />
 
-          <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1', md: 'span 1' } }}>
-            <StatCard
-              icon={<PeopleIcon />}
-              label="Aktivní rodiny"
-              value={activeFamiliesCount}
-              color="primary"
-            />
-          </Box>
+          <StatCard icon={Users} label="Aktivní rodiny" value={activeFamiliesCount} tone="primary" />
 
-          <Box sx={{ gridColumn: { xs: 'span 1', sm: 'span 1', md: 'span 1' } }}>
-            <StatCard
-              icon={<ChildCareIcon />}
-              label="Děti v péči"
-              value={childrenCount}
-              color="secondary"
-            />
-          </Box>
+          <StatCard icon={Baby} label="Děti v péči" value={childrenCount} tone="secondary" />
 
-          <RecentFamiliesCard families={recentFamilies} />
-        </Box>
+          <RecentFamiliesTable families={recentFamilies} />
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

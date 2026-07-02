@@ -12,20 +12,19 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box, Typography, Card, CardContent, Button, TextField, MenuItem,
-  Table, TableHead, TableBody, TableRow, TableCell, Chip, Alert,
-  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-} from '@mui/material';
-import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { UserPlus, ChevronRight, Loader2 } from 'lucide-react';
 
 import { listFostersByOrg, listKlicoveOsobyByOrg, createFoster } from '../../services/orgService.js';
-import { CARE_TYPES, careLabel } from '../../shared/domainConstants.js';
-import EmptyState from './EmptyState.jsx';
+import { careLabel } from '../../shared/domainConstants.js';
+import Card from '../../components/ui/Card.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Badge from '../../components/ui/Badge.jsx';
+import Avatar from '../../components/ui/Avatar.jsx';
+import EmptyState from '../../components/ui/EmptyState.jsx';
+import NewFamilyModal from './NewFamilyModal.jsx';
 
 const STATUS_LABEL = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
-const STATUS_COLOR = { active: 'success', paused: 'warning', exited: 'default' };
+const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
 
 const emptyForm = { name: '', address: '', contactPhone: '', careType: 'long', assignedTo: '' };
 
@@ -100,34 +99,38 @@ export default function FosterFamiliesPanel({ organizationId, basePath, canCreat
   }
 
   return (
-    <Box>
+    <div>
       {canCreate && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Button variant="contained" startIcon={<GroupAddOutlinedIcon />} onClick={() => setDialogOpen(true)}>
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setDialogOpen(true)}>
+            <UserPlus size={16} strokeWidth={1.75} />
             Přidat rodinu
           </Button>
-        </Box>
+        </div>
       )}
 
       {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">Načítám rodiny…</Typography>
-        </Box>
+        <div className="flex items-center justify-center gap-2 py-12 text-stone-500">
+          <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
+          <span className="text-sm">Načítám rodiny…</span>
+        </div>
       )}
 
-      {!loading && error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {!loading && error && (
+        <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
 
       {!loading && !error && families.length === 0 && (
         <Card>
           <EmptyState
-            icon={<GroupAddOutlinedIcon sx={{ fontSize: 32 }} />}
+            icon={<UserPlus size={28} strokeWidth={1.75} />}
             title="Zatím žádné pěstounské rodiny"
             description={canCreate
               ? 'Přidejte první rodinu a přiřaďte ji klíčové osobě, která se o ni bude starat.'
               : 'V organizaci zatím nejsou žádné pěstounské rodiny.'}
             action={canCreate && (
-              <Button variant="contained" startIcon={<GroupAddOutlinedIcon />} onClick={() => setDialogOpen(true)}>
+              <Button onClick={() => setDialogOpen(true)}>
+                <UserPlus size={16} strokeWidth={1.75} />
                 Přidat první rodinu
               </Button>
             )}
@@ -136,75 +139,46 @@ export default function FosterFamiliesPanel({ organizationId, basePath, canCreat
       )}
 
       {!loading && !error && families.length > 0 && (
-        <Card>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>Pěstounské rodiny</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Klikněte na řádek pro detail rodiny — svěřené děti a jejich příbuzné.
-            </Typography>
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Rodina</TableCell>
-                    <TableCell>Typ péče</TableCell>
-                    <TableCell>Klíčová osoba</TableCell>
-                    <TableCell>Stav</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {families.map((family) => (
-                    <TableRow
-                      key={family.id}
-                      hover
-                      onClick={() => navigate(`${basePath}/${family.id}`)}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      <TableCell sx={{ fontWeight: 600 }}>{family.name}</TableCell>
-                      <TableCell>{careLabel(family.careType)}</TableCell>
-                      <TableCell>{koName(family.assignedTo)}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label={STATUS_LABEL[family.status] ?? family.status} color={STATUS_COLOR[family.status] ?? 'default'} />
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'text.disabled' }}><ChevronRightIcon fontSize="small" /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          </CardContent>
-        </Card>
+        <div>
+          <h2 className="mb-0.5 text-base font-semibold text-stone-800">Pěstounské rodiny</h2>
+          <p className="mb-3 text-sm text-stone-500">
+            Klikněte na rodinu pro detail — svěřené děti a jejich příbuzné.
+          </p>
+          <div className="space-y-2.5">
+            {families.map((family) => (
+              <Card
+                key={family.id}
+                onClick={() => navigate(`${basePath}/${family.id}`)}
+                className="flex cursor-pointer items-center gap-3 transition hover:bg-stone-50 active:scale-[0.99]"
+              >
+                <Avatar name={family.name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-stone-800">{family.name}</p>
+                  <p className="truncate text-xs text-stone-500">
+                    {careLabel(family.careType)} · {koName(family.assignedTo)}
+                  </p>
+                </div>
+                <Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>
+                  {STATUS_LABEL[family.status] ?? family.status}
+                </Badge>
+                <ChevronRight size={18} strokeWidth={1.75} className="shrink-0 text-stone-400" />
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={handleCreate}>
-          <DialogTitle>Nová pěstounská rodina</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-            {submitError && <Alert severity="error">{submitError}</Alert>}
-            <TextField label="Název rodiny" placeholder="např. Rodina Nováková" value={form.name} onChange={updateForm('name')} fullWidth required disabled={submitting} autoFocus />
-            <TextField label="Adresa" value={form.address} onChange={updateForm('address')} fullWidth disabled={submitting} />
-            <TextField label="Telefon" value={form.contactPhone} onChange={updateForm('contactPhone')} fullWidth disabled={submitting} />
-            <TextField select label="Typ péče" value={form.careType} onChange={updateForm('careType')} fullWidth disabled={submitting}>
-              {Object.entries(CARE_TYPES).map(([key, c]) => (
-                <MenuItem key={key} value={key}>{c.label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField select label="Klíčová osoba" value={form.assignedTo} onChange={updateForm('assignedTo')} fullWidth disabled={submitting} helperText={kos.length === 0 ? 'Organizace zatím nemá žádnou klíčovou osobu.' : ' '}>
-              <MenuItem value="">— zatím nepřiřazovat —</MenuItem>
-              {kos.map((ko) => (
-                <MenuItem key={ko.id} value={ko.id}>{ko.displayName}</MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={() => setDialogOpen(false)} disabled={submitting}>Zrušit</Button>
-            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}>
-              {submitting ? 'Zakládám…' : 'Přidat rodinu'}
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      {dialogOpen && (
+        <NewFamilyModal
+          form={form}
+          kos={kos}
+          submitting={submitting}
+          submitError={submitError}
+          onChange={updateForm}
+          onSubmit={handleCreate}
+          onClose={() => !submitting && setDialogOpen(false)}
+        />
+      )}
+    </div>
   );
 }

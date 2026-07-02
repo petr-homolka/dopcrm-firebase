@@ -9,15 +9,21 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Chip, CircularProgress, Alert, IconButton, Stack, Tabs, Tab } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import { getOrganization } from '../../services/orgService.js';
+import Badge from '../../components/ui/Badge.jsx';
+import { cn } from '../../components/ui/cn.js';
 import OrgEmployeesPanel from './OrgEmployeesPanel.jsx';
 import FosterFamiliesPanel from './FosterFamiliesPanel.jsx';
 
-const STATUS_COLOR = { trial: 'warning', active: 'success', suspended: 'default', cancelled: 'error' };
+const STATUS_TONE = { trial: 'warning', active: 'success', suspended: 'neutral', cancelled: 'error' };
 const STATUS_LABEL = { trial: 'Zkušební doba', active: 'Aktivní', suspended: 'Pozastaveno', cancelled: 'Zrušeno' };
+
+const TABS = [
+  { value: 'rodiny', label: 'Pěstounské rodiny' },
+  { value: 'zamestnanci', label: 'Zaměstnanci' },
+];
 
 export default function OrganizationDetailPage() {
   const { orgId } = useParams();
@@ -46,34 +52,62 @@ export default function OrganizationDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <Box>
-      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 1, flexWrap: 'wrap', rowGap: 1 }}>
-        <IconButton onClick={() => navigate('/admin/superadmin')} aria-label="Zpět na organizace" sx={{ mt: 0.5 }}><ArrowBackIcon /></IconButton>
-        <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
-          <Typography variant="h4" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{loading ? 'Načítám…' : (org?.name ?? 'Organizace')}</Typography>
-          {org?.ico && <Typography variant="body2" color="text.secondary">IČO {org.ico}</Typography>}
-        </Box>
-        {org && <Chip label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} sx={{ mt: 0.5 }} />}
-      </Stack>
+    <div>
+      <div className="mb-4 flex flex-wrap items-start gap-3">
+        <button
+          type="button"
+          onClick={() => navigate('/admin/superadmin')}
+          aria-label="Zpět na organizace"
+          className="mt-0.5 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+        >
+          <ArrowLeft size={20} strokeWidth={1.75} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <h1 className="break-words text-xl font-semibold text-stone-800">
+            {loading ? 'Načítám…' : (org?.name ?? 'Organizace')}
+          </h1>
+          {org?.ico && <p className="text-sm text-stone-500">IČO {org.ico}</p>}
+        </div>
+        {org && (
+          <Badge tone={STATUS_TONE[org.status] ?? 'neutral'} className="mt-0.5">
+            {STATUS_LABEL[org.status] ?? org.status}
+          </Badge>
+        )}
+      </div>
 
       {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-        </Box>
+        <div className="flex items-center justify-center gap-2 py-16 text-stone-400">
+          <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
+        </div>
       )}
 
-      {!loading && error && <Alert severity="error">{error}</Alert>}
+      {!loading && error && (
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
 
       {!loading && !error && org && (
         <>
-          <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
-            <Tab value="rodiny" label="Pěstounské rodiny" />
-            <Tab value="zamestnanci" label="Zaměstnanci" />
-          </Tabs>
+          <div className="mb-5 flex gap-1 overflow-x-auto border-b border-stone-100">
+            {TABS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTab(t.value)}
+                className={cn(
+                  'shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition',
+                  tab === t.value
+                    ? 'border-primary-600 text-primary-700'
+                    : 'border-transparent text-stone-500 hover:text-stone-700'
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
           {tab === 'rodiny' && <FosterFamiliesPanel organizationId={orgId} basePath="/admin/terenni" />}
           {tab === 'zamestnanci' && <OrgEmployeesPanel organizationId={orgId} />}
         </>
       )}
-    </Box>
+    </div>
   );
 }

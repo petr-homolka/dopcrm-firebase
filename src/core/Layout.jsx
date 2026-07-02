@@ -1,69 +1,39 @@
 /**
- * Layout.jsx — hlavní shell aplikace (MVP), MUI verze
- *
- * Struktura:
- *   <Layout>
- *     <Drawer>     — navigace (permanentní na desktopu, temporary na mobilu)
- *     <AppBar>     — viditelná jen na mobilu (hamburger + brand)
- *     <main>       — <Outlet /> (aktivní modul)
- *   </Layout>
- *
- * Navigace odpovídá MVP_NAV z router.jsx.
- * Odhlášení volá signOut() ze src/services/auth.js.
- * Logika vykreslení aktuálně přihlášeného uživatele (jméno, iniciály, role)
- * je zachována ze stávající implementace.
+ * Layout.jsx — shell pro starší generické moduly (MVP_NAV: Kalendář,
+ * Dokumenty, Kontakty…), které běží vedle nového B2B SaaS schématu
+ * (viz AdminLayout.jsx). Sidebar max 240px dle DESIGN.md §5.2, mobil =
+ * off-canvas panel místo permanentního drawer.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-  IconButton,
-  Avatar,
-  Divider,
-  Tooltip,
-  useMediaQuery,
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-
-import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
-import ChildCareIcon from '@mui/icons-material/ChildCare';
-import BusinessIcon from '@mui/icons-material/Business';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import DescriptionIcon from '@mui/icons-material/Description';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
+  LayoutDashboard,
+  Users,
+  Baby,
+  Building2,
+  CalendarDays,
+  FileText,
+  BookOpen,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+} from 'lucide-react';
 
 import { signOut, currentUser, currentRole } from '../services/auth.js';
 import { MVP_NAV } from './router.jsx';
-
-const DRAWER_WIDTH = 264;
-
-// ── Mapování icon klíčů z MVP_NAV na MUI ikony ─────────────────
+import { cn } from '../components/ui/cn.js';
 
 const ICON_MAP = {
-  grid: DashboardIcon,
-  user: PeopleIcon,
-  child: ChildCareIcon,
-  building: BusinessIcon,
-  calendar: CalendarMonthIcon,
-  file: DescriptionIcon,
-  book: MenuBookIcon,
+  grid: LayoutDashboard,
+  user: Users,
+  child: Baby,
+  building: Building2,
+  calendar: CalendarDays,
+  file: FileText,
+  book: BookOpen,
 };
-
-// ── Role badge (zkratka) ────────────────────────────────────────
 
 const ROLE_LABELS = {
   superadmin: 'SA',
@@ -74,8 +44,6 @@ const ROLE_LABELS = {
   dite: 'DI',
   externista: 'EX',
 };
-
-// ── Iniciály z display name / e-mailu ───────────────────────────
 
 function initials(user) {
   if (!user) return '?';
@@ -90,20 +58,11 @@ function initials(user) {
   );
 }
 
-// ── Styl aktivní položky navigace (NavLink přidává className="active") ──
-
-const navLinkSx = {
-  borderRadius: 2,
-  mb: 0.5,
-  color: 'text.primary',
-  '&.active': {
-    bgcolor: 'action.selected',
-    color: 'primary.main',
-    '& .MuiListItemIcon-root': { color: 'primary.main' },
-  },
-};
-
-// ── Obsah postranního panelu (sdílený mezi permanent/temporary Drawer) ──
+const navItemClass = ({ isActive }) =>
+  cn(
+    'flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
+    isActive ? 'bg-primary-50 text-primary-700' : 'text-stone-700 hover:bg-stone-100'
+  );
 
 function SidebarContent({ onNavigate }) {
   const navigate = useNavigate();
@@ -118,177 +77,107 @@ function SidebarContent({ onNavigate }) {
   }, [navigate]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Brand */}
-      <Toolbar sx={{ gap: 1.5, px: 2 }}>
-        <Avatar
-          variant="rounded"
-          sx={{ bgcolor: 'secondary.main', color: 'secondary.contrastText', fontWeight: 800 }}
-        >
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2.5 px-4 py-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 font-bold text-white">
           D
-        </Avatar>
-        <Typography variant="subtitle1" fontWeight={700} noWrap>
-          Doprovázení
-        </Typography>
-      </Toolbar>
-      <Divider />
+        </span>
+        <span className="truncate font-semibold text-stone-800">Doprovázení</span>
+      </div>
 
-      {/* Hlavní navigace */}
-      <List sx={{ flex: 1, px: 1.5, py: 1.5, overflowY: 'auto' }}>
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
         {MVP_NAV.map(({ path, label, icon }) => {
-          const ItemIcon = ICON_MAP[icon] ?? DescriptionIcon;
+          const ItemIcon = ICON_MAP[icon] ?? FileText;
           return (
-            <ListItem key={path} disablePadding>
-              <ListItemButton component={NavLink} to={path} onClick={onNavigate} sx={navLinkSx}>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <ItemIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={label}
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-                />
-              </ListItemButton>
-            </ListItem>
+            <NavLink key={path} to={path} onClick={onNavigate} className={navItemClass}>
+              <ItemIcon size={18} strokeWidth={1.75} />
+              {label}
+            </NavLink>
           );
         })}
-      </List>
+      </nav>
 
-      <Divider />
+      <div className="space-y-0.5 border-t border-stone-100 px-3 py-2">
+        <NavLink to="/nastaveni" onClick={onNavigate} className={navItemClass}>
+          <Settings size={18} strokeWidth={1.75} />
+          Nastavení
+        </NavLink>
+      </div>
 
-      {/* Nastavení */}
-      <List sx={{ px: 1.5, py: 1 }}>
-        <ListItem disablePadding>
-          <ListItemButton component={NavLink} to="/nastaveni" onClick={onNavigate} sx={navLinkSx}>
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <SettingsIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary="Nastavení"
-              primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
-            />
-          </ListItemButton>
-        </ListItem>
-      </List>
-
-      <Divider />
-
-      {/* Uživatelský footer */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2 }}>
-        <Avatar
-          sx={{
-            bgcolor: 'secondary.main',
-            color: 'secondary.contrastText',
-            fontWeight: 700,
-            width: 36,
-            height: 36,
-            fontSize: 14,
-          }}
-        >
+      <div className="flex items-center gap-2.5 border-t border-stone-100 p-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary-700">
           {initials(user)}
-        </Avatar>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} noWrap>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-stone-800">
             {user?.displayName ?? user?.email?.split('@')[0] ?? 'Uživatel'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {roleLabel}
-          </Typography>
-        </Box>
-        <Tooltip title="Odhlásit se">
-          <IconButton onClick={handleSignOut} size="small" aria-label="Odhlásit se">
-            <LogoutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </Box>
+          </p>
+          <p className="text-xs text-stone-400">{roleLabel}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          aria-label="Odhlásit se"
+          className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+        >
+          <LogOut size={18} strokeWidth={1.75} />
+        </button>
+      </div>
+    </div>
   );
 }
 
-// ── Layout root ───────────────────────────────────────────────────
-
 export default function Layout() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleDrawerToggle = useCallback(() => setMobileOpen((v) => !v), []);
-  const handleNavigate = useCallback(() => {
-    if (isMobile) setMobileOpen(false);
-  }, [isMobile]);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100dvh' }}>
+    <div className="flex min-h-dvh">
       {/* Topbar — jen na mobilu */}
-      {isMobile && (
-        <AppBar
-          position="fixed"
-          color="default"
-          elevation={0}
-          sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            zIndex: (t) => t.zIndex.drawer + 1,
-          }}
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center gap-3 border-b border-stone-100 bg-white px-4 py-3 md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Otevřít navigaci"
+          className="rounded-lg p-1.5 text-stone-600 hover:bg-stone-100"
         >
-          <Toolbar sx={{ gap: 1 }}>
-            <IconButton edge="start" onClick={handleDrawerToggle} aria-label="Otevřít navigaci">
-              <MenuIcon />
-            </IconButton>
-            <Avatar
-              variant="rounded"
-              sx={{
-                bgcolor: 'secondary.main',
-                color: 'secondary.contrastText',
-                fontWeight: 800,
-                width: 28,
-                height: 28,
-                fontSize: 14,
-              }}
+          <Menu size={22} strokeWidth={1.75} />
+        </button>
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
+          D
+        </span>
+        <span className="font-semibold text-stone-800">Doprovázení</span>
+      </header>
+
+      {/* Postranní panel — permanentní na desktopu */}
+      <aside className="hidden w-60 shrink-0 border-r border-stone-100 bg-white md:block">
+        <SidebarContent onNavigate={closeMobile} />
+      </aside>
+
+      {/* Off-canvas panel na mobilu */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={closeMobile} />
+          <div className="absolute inset-y-0 left-0 w-60 bg-white shadow-lg">
+            <button
+              type="button"
+              onClick={closeMobile}
+              aria-label="Zavřít navigaci"
+              className="absolute right-2 top-2 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
             >
-              D
-            </Avatar>
-            <Typography variant="subtitle1" fontWeight={700}>
-              Doprovázení
-            </Typography>
-          </Toolbar>
-        </AppBar>
+              <X size={18} strokeWidth={1.75} />
+            </button>
+            <SidebarContent onNavigate={closeMobile} />
+          </div>
+        </div>
       )}
 
-      {/* Postranní panel */}
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
-        <Drawer
-          variant={isMobile ? 'temporary' : 'permanent'}
-          open={isMobile ? mobileOpen : true}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              boxSizing: 'border-box',
-              borderRight: '1px solid',
-              borderColor: 'divider',
-            },
-          }}
-        >
-          <SidebarContent onNavigate={handleNavigate} />
-        </Drawer>
-      </Box>
-
       {/* Hlavní obsahová oblast */}
-      <Box
-        component="main"
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          minHeight: '100dvh',
-          bgcolor: 'background.default',
-        }}
-      >
-        {isMobile && <Toolbar />}
-        <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      <main className="min-h-dvh min-w-0 flex-1 bg-stone-50 pt-14 md:pt-0">
+        <div className="p-4 sm:p-6">
           <Outlet />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </main>
+    </div>
   );
 }

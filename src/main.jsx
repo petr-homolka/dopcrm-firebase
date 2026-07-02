@@ -3,7 +3,7 @@
  *
  * Pořadí inicializace:
  *   1. initPersistence()  → zapne IndexedDB offline cache (Firebase)
- *   2. <App>              → ThemeProvider (MUI) + AuthProvider + RouterProvider + lazy stránky
+ *   2. <App>              → Tailwind (index.css) + AuthProvider + RouterProvider + lazy stránky
  *
  * Chyba persistence (multi-tab / iOS private) = ošetřena uvnitř initPersistence,
  * aplikace se spustí i bez offline cache.
@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './index.css';
 import { initPersistence } from './services/firebase.js';
 import { bootstrapAuthStore } from './store/authStore.js';
 import App from './App.js';

@@ -10,36 +10,27 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box, Typography, Card, CardContent, Button, TextField, MenuItem,
-  Table, TableHead, TableBody, TableRow, TableCell, Chip, Alert,
-  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Switch,
-} from '@mui/material';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
-import GroupsIcon from '@mui/icons-material/Groups';
-import { alpha } from '@mui/material/styles';
+import { Loader2, UserPlus, Users, UserCheck, UserX } from 'lucide-react';
 
-import { bento } from '../../core/theme.js';
+import Card from '../../components/ui/Card.jsx';
+import Button from '../../components/ui/Button.jsx';
+import Badge from '../../components/ui/Badge.jsx';
 import { EMPLOYEE_ROLES, employeeRoleLabel } from '../../shared/domainConstants.js';
 import { listUsersByOrg, createEmployee, setUserActive } from '../../services/orgService.js';
+import EmployeeFormModal from './EmployeeFormModal.jsx';
 
 const CREATABLE_ROLES = EMPLOYEE_ROLES; // org_admin smí založit kohokoli až po sebe, viz firestore.rules
 
-function StatCard({ icon, label, value, color = 'primary' }) {
+function StatCard({ icon, label, value }) {
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 3 }}>
-        <Box sx={{
-          width: 44, height: 44, borderRadius: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backgroundColor: (theme) => alpha(theme.palette[color].main, 0.12), color: `${color}.main`,
-        }}>
+    <Card>
+      <div className="flex flex-col gap-1">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
           {icon}
-        </Box>
-        <Typography sx={{ fontSize: 32, fontWeight: 700, lineHeight: 1.1, mt: 1 }}>{value}</Typography>
-        <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '.06em', color: 'text.secondary', fontWeight: 600 }}>
-          {label}
-        </Typography>
-      </CardContent>
+        </div>
+        <p className="mt-1 text-3xl font-semibold leading-tight text-stone-800 tabular-nums">{value}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
+      </div>
     </Card>
   );
 }
@@ -123,109 +114,109 @@ export default function OrgEmployeesPanel({ organizationId }) {
   const koCount = users.filter((u) => u.role === 'klicova_osoba').length;
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={() => setDialogOpen(true)}>
+    <div>
+      <div className="mb-5 flex justify-end">
+        <Button variant="primary" onClick={() => setDialogOpen(true)}>
+          <UserPlus size={16} strokeWidth={1.75} />
           Přidat zaměstnance
         </Button>
-      </Box>
+      </div>
 
       {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">Načítám zaměstnance…</Typography>
-        </Box>
+        <div className="flex items-center justify-center gap-2 py-14 text-stone-500">
+          <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
+          <span className="text-sm">Načítám zaměstnance…</span>
+        </div>
       )}
 
-      {!loading && error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {!loading && error && (
+        <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
 
       {!loading && !error && (
         <>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: bento.gap, mb: 3 }}>
-            <StatCard icon={<GroupsIcon />} label="Zaměstnanců celkem" value={users.length} color="primary" />
-            <StatCard icon={<GroupsIcon />} label="Klíčových osob" value={koCount} color="secondary" />
-          </Box>
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <StatCard icon={<Users size={20} strokeWidth={1.75} />} label="Zaměstnanců celkem" value={users.length} />
+            <StatCard icon={<Users size={20} strokeWidth={1.75} />} label="Klíčových osob" value={koCount} />
+          </div>
 
           <Card>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Zaměstnanci</Typography>
-              <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Jméno</TableCell>
-                      <TableCell>Funkce / Role</TableCell>
-                      <TableCell>Nadřízený</TableCell>
-                      <TableCell>Kontakt</TableCell>
-                      <TableCell align="center">Aktivní</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {users.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ color: 'text.secondary', py: 4 }}>
-                          Zatím žádní zaměstnanci — přidejte prvního přes tlačítko výše.
-                        </TableCell>
-                      </TableRow>
-                    )}
+            <h2 className="mb-3 text-base font-semibold text-stone-800">Zaměstnanci</h2>
+
+            {users.length === 0 ? (
+              <p className="py-8 text-center text-sm text-stone-500">
+                Zatím žádní zaměstnanci — přidejte prvního přes tlačítko výše.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="text-xs uppercase tracking-wide text-stone-400">
+                      <th className="px-3 py-2 font-medium">Jméno</th>
+                      <th className="px-3 py-2 font-medium">Funkce / Role</th>
+                      <th className="px-3 py-2 font-medium">Nadřízený</th>
+                      <th className="px-3 py-2 font-medium">Kontakt</th>
+                      <th className="px-3 py-2 text-center font-medium">Aktivní</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {users.map((u) => (
-                      <TableRow key={u.id} hover>
-                        <TableCell sx={{ fontWeight: 600 }}>{u.displayName}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
-                            {u.funkce && <Typography variant="body2">{u.funkce}</Typography>}
-                            <Chip size="small" label={employeeRoleLabel(u.role)} />
-                          </Box>
-                        </TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>{u.nadrizeny ? nadrizenyName(u.nadrizeny) : '—'}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>
-                          <Typography variant="body2">{u.email}</Typography>
-                          {u.phone && <Typography variant="caption" color="text.secondary">{u.phone}</Typography>}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Switch size="small" checked={!!u.active} onChange={() => toggleActive(u)} />
-                        </TableCell>
-                      </TableRow>
+                      <tr key={u.id} className="hover:bg-stone-50">
+                        <td className="px-3 py-3 font-semibold text-stone-800">{u.displayName}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-col items-start gap-1">
+                            {u.funkce && <span className="text-sm text-stone-700">{u.funkce}</span>}
+                            <Badge tone="neutral">{employeeRoleLabel(u.role)}</Badge>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-stone-500">
+                          {u.nadrizeny ? nadrizenyName(u.nadrizeny) : '—'}
+                        </td>
+                        <td className="px-3 py-3 text-stone-500">
+                          <div className="flex flex-col">
+                            <span>{u.email}</span>
+                            {u.phone && <span className="text-xs text-stone-400">{u.phone}</span>}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex justify-center">
+                            <button
+                              type="button"
+                              onClick={() => toggleActive(u)}
+                              aria-label={u.active ? 'Deaktivovat' : 'Aktivovat'}
+                              className={
+                                'rounded-lg p-1.5 transition hover:bg-stone-100 ' +
+                                (u.active ? 'text-primary-600' : 'text-stone-400')
+                              }
+                            >
+                              {u.active
+                                ? <UserCheck size={18} strokeWidth={1.75} />
+                                : <UserX size={18} strokeWidth={1.75} />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </CardContent>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
         </>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => !submitting && setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <Box component="form" onSubmit={handleCreateEmployee}>
-          <DialogTitle>Nový zaměstnanec</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-            {submitError && <Alert severity="error">{submitError}</Alert>}
-            <TextField label="Jméno" value={form.name} onChange={updateForm('name')} fullWidth required disabled={submitting} autoFocus />
-            <TextField label="Rodné číslo" placeholder="např. 765912/3210" value={form.rc} onChange={updateForm('rc')} fullWidth disabled={submitting} />
-            <TextField label="Telefon" value={form.phone} onChange={updateForm('phone')} fullWidth disabled={submitting} />
-            <TextField label="E-mail" type="email" value={form.email} onChange={updateForm('email')} fullWidth required disabled={submitting} />
-            <TextField label="Počáteční heslo" type="password" value={form.password} onChange={updateForm('password')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků." />
-            <TextField select label="Role" value={form.role} onChange={updateForm('role')} fullWidth disabled={submitting}>
-              {CREATABLE_ROLES.map((r) => (
-                <MenuItem key={r.key} value={r.key}>{r.label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField label="Konkrétní funkce (volitelné)" placeholder="např. Vedoucí pobočky Brno" value={form.funkce} onChange={updateForm('funkce')} fullWidth disabled={submitting} />
-            <TextField select label="Nadřízený" value={form.nadrizeny} onChange={updateForm('nadrizeny')} fullWidth disabled={submitting} helperText="Komu se tento zaměstnanec zodpovídá — volitelné.">
-              <MenuItem value="">— bez nadřízeného (nejvyšší úroveň) —</MenuItem>
-              {users.map((u) => (
-                <MenuItem key={u.id} value={u.id}>{u.displayName} ({employeeRoleLabel(u.role)})</MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2.5 }}>
-            <Button onClick={() => setDialogOpen(false)} disabled={submitting}>Zrušit</Button>
-            <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}>
-              {submitting ? 'Přidávám…' : 'Přidat zaměstnance'}
-            </Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
-    </Box>
+      {dialogOpen && (
+        <EmployeeFormModal
+          form={form}
+          updateForm={updateForm}
+          users={users}
+          creatableRoles={CREATABLE_ROLES}
+          submitting={submitting}
+          submitError={submitError}
+          onClose={() => setDialogOpen(false)}
+          onSubmit={handleCreateEmployee}
+        />
+      )}
+    </div>
   );
 }
