@@ -79,33 +79,62 @@ service cloud.firestore {
       return signedIn() && myRole() == 'klicova_osoba';
     }
 
+    // Management organizace = smí zakládat/spravovat zaměstnance a rodiny v rámci
+    // celé organizace (na rozdíl od klíčové osoby, která má jen svoje přidělené).
+    // Přidáno 2026-07-02 s rozšířenou hierarchií (viz users/{uid} níže).
+    function isManagement() {
+      return signedIn() && myRole() in ['org_admin', 'vedouci_pobocky', 'teamleader'];
+    }
+
     function sameOrg(orgId) {
       return signedIn() && myOrgId() == orgId;
     }
 
     // ── organizations (tenanti) ──────────────────────────────
-    // Superadmin: plný přístup (zakládá nové organizace, mění stav předplatného).
-    // Zaměstnanci organizace: jen čtení metadat vlastní organizace.
+    // SaaS je SEBEOBSLUŽNÉ (2026-07-02): kdokoli přihlášený smí založit VLASTNÍ
+    // organizaci (createdBy == on sám) — Superadmin organizace nezakládá, jen
+    // spravuje/dohlíží. Update org. metadat smí zástupce organizace (org_admin),
+    // ale ne měnit vlastní status/plán předplatného (to řídí jen Superadmin —
+    // brání si sám sobě "upgradovat" tarif bez placení).
     match /organizations/{orgId} {
       allow read:  if isSuperadmin() || sameOrg(orgId);
-      allow write: if isSuperadmin();
+      allow create: if isSuperadmin()
+                       || (signedIn() && request.resource.data.createdBy == request.auth.uid);
+      allow update: if isSuperadmin()
+                       || (isOrgAdmin() && sameOrg(orgId)
+                           && request.resource.data.status == resource.data.status
+                           && request.resource.data.plan == resource.data.plan);
+      allow delete: if isSuperadmin();
+
+      // Pobočky organizace (volitelné — malá organizace nemusí mít žádnou).
+      match /branches/{branchId} {
+        allow read:  if isSuperadmin() || sameOrg(orgId);
+        allow write: if isSuperadmin() || (isOrgAdmin() && sameOrg(orgId));
+      }
     }
 
-    // ── users (zaměstnanci: superadmin / org_admin / klicova_osoba) ──
+    // ── users (zaměstnanci) ───────────────────────────────────
+    // Role (hierarchie 2026-07-02, viz zadání): org_admin (zástupce/ředitel) →
+    // vedouci_pobocky → teamleader → klicova_osoba → asistent_ko; + zamestnanec
+    // (podpůrný personál bez řídicí role — sekretářka, ekonomka…).
     // Pěstouni a děti NEJSOU v této kolekci (nemají Auth účet v MVP).
     match /users/{uid} {
       allow read: if isSuperadmin()
                      || request.auth.uid == uid
                      || (isOrgAdmin() && sameOrg(resource.data.organizationId));
 
-      // Vytvoření nového zaměstnance:
-      //   superadmin -> kohokoli, kdekoli (typicky prvního org_admina nové organizace)
-      //   org_admin  -> jen do VLASTNÍ organizace a jen role org_admin/klicova_osoba
-      //                 (nesmí založit dalšího superadmina ani cizí organizaci)
+      // Založení zaměstnance:
+      //   superadmin      -> kohokoli, kdekoli
+      //   SEBEREGISTRACE  -> uid == volající, role=org_admin, JEN pro organizaci,
+      //                      kterou právě sám založil (createdBy na organizaci)
+      //   org_admin       -> jakéhokoli zaměstnance VLASTNÍ organizace
       allow create: if isSuperadmin()
+                       || (signedIn() && request.auth.uid == uid
+                           && request.resource.data.role == 'org_admin'
+                           && get(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId)).data.createdBy == request.auth.uid)
                        || (isOrgAdmin()
                            && request.resource.data.organizationId == myOrgId()
-                           && request.resource.data.role in ['org_admin', 'klicova_osoba']);
+                           && request.resource.data.role in ['org_admin', 'vedouci_pobocky', 'teamleader', 'klicova_osoba', 'asistent_ko', 'zamestnanec']);
 
       // Úprava: superadmin cokoli; org_admin své zaměstnance (nesmí je povýšit na
       // superadmina ani přehodit do jiné organizace); uživatel sám smí upravit
@@ -126,18 +155,22 @@ service cloud.firestore {
 
     // ── foster_families (klientské rodiny) ───────────────────
     match /foster_families/{familyId} {
-      // Čtení: superadmin vše; kdokoli ze STEJNÉ organizace (org_admin i klíčová
+      // Čtení: superadmin vše; kdokoli ze STEJNÉ organizace (management i klíčová
       // osoba vidí i rodiny kolegů — potřeba přehledu/zastupitelnosti).
       allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
 
-      // Založení nové rodiny: jen management (org_admin) nebo superadmin.
+      // Založení nové rodiny: management organizace kdekoli v ní; klíčová osoba
+      // jen rovnou jako přidělenou sobě (terénní realita — potká rodinu, založí ji).
       allow create: if isSuperadmin()
-                       || (isOrgAdmin() && sameOrg(request.resource.data.organizationId));
+                       || (isManagement() && sameOrg(request.resource.data.organizationId))
+                       || (isKlicovaOsoba()
+                           && sameOrg(request.resource.data.organizationId)
+                           && request.resource.data.assignedTo == request.auth.uid);
 
-      // Úprava/mazání: org_admin v rámci organizace VŽDY;
+      // Úprava/mazání: management organizace VŽDY;
       // klíčová osoba JEN u rodin, které má přímo přidělené (assignedTo == její uid).
       allow update, delete: if isSuperadmin()
-                                || (isOrgAdmin() && sameOrg(resource.data.organizationId))
+                                || (isManagement() && sameOrg(resource.data.organizationId))
                                 || (isKlicovaOsoba()
                                     && sameOrg(resource.data.organizationId)
                                     && resource.data.assignedTo == request.auth.uid);
@@ -150,13 +183,13 @@ service cloud.firestore {
       allow read: if isSuperadmin() || sameOrg(resource.data.organizationId);
 
       allow create: if isSuperadmin()
-                       || (isOrgAdmin() && sameOrg(request.resource.data.organizationId))
+                       || (isManagement() && sameOrg(request.resource.data.organizationId))
                        || (isKlicovaOsoba()
                            && sameOrg(request.resource.data.organizationId)
                            && request.resource.data.assignedTo == request.auth.uid);
 
       allow update, delete: if isSuperadmin()
-                                || (isOrgAdmin() && sameOrg(resource.data.organizationId))
+                                || (isManagement() && sameOrg(resource.data.organizationId))
                                 || (isKlicovaOsoba()
                                     && sameOrg(resource.data.organizationId)
                                     && resource.data.assignedTo == request.auth.uid);

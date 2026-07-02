@@ -255,6 +255,12 @@ export default function Login() {
           <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ display: 'block', mt: 3 }}>
             Zapomenuté heslo? Kontaktujte správce organizace.
           </Typography>
+          <Typography variant="body2" textAlign="center" sx={{ mt: 1.5 }}>
+            Nemáte organizaci v systému?{' '}
+            <Box component="a" href="/registrace" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>
+              Založte si ji zdarma
+            </Box>
+          </Typography>
         </Paper>
       </Container>
     </Box>

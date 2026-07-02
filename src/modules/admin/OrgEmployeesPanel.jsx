@@ -1,14 +1,12 @@
 /**
- * OrgEmployeesPanel.jsx — sdílený "co vidí Org. Admin" pohled na zaměstnance
- * jedné organizace (2026-07-02)
+ * OrgEmployeesPanel.jsx — sdílený pohled na zaměstnance jedné organizace
+ * (2026-07-02, plná hierarchie: zástupce → vedoucí pobočky → teamleader →
+ * klíčová osoba → asistent KO; + zaměstnanec bez řídicí role)
  *
  * Vytaženo z OrgAdminDashboard.jsx, aby stejný pohled mohl superadmin otevřít
  * i pro CIZÍ organizaci (klik na řádek v SuperAdminDashboard tabulce →
- * OrganizationDetailPage). Komponenta je jen o `organizationId` — neví, jestli
- * ji volá org_admin (svoje org, viz useAuthStore) nebo superadmin (cizí org,
- * viz useParams) — to řeší až obalující stránka. Oprávnění řeší firestore.rules
- * stejně v obou případech (superadmin má vždy plný přístup, org_admin jen ke
- * své organizaci — RequireOrgRole navíc hlídá, kdo se na kterou route dostane).
+ * OrganizationDetailPage). Oprávnění řeší firestore.rules (superadmin má
+ * vždy plný přístup, org_admin jen ke své organizaci).
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -22,10 +20,10 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import { alpha } from '@mui/material/styles';
 
 import { bento } from '../../core/theme.js';
+import { EMPLOYEE_ROLES, employeeRoleLabel } from '../../shared/domainConstants.js';
 import { listUsersByOrg, createEmployee, setUserActive } from '../../services/orgService.js';
 
-const ROLE_LABELS = { org_admin: 'Org. Admin', klicova_osoba: 'Klíčová osoba' };
-const DEPARTMENT_LABELS = { management: 'Management', service: 'Servisní tým', terenni: 'Terén (klíčové osoby)' };
+const CREATABLE_ROLES = EMPLOYEE_ROLES; // org_admin smí založit kohokoli až po sebe, viz firestore.rules
 
 function StatCard({ icon, label, value, color = 'primary' }) {
   return (
@@ -46,7 +44,7 @@ function StatCard({ icon, label, value, color = 'primary' }) {
   );
 }
 
-const emptyForm = { name: '', email: '', password: '', role: 'klicova_osoba', department: 'terenni', rc: '' };
+const emptyForm = { name: '', email: '', password: '', role: 'klicova_osoba', rc: '', funkce: '', phone: '', nadrizeny: '' };
 
 export default function OrgEmployeesPanel({ organizationId }) {
   const [loading, setLoading] = useState(true);
@@ -93,8 +91,10 @@ export default function OrgEmployeesPanel({ organizationId }) {
         displayName: form.name.trim(),
         role: form.role,
         organizationId,
-        department: form.department,
         rc: form.rc.trim(),
+        funkce: form.funkce.trim(),
+        phone: form.phone.trim(),
+        nadrizeny: form.nadrizeny || null,
       });
       setDialogOpen(false);
       setForm(emptyForm);
@@ -114,6 +114,10 @@ export default function OrgEmployeesPanel({ organizationId }) {
     } catch (err) {
       console.error('[OrgEmployeesPanel] setUserActive selhalo:', err);
     }
+  }
+
+  function nadrizenyName(uid) {
+    return users.find((u) => u.id === uid)?.displayName ?? '—';
   }
 
   const koCount = users.filter((u) => u.role === 'klicova_osoba').length;
@@ -150,9 +154,9 @@ export default function OrgEmployeesPanel({ organizationId }) {
                   <TableHead>
                     <TableRow>
                       <TableCell>Jméno</TableCell>
-                      <TableCell>E-mail</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Oddělení</TableCell>
+                      <TableCell>Funkce / Role</TableCell>
+                      <TableCell>Nadřízený</TableCell>
+                      <TableCell>Kontakt</TableCell>
                       <TableCell align="center">Aktivní</TableCell>
                     </TableRow>
                   </TableHead>
@@ -166,10 +170,18 @@ export default function OrgEmployeesPanel({ organizationId }) {
                     )}
                     {users.map((u) => (
                       <TableRow key={u.id} hover>
-                        <TableCell>{u.displayName}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell><Chip size="small" label={ROLE_LABELS[u.role] ?? u.role} /></TableCell>
-                        <TableCell>{DEPARTMENT_LABELS[u.department] ?? '—'}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{u.displayName}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'flex-start' }}>
+                            {u.funkce && <Typography variant="body2">{u.funkce}</Typography>}
+                            <Chip size="small" label={employeeRoleLabel(u.role)} />
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ color: 'text.secondary' }}>{u.nadrizeny ? nadrizenyName(u.nadrizeny) : '—'}</TableCell>
+                        <TableCell sx={{ color: 'text.secondary' }}>
+                          <Typography variant="body2">{u.email}</Typography>
+                          {u.phone && <Typography variant="caption" color="text.secondary">{u.phone}</Typography>}
+                        </TableCell>
                         <TableCell align="center">
                           <Switch size="small" checked={!!u.active} onChange={() => toggleActive(u)} />
                         </TableCell>
@@ -190,16 +202,20 @@ export default function OrgEmployeesPanel({ organizationId }) {
             {submitError && <Alert severity="error">{submitError}</Alert>}
             <TextField label="Jméno" value={form.name} onChange={updateForm('name')} fullWidth required disabled={submitting} autoFocus />
             <TextField label="Rodné číslo" placeholder="např. 765912/3210" value={form.rc} onChange={updateForm('rc')} fullWidth disabled={submitting} />
+            <TextField label="Telefon" value={form.phone} onChange={updateForm('phone')} fullWidth disabled={submitting} />
             <TextField label="E-mail" type="email" value={form.email} onChange={updateForm('email')} fullWidth required disabled={submitting} />
             <TextField label="Počáteční heslo" type="password" value={form.password} onChange={updateForm('password')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků." />
             <TextField select label="Role" value={form.role} onChange={updateForm('role')} fullWidth disabled={submitting}>
-              <MenuItem value="klicova_osoba">Klíčová osoba (terén)</MenuItem>
-              <MenuItem value="org_admin">Org. Admin (management)</MenuItem>
+              {CREATABLE_ROLES.map((r) => (
+                <MenuItem key={r.key} value={r.key}>{r.label}</MenuItem>
+              ))}
             </TextField>
-            <TextField select label="Oddělení" value={form.department} onChange={updateForm('department')} fullWidth disabled={submitting}>
-              <MenuItem value="terenni">Terén (klíčové osoby)</MenuItem>
-              <MenuItem value="service">Servisní tým</MenuItem>
-              <MenuItem value="management">Management</MenuItem>
+            <TextField label="Konkrétní funkce (volitelné)" placeholder="např. Vedoucí pobočky Brno" value={form.funkce} onChange={updateForm('funkce')} fullWidth disabled={submitting} />
+            <TextField select label="Nadřízený" value={form.nadrizeny} onChange={updateForm('nadrizeny')} fullWidth disabled={submitting} helperText="Komu se tento zaměstnanec zodpovídá — volitelné.">
+              <MenuItem value="">— bez nadřízeného (nejvyšší úroveň) —</MenuItem>
+              {users.map((u) => (
+                <MenuItem key={u.id} value={u.id}>{u.displayName} ({employeeRoleLabel(u.role)})</MenuItem>
+              ))}
             </TextField>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>

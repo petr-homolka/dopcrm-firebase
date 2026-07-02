@@ -80,3 +80,23 @@ export const CARE_TYPES = {
 export function careLabel(key) {
   return CARE_TYPES[key]?.label ?? key ?? '—';
 }
+
+/**
+ * Zaměstnanecká hierarchie organizace (zadání 2026-07-02):
+ *   org_admin (zástupce/ředitel) → vedouci_pobocky → teamleader →
+ *   klicova_osoba → asistent_ko; zamestnanec = podpůrný personál bez
+ *   řídicí role (sekretářka, ekonomka…), typicky bez nadřízeného řetězce
+ *   v systému (nadřízený je vždy org_admin/ředitel).
+ */
+export const EMPLOYEE_ROLES = [
+  { key: 'org_admin',      label: 'Zástupce organizace (ředitel/ka)' },
+  { key: 'vedouci_pobocky', label: 'Vedoucí pobočky' },
+  { key: 'teamleader',     label: 'Teamleader' },
+  { key: 'klicova_osoba',  label: 'Klíčová osoba' },
+  { key: 'asistent_ko',    label: 'Asistent klíčové osoby' },
+  { key: 'zamestnanec',    label: 'Zaměstnanec (administrativa)' },
+];
+
+export function employeeRoleLabel(key) {
+  return EMPLOYEE_ROLES.find((r) => r.key === key)?.label ?? key;
+}

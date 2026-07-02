@@ -61,6 +61,7 @@ export function AuthProvider({ children }) {
 
 // ── Lazy-loaded MVP stránky ───────────────────────────────────
 const LoginPage        = lazy(() => import('../modules/users/Login.jsx'));
+const RegisterPage     = lazy(() => import('../modules/users/RegisterPage.jsx'));
 const DashboardPage    = lazy(() => import('../modules/families/DashboardPage'));
 const FamiliesPage     = lazy(() => import('../modules/families/FamiliesPage'));
 const FamilyDetailPage = lazy(() => import('../modules/families/FamilyDetailPage'));
@@ -175,10 +176,26 @@ function LoginRoute() {
   );
 }
 
+// ── Registrace route ─────────────────────────────────────────
+// Veřejná, sebeobslužná (2026-07-02) — kdokoli přihlášený už má svůj
+// dashboard, takže sem nepatří; nepřihlášený vidí formulář.
+
+function RegisterRoute() {
+  const { loading, session } = useAuth();
+  if (loading) return <Loading />;
+  if (session) return <Navigate to="/prehled" replace />;
+  return (
+    <Suspense fallback={<Loading />}>
+      <RegisterPage />
+    </Suspense>
+  );
+}
+
 // ── MVP Router ────────────────────────────────────────────────
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginRoute /> },
+  { path: '/registrace', element: <RegisterRoute /> },
 
   {
     element: <RequireAuth />,

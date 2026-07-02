@@ -1,5 +1,56 @@
 # CURRENT_STATE
-**Verze:** 1.3.0 (Schéma obohaceno o RC/IČO/vztahy, hierarchická viditelnost do UI, 2026-07-02)
+**Verze:** 1.4.0 (Self-service registrace organizace, plná hierarchie zaměstnanců, limit 25 rodin/KO, 2026-07-02)
+
+## 2026-07-02 — Fáze 1: SaaS sebeobsloužení (self-service registrace) + plná hierarchie + kapacitní limit
+
+**Zadání (verbatim, kriticky důležité):** *"Provozovatel systému nebude zakládat do systému
+Organizaci, ale na webu po základní registraci si to bude dělat VŽDY kdokoli sám! ...
+STAVÍME PLNĚ AUTOMATIZOVANÝ SYSTÉM, KTERÝ MÁ POMÁHAT SE SPRÁVOU PRÁCE KLÍČOVÝCH OSOB A NIKOLI
+KOMPLIKOVAT NA KAŽDÉM KROKU."* Otáčí to celý model založení organizace ze
+Superadmin-zakládá na plně self-service (analogie ke Gmailu — registrace a systém se dál řídí sám).
+Toto je **Fáze 1 ze 3** většího zadání (viz paměť), Fáze 2 (Pěstoun) a Fáze 3 (Dítě) hluboké
+obohacení entit ještě zbývají.
+
+**1) Self-service registrace organizace (`/registrace`, veřejná route):**
+- `src/services/registrationService.js` (nové) — `registerOrganization()`: založí Firebase Auth účet,
+  `organizations` dokument (IČO, datová schránka, adresa sídla, adresa provozovny — volitelně stejná
+  jako sídlo, `createdBy: uid`), a `users/{uid}` profil s rolí `org_admin`. Používá PRIMÁRNÍ Auth
+  instanci (na rozdíl od `orgService.createEmployee()`) — uživatel má po registraci zůstat přihlášen
+  jako sám sebe.
+- `src/modules/users/RegisterPage.jsx` (nové) — veřejný formulář (název/IČO/datová schránka, adresa
+  sídla, checkbox „adresa provozovny stejná jako sídlo", údaje zástupce vč. RČ/telefonu, e-mail/heslo).
+- `firestore.rules` — `organizations` create povoleno i nepřihlášenému-nově-registrovanému uživateli,
+  pokud `request.resource.data.createdBy == request.auth.uid`; `users/{uid}` create má novou větev pro
+  sebe-registraci org_admina (ověří přes `get()`, že práv vytvořená organizace patří stejnému uid).
+  Nasazeno (`firebase deploy --only firestore:rules`).
+- `Login.jsx` — odkaz „Nemáte organizaci v systému? Založte si ji zdarma" → `/registrace`.
+- `createOrganization()` v `orgService.js` (Superadmin-cesta) zůstává jako sekundární/fallback nástroj,
+  není už primární cesta založení organizace.
+
+**2) Plná hierarchie zaměstnanců (`EMPLOYEE_ROLES` v `domainConstants.js`):**
+`org_admin` (zástupce/ředitel) → `vedouci_pobocky` → `teamleader` → `klicova_osoba` →
+`asistent_ko`; `zamestnanec` (administrativa, mimo řídicí řetězec). Každý zaměstnanec má
+`nadrizeny` (uid nadřízeného) — tvoří reportovací řetězec. `OrgEmployeesPanel.jsx` přepracován:
+dropdown rolí ze seznamu, select „Nadřízený" (populovaný ze stávajících zaměstnanců organizace),
+pole Funkce/Telefon; sloupec „Oddělení" zrušen (nahrazen granulárními rolemi). `firestore.rules` —
+`isManagement()` (`org_admin`/`vedouci_pobocky`/`teamleader`) nahradilo `isOrgAdmin()` u zápisu
+`foster_families`/`children`.
+
+**3) Limit 25 pěstounských rodin na klíčovou osobu:** `orgService.js` —
+`MAX_FAMILIES_PER_KO=25`, `assertFamilyCapacity()` kontroluje počet rodin přiřazených dané KO
+(`assignedTo`) při `createFoster()` a `reassignFoster()`; nad limit vyhodí chybu s návrhem
+přiřadit jiné klíčové osobě.
+
+**Ověřeno:** `npm run build` čistý; `/registrace` ověřeno v Preview (formulář se vykresluje
+kompletně, žádné blokující chyby — jen pre-existující MUI prop-forwarding warningy nesouvisející
+s touto změnou).
+
+**Další kroky (Fáze 2/3, viz task list):** hloubkové obohacení Pěstouna (adresy, druh péče,
+vzdělávání s certifikáty, respit, sociální prostor — vyžaduje nastudovat legislativní druhy péče
+a respit z vanilla prototypu) a Dítěte (doklady, historie adres/škol/OSPOD, soud, biologická
+rodina s historií, sociální prostor).
+
+---
 
 ## 2026-07-02 — Datový model dotažen dle vanilla prototypu + plný proklik hierarchie
 

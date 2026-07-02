@@ -71,6 +71,10 @@ export async function getOrganization(orgId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+// Pozn.: primární cesta pro založení organizace je teď sebeobslužná registrace
+// (RegisterPage.jsx / registrationService.js, adresy jako {street,city,zip}
+// objekty). Tahle funkce zůstává jako záložní nástroj pro Superadmina
+// (podpora/migrace) — jednodušší plochá pole, ne 1:1 stejný tvar.
 export async function createOrganization({ name, ico = '', address = '', contactEmail = '', contactPhone = '', plan = 'trial', status = 'trial' }) {
   const ref = await addDoc(collection(db, 'organizations'), {
     name,
@@ -113,9 +117,10 @@ export async function listKlicoveOsobyByOrg(organizationId) {
  * Založí nového zaměstnance (Auth účet + users/{uid} dokument) BEZ odhlášení
  * aktuálního uživatele. Viz vysvětlení sekundární App instance nahoře v souboru.
  *
- * @param {{email:string,password:string,displayName:string,role:'org_admin'|'klicova_osoba'|'superadmin',organizationId:string|null,department?:string,rc?:string}} input
+ * @param {{email:string,password:string,displayName:string,role:string,organizationId:string|null,department?:string,rc?:string,funkce?:string,phone?:string,nadrizeny?:string|null,branchId?:string|null}} input
+ *   role: 'superadmin'|'org_admin'|'vedouci_pobocky'|'teamleader'|'klicova_osoba'|'asistent_ko'|'zamestnanec'
  */
-export async function createEmployee({ email, password, displayName, role, organizationId, department = null, rc = '' }) {
+export async function createEmployee({ email, password, displayName, role, organizationId, department = null, rc = '', funkce = '', phone = '', nadrizeny = null, branchId = null }) {
   const secondaryApp = initializeApp(firebaseConfig, `secondary-${Date.now()}`);
   try {
     const secondaryAuth = getAuth(secondaryApp);
@@ -128,9 +133,13 @@ export async function createEmployee({ email, password, displayName, role, organ
       email,
       displayName,
       rc,                 // rodné číslo (volitelné — např. pro mzdovou agendu)
-      role,               // 'superadmin' | 'org_admin' | 'klicova_osoba'
+      funkce,              // volný text — konkrétní pracovní pozice
+      phone,
+      role,
       organizationId,     // null jen pro superadmina
       department,         // 'management' | 'service' | 'terenni' | null
+      nadrizeny,           // uid nadřízeného zaměstnance (hierarchie), null = nejvyšší úroveň
+      branchId,            // volitelná vazba na pobočku (organizations/{orgId}/branches/{branchId})
       active: true,
       ...createMeta(),
     });
@@ -178,7 +187,28 @@ export async function getFoster(familyId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
+// Kapacitní limit z byznys zadání (2026-07-02): "max. počet pěstounů na jednu
+// klíčovou osobu je 25". Ověřeno na klientovi před zápisem — pro V8/produkci
+// je vhodné doplnit i server-side (Cloud Function), Firestore rules počítání
+// dokumentů nativně nepodporují.
+export const MAX_FAMILIES_PER_KO = 25;
+
+/** Kolik rodin má klíčová osoba aktuálně přidělených (volitelně bez jedné konkrétní — při přeřazení). */
+async function countFamiliesAssignedTo(uid, excludeFamilyId = null) {
+  const snap = await getDocs(query(collection(db, 'foster_families'), where('assignedTo', '==', uid)));
+  return snap.docs.filter((d) => d.id !== excludeFamilyId).length;
+}
+
+async function assertFamilyCapacity(uid, excludeFamilyId = null) {
+  if (!uid) return;
+  const count = await countFamiliesAssignedTo(uid, excludeFamilyId);
+  if (count >= MAX_FAMILIES_PER_KO) {
+    throw new Error(`Tato klíčová osoba už má přidělených ${count} rodin — maximum je ${MAX_FAMILIES_PER_KO}. Přiřaďte rodinu jiné klíčové osobě.`);
+  }
+}
+
 export async function createFoster({ organizationId, name, address = '', contactPhone = '', contactEmail = '', assignedTo = null, status = 'active', careType = 'long', note = '', fosters = [] }) {
+  await assertFamilyCapacity(assignedTo);
   const ref = await addDoc(collection(db, 'foster_families'), {
     organizationId,
     name,
@@ -213,6 +243,7 @@ export async function setFosterPersons(familyId, fosters) {
  * na dětech přestaly sedět. Transakce zajišťuje atomicitu.
  */
 export async function reassignFoster(familyId, newAssignedTo) {
+  await assertFamilyCapacity(newAssignedTo, familyId);
   await runTransaction(db, async (tx) => {
     const familyRef = doc(db, 'foster_families', familyId);
     const familySnap = await tx.get(familyRef);
