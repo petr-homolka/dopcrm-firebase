@@ -71,9 +71,13 @@ export async function getOrganization(orgId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export async function createOrganization({ name, plan = 'trial', status = 'trial' }) {
+export async function createOrganization({ name, ico = '', address = '', contactEmail = '', contactPhone = '', plan = 'trial', status = 'trial' }) {
   const ref = await addDoc(collection(db, 'organizations'), {
     name,
+    ico,            // IČO — 8místné identifikační číslo osoby (ČR)
+    address,
+    contactEmail,
+    contactPhone,
     plan,
     status, // 'trial' | 'active' | 'suspended' | 'cancelled'
     ...createMeta(),
@@ -83,6 +87,10 @@ export async function createOrganization({ name, plan = 'trial', status = 'trial
 
 export async function setOrganizationStatus(orgId, status) {
   await updateDoc(doc(db, 'organizations', orgId), { status, ...meta() });
+}
+
+export async function updateOrganization(orgId, patch) {
+  await updateDoc(doc(db, 'organizations', orgId), { ...patch, ...meta() });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -105,9 +113,9 @@ export async function listKlicoveOsobyByOrg(organizationId) {
  * Založí nového zaměstnance (Auth účet + users/{uid} dokument) BEZ odhlášení
  * aktuálního uživatele. Viz vysvětlení sekundární App instance nahoře v souboru.
  *
- * @param {{email:string,password:string,displayName:string,role:'org_admin'|'klicova_osoba'|'superadmin',organizationId:string|null,department?:string}} input
+ * @param {{email:string,password:string,displayName:string,role:'org_admin'|'klicova_osoba'|'superadmin',organizationId:string|null,department?:string,rc?:string}} input
  */
-export async function createEmployee({ email, password, displayName, role, organizationId, department = null }) {
+export async function createEmployee({ email, password, displayName, role, organizationId, department = null, rc = '' }) {
   const secondaryApp = initializeApp(firebaseConfig, `secondary-${Date.now()}`);
   try {
     const secondaryAuth = getAuth(secondaryApp);
@@ -119,6 +127,7 @@ export async function createEmployee({ email, password, displayName, role, organ
     await setDoc(doc(db, 'users', uid), {
       email,
       displayName,
+      rc,                 // rodné číslo (volitelné — např. pro mzdovou agendu)
       role,               // 'superadmin' | 'org_admin' | 'klicova_osoba'
       organizationId,     // null jen pro superadmina
       department,         // 'management' | 'service' | 'terenni' | null
@@ -169,7 +178,7 @@ export async function getFoster(familyId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export async function createFoster({ organizationId, name, address = '', contactPhone = '', contactEmail = '', assignedTo = null, status = 'active', note = '' }) {
+export async function createFoster({ organizationId, name, address = '', contactPhone = '', contactEmail = '', assignedTo = null, status = 'active', careType = 'long', note = '', fosters = [] }) {
   const ref = await addDoc(collection(db, 'foster_families'), {
     organizationId,
     name,
@@ -177,8 +186,13 @@ export async function createFoster({ organizationId, name, address = '', contact
     contactPhone,
     contactEmail,
     assignedTo,
-    status, // 'active' | 'paused' | 'exited'
+    status,    // 'active' | 'paused' | 'exited'
+    careType,  // 'long' | 'temp' | 'kin' — viz shared/domainConstants.js CARE_TYPES
     note,
+    // Pěstouni (osoby) v domácnosti — pole, ne samostatná kolekce (typicky 1-2
+    // osoby/rodina, stejně jako household.fosters[] ve vanilla prototypu).
+    // Každá položka: { name, rc, phone, email, isFoster, periodStart, eduDone, eduRequired }
+    fosters,
     ...createMeta(),
   });
   return ref.id;
@@ -186,6 +200,11 @@ export async function createFoster({ organizationId, name, address = '', contact
 
 export async function updateFoster(familyId, patch) {
   await updateDoc(doc(db, 'foster_families', familyId), { ...patch, ...meta() });
+}
+
+/** Přepíše celé pole `fosters[]` (přidání/úprava/odebrání osoby) — malé pole, čtení-úprava-zápis stačí. */
+export async function setFosterPersons(familyId, fosters) {
+  await updateDoc(doc(db, 'foster_families', familyId), { fosters, ...meta() });
 }
 
 /**
@@ -237,7 +256,7 @@ export async function listChildrenByOrg(organizationId) {
  * foster_family (nutné pro firestore.rules, které se na children nedívají
  * přes get() do foster_families kvůli výkonu/ceně čtení).
  */
-export async function createChild({ fosterFamilyId, firstName, lastName, birthDate = null, status = 'active', note = '' }) {
+export async function createChild({ fosterFamilyId, firstName, lastName, rc = '', birthDate = null, careType = null, status = 'active', note = '', relatives = [] }) {
   const family = await getFoster(fosterFamilyId);
   if (!family) throw new Error('Rodina nenalezena — nelze přidat dítě.');
 
@@ -247,9 +266,14 @@ export async function createChild({ fosterFamilyId, firstName, lastName, birthDa
     assignedTo: family.assignedTo ?? null,
     firstName,
     lastName,
+    rc,                             // rodné číslo — primární identifikátor osoby
     birthDate,
+    careType: careType ?? family.careType ?? 'long',
     status, // 'active' | 'transferred' | 'aged_out'
     note,
+    // Biologičtí/širší rodinní příbuzní — jmenovití, viz shared/domainConstants.js
+    // REL_TYPES. Každá položka: { name, rc, rel (REL_TYPES key), legal, note }
+    relatives,
     ...createMeta(),
   });
   return ref.id;
@@ -257,6 +281,16 @@ export async function createChild({ fosterFamilyId, firstName, lastName, birthDa
 
 export async function updateChild(childId, patch) {
   await updateDoc(doc(db, 'children', childId), { ...patch, ...meta() });
+}
+
+/** Přepíše celé pole `relatives[]` u dítěte (malé pole, čtení-úprava-zápis stačí). */
+export async function setChildRelatives(childId, relatives) {
+  await updateDoc(doc(db, 'children', childId), { relatives, ...meta() });
+}
+
+export async function getChild(childId) {
+  const snap = await getDoc(doc(db, 'children', childId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 export async function deleteChild(childId) {

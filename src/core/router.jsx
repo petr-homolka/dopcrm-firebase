@@ -81,6 +81,7 @@ const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashb
 const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
 const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
 const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
+const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
 
 // Non-MVP (zakomentováno):
 // const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));
@@ -228,14 +229,26 @@ const router = createBrowserRouter([
   },
   {
     element: <Suspense fallback={<Loading />}><AdminLayout title="Terén" /></Suspense>,
-    children: [{
-      // org_admin smí nahlédnout na terénní přehled/detail rodiny stejně jako KO (čtení).
-      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin']} />,
-      children: [
-        { path: '/admin/terenni',            element: <Suspense fallback={<Loading />}><KlicovaOsobaDashboard /></Suspense> },
-        { path: '/admin/terenni/:familyId',  element: <Suspense fallback={<Loading />}><FosterFamilyDetailPage /></Suspense> },
-      ],
-    }],
+    children: [
+      {
+        // "Moje rodiny" — vlastní scoped dashboard klíčové osoby (org_admin smí nahlédnout).
+        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin']} />,
+        children: [
+          { path: '/admin/terenni', element: <Suspense fallback={<Loading />}><KlicovaOsobaDashboard /></Suspense> },
+        ],
+      },
+      {
+        // Detail rodiny/dítěte — sdílená cílová stránka hierarchického prokliku
+        // ze všech tří rolí (superadmin z OrganizationDetailPage, org_admin z
+        // FosterFamiliesPanel, klicova_osoba z vlastního dashboardu). Čtení
+        // řeší firestore.rules (sameOrg pro read), tady jen povolení routy.
+        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin']} />,
+        children: [
+          { path: '/admin/terenni/:familyId',            element: <Suspense fallback={<Loading />}><FosterFamilyDetailPage /></Suspense> },
+          { path: '/admin/terenni/:familyId/deti/:childId', element: <Suspense fallback={<Loading />}><AdminChildDetailPage /></Suspense> },
+        ],
+      },
+    ],
   },
 
   { path: '*', element: <Navigate to="/prehled" replace /> },

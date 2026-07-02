@@ -46,7 +46,7 @@ function StatCard({ icon, label, value, color = 'primary' }) {
   );
 }
 
-const emptyForm = { name: '', email: '', password: '', role: 'klicova_osoba', department: 'terenni' };
+const emptyForm = { name: '', email: '', password: '', role: 'klicova_osoba', department: 'terenni', rc: '' };
 
 export default function OrgEmployeesPanel({ organizationId }) {
   const [loading, setLoading] = useState(true);
@@ -94,6 +94,7 @@ export default function OrgEmployeesPanel({ organizationId }) {
         role: form.role,
         organizationId,
         department: form.department,
+        rc: form.rc.trim(),
       });
       setDialogOpen(false);
       setForm(emptyForm);
@@ -188,6 +189,7 @@ export default function OrgEmployeesPanel({ organizationId }) {
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
             {submitError && <Alert severity="error">{submitError}</Alert>}
             <TextField label="Jméno" value={form.name} onChange={updateForm('name')} fullWidth required disabled={submitting} autoFocus />
+            <TextField label="Rodné číslo" placeholder="např. 765912/3210" value={form.rc} onChange={updateForm('rc')} fullWidth disabled={submitting} />
             <TextField label="E-mail" type="email" value={form.email} onChange={updateForm('email')} fullWidth required disabled={submitting} />
             <TextField label="Počáteční heslo" type="password" value={form.password} onChange={updateForm('password')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků." />
             <TextField select label="Role" value={form.role} onChange={updateForm('role')} fullWidth disabled={submitting}>

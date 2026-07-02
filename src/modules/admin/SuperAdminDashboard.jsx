@@ -58,6 +58,7 @@ function StatCard({ icon, label, value, color = 'primary' }) {
 
 const emptyForm = {
   orgName: '',
+  orgIco: '',
   adminName: '',
   adminEmail: '',
   adminPassword: '',
@@ -104,7 +105,7 @@ export default function SuperAdminDashboard() {
     try {
       // 1) Založí organizaci (tenant), 2) v ní prvního org_admina — atomicita
       // řešena jen na úrovni UX (obě operace navazují), rules to hlídají odděleně.
-      const orgId = await createOrganization({ name: form.orgName.trim(), status: 'trial' });
+      const orgId = await createOrganization({ name: form.orgName.trim(), ico: form.orgIco.trim(), status: 'trial' });
       await createEmployee({
         email: form.adminEmail.trim(),
         password: form.adminPassword,
@@ -178,13 +179,14 @@ export default function SuperAdminDashboard() {
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>Organizace</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Klikněte na řádek pro pohled Org. Admina dané organizace (zaměstnanci, přidávání).
+                Klikněte na řádek pro pěstounské rodiny a zaměstnance dané organizace.
               </Typography>
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>Název</TableCell>
+                      <TableCell>IČO</TableCell>
                       <TableCell>Plán</TableCell>
                       <TableCell>Stav předplatného</TableCell>
                       <TableCell>ID</TableCell>
@@ -200,6 +202,7 @@ export default function SuperAdminDashboard() {
                         sx={{ cursor: 'pointer' }}
                       >
                         <TableCell sx={{ fontWeight: 600 }}>{org.name}</TableCell>
+                        <TableCell sx={{ color: 'text.secondary' }}>{org.ico || '—'}</TableCell>
                         <TableCell sx={{ textTransform: 'capitalize' }}>{org.plan ?? '—'}</TableCell>
                         <TableCell>
                           <Chip size="small" label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} />
@@ -226,6 +229,7 @@ export default function SuperAdminDashboard() {
             </Typography>
             {submitError && <Alert severity="error">{submitError}</Alert>}
             <TextField label="Název organizace" value={form.orgName} onChange={updateForm('orgName')} fullWidth required disabled={submitting} autoFocus />
+            <TextField label="IČO" placeholder="např. 12345678" value={form.orgIco} onChange={updateForm('orgIco')} fullWidth disabled={submitting} />
             <TextField label="Jméno administrátora" value={form.adminName} onChange={updateForm('adminName')} fullWidth required disabled={submitting} />
             <TextField label="E-mail administrátora" type="email" value={form.adminEmail} onChange={updateForm('adminEmail')} fullWidth required disabled={submitting} />
             <TextField label="Počáteční heslo" type="password" value={form.adminPassword} onChange={updateForm('adminPassword')} fullWidth required disabled={submitting} helperText="Alespoň 6 znaků — doporučeno vyzvat k okamžité změně." />

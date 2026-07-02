@@ -64,42 +64,90 @@ const firebaseConfig = {
 
 const DEMO_PASSWORD = 'Demo1234!';
 
+// Poznámka: RČ/IČO jsou VYMYŠLENÉ (neplatné kontrolní součty) — jen demo data.
 const DEMO_ORGS = [
   {
     name: 'Demo organizace Sever',
+    ico: '27604977',
+    address: 'Kopeckého 15, Brno',
+    contactEmail: 'info@sever.doprovazeni.dev',
+    contactPhone: '+420 511 222 333',
     status: 'active',
     plan: 'pro',
-    orgAdmin: { email: 'demo.admin.sever@doprovazeni.dev', displayName: 'Adéla Adminová' },
+    orgAdmin: { email: 'demo.admin.sever@doprovazeni.dev', displayName: 'Adéla Adminová', rc: '855612/1234' },
     kos: [
-      { email: 'demo.ko.sever.1@doprovazeni.dev', displayName: 'Karolína Klíčová' },
-      { email: 'demo.ko.sever.2@doprovazeni.dev', displayName: 'Kryštof Klíčový' },
+      { email: 'demo.ko.sever.1@doprovazeni.dev', displayName: 'Karolína Klíčová', rc: '905423/5678' },
+      { email: 'demo.ko.sever.2@doprovazeni.dev', displayName: 'Kryštof Klíčový', rc: '881015/9012' },
     ],
     families: [
-      { name: 'Rodina Nováková', koIndex: 0, children: [
-        { firstName: 'Tereza', lastName: 'Nováková', birthDate: '2015-03-12' },
-        { firstName: 'Matěj', lastName: 'Novák', birthDate: '2018-07-01' },
-      ] },
-      { name: 'Rodina Svobodová', koIndex: 0, children: [
-        { firstName: 'Nela', lastName: 'Svobodová', birthDate: '2016-11-20' },
-      ] },
-      { name: 'Rodina Dvořáková', koIndex: 1, children: [
-        { firstName: 'Jakub', lastName: 'Dvořák', birthDate: '2014-05-09' },
-      ] },
+      {
+        name: 'Rodina Nováková', koIndex: 0, careType: 'long',
+        address: 'Teplice, Čelakovského 772/3', contactPhone: '+420 702 111 222',
+        fosters: [{ name: 'Jana Nováková', rc: '775123/4567', phone: '+420 702 111 222', email: 'jana.novakova@example.cz' }],
+        children: [
+          {
+            firstName: 'Tereza', lastName: 'Nováková', rc: '150312/6789', birthDate: '2015-03-12',
+            relatives: [
+              { name: 'Markéta Marková', rc: '900101/1111', rel: 'mat_mimo', legal: 'birth', note: 'styk 1× měsíčně' },
+              { name: 'Petr Novák', rc: '880202/2222', rel: 'ot_nevlastni', legal: false, note: 'partner matky' },
+              { name: 'Nela Svobodová', rc: '161120/3333', rel: 'sib_polo', legal: false, note: 'sdílí bio matku, jiná rodina' },
+            ],
+          },
+          { firstName: 'Matěj', lastName: 'Novák', rc: '180701/4444', birthDate: '2018-07-01', relatives: [] },
+        ],
+      },
+      {
+        name: 'Rodina Svobodová', koIndex: 0, careType: 'temp',
+        address: 'Brno, Lidická 12', contactPhone: '+420 604 555 666',
+        fosters: [{ name: 'Petra Svobodová', rc: '820304/5555', phone: '+420 604 555 666', email: '' }],
+        children: [
+          {
+            firstName: 'Nela', lastName: 'Svobodová', rc: '161120/3333', birthDate: '2016-11-20',
+            relatives: [{ name: 'Markéta Marková', rc: '900101/1111', rel: 'mat_mimo', legal: 'birth', note: 'sdílí matku s Terezou Novákovou' }],
+          },
+        ],
+      },
+      {
+        name: 'Rodina Dvořáková', koIndex: 1, careType: 'kin',
+        address: 'Znojmo, Horní náměstí 8', contactPhone: '+420 725 777 888',
+        fosters: [{ name: 'Hana Dvořáková', rc: '700615/6666', phone: '+420 725 777 888', email: '' }],
+        children: [
+          {
+            firstName: 'Jakub', lastName: 'Dvořák', rc: '140509/7777', birthDate: '2014-05-09',
+            relatives: [{ name: 'Hana Dvořáková', rc: '700615/6666', rel: 'prarodic', legal: false, note: 'babička, příbuzenská péče' }],
+          },
+        ],
+      },
     ],
   },
   {
     name: 'Demo organizace Jih',
+    ico: '02345678',
+    address: 'Riegrova 4, České Budějovice',
+    contactEmail: 'info@jih.doprovazeni.dev',
+    contactPhone: '+420 387 111 222',
     status: 'trial',
     plan: 'starter',
-    orgAdmin: { email: 'demo.admin.jih@doprovazeni.dev', displayName: 'Jana Jižní' },
+    orgAdmin: { email: 'demo.admin.jih@doprovazeni.dev', displayName: 'Jana Jižní', rc: '840812/8888' },
     kos: [
-      { email: 'demo.ko.jih.1@doprovazeni.dev', displayName: 'Kateřina Jižní' },
+      { email: 'demo.ko.jih.1@doprovazeni.dev', displayName: 'Kateřina Jižní', rc: '920518/9999' },
     ],
     families: [
-      { name: 'Rodina Kučerová', koIndex: 0, children: [
-        { firstName: 'Eliška', lastName: 'Kučerová', birthDate: '2017-02-14' },
-        { firstName: 'Vojtěch', lastName: 'Kučera', birthDate: '2019-09-30' },
-      ] },
+      {
+        name: 'Rodina Kučerová', koIndex: 0, careType: 'long',
+        address: 'Písek, Budějovická 55', contactPhone: '+420 606 333 444',
+        fosters: [
+          { name: 'Alena Kučerová', rc: '790423/1010', phone: '+420 606 333 444', email: '' },
+          { name: 'Roman Kučera', rc: '770311/2020', phone: '+420 606 333 445', email: '' },
+        ],
+        children: [
+          {
+            firstName: 'Eliška', lastName: 'Kučerová', rc: '170214/3030', birthDate: '2017-02-14',
+            relatives: [{ name: 'Vojtěch Kučera', rc: '190930/4040', rel: 'sib_vlastni', legal: false, note: 'vlastní sourozenec, stejná rodina' }],
+          },
+          { firstName: 'Vojtěch', lastName: 'Kučera', rc: '190930/4040', birthDate: '2019-09-30', relatives: [] },
+        ],
+      },
     ],
   },
 ];
@@ -167,7 +215,7 @@ async function wipeAllData(db, myUid) {
 }
 
 /** Založí zaměstnance, nebo (pokud email už existuje z minulého seedu) se do něj jen přihlásí a přepíše profil. */
-async function createOrGetDemoEmployee(db, primaryApp, myUid, { email, displayName, role, organizationId, department }) {
+async function createOrGetDemoEmployee(db, primaryApp, myUid, { email, displayName, role, organizationId, department, rc = '' }) {
   const secondaryApp = initializeApp(firebaseConfig, `seed-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   try {
     const secondaryAuth = getAuth(secondaryApp);
@@ -184,6 +232,7 @@ async function createOrGetDemoEmployee(db, primaryApp, myUid, { email, displayNa
     await setDoc(doc(db, 'users', uid), {
       email,
       displayName,
+      rc,
       role,
       organizationId,
       department,
@@ -208,6 +257,10 @@ async function seedDemoData(db, app, myUid) {
   for (const orgDef of DEMO_ORGS) {
     const orgRef = await addDoc(collection(db, 'organizations'), {
       name: orgDef.name,
+      ico: orgDef.ico,
+      address: orgDef.address,
+      contactEmail: orgDef.contactEmail,
+      contactPhone: orgDef.contactPhone,
       plan: orgDef.plan,
       status: orgDef.status,
       createdAt: serverTimestamp(),
@@ -240,12 +293,14 @@ async function seedDemoData(db, app, myUid) {
       const familyRef = await addDoc(collection(db, 'foster_families'), {
         organizationId: orgRef.id,
         name: familyDef.name,
-        address: '',
-        contactPhone: '',
+        address: familyDef.address ?? '',
+        contactPhone: familyDef.contactPhone ?? '',
         contactEmail: '',
         assignedTo: koUids[familyDef.koIndex],
         status: 'active',
+        careType: familyDef.careType ?? 'long',
         note: '',
+        fosters: familyDef.fosters ?? [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: myUid,
@@ -259,9 +314,12 @@ async function seedDemoData(db, app, myUid) {
           assignedTo: koUids[familyDef.koIndex],
           firstName: child.firstName,
           lastName: child.lastName,
+          rc: child.rc ?? '',
           birthDate: child.birthDate,
+          careType: familyDef.careType ?? 'long',
           status: 'active',
           note: '',
+          relatives: child.relatives ?? [],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           createdBy: myUid,

@@ -1,12 +1,15 @@
 /**
- * KlicovaOsobaDashboard.jsx — Krok 3 zadání (2026-07-01)
+ * KlicovaOsobaDashboard.jsx — Krok 3 zadání (2026-07-01), obohaceno 2026-07-02
  *
- * Terénní pohled klíčové osoby: Bento Grid karty přidělených pěstounských
- * rodin (assignedTo == její uid). Klik na kartu → FosterFamilyDetailPage.
+ * Terénní pohled klíčové osoby: výchozí záložka "Moje rodiny" (Bento Grid
+ * karty rodin přidělených jí, assignedTo == její uid — jediné, do čeho smí
+ * zapisovat). Záložka "Celá organizace" navíc ukazuje hierarchickou
+ * viditelnost — čtení všech rodin organizace (zastupitelnost, přehled),
+ * firestore.rules to KO povolují, jen zápis mají omezený na svoje.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Typography, Card, CardActionArea, CardContent, Chip, CircularProgress, Alert, Avatar } from '@mui/material';
+import { Box, Typography, Card, CardActionArea, CardContent, Chip, CircularProgress, Alert, Avatar, Tabs, Tab } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
@@ -17,6 +20,7 @@ import { bento } from '../../core/theme.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { listFostersAssignedTo } from '../../services/orgService.js';
 import EmptyState from './EmptyState.jsx';
+import FosterFamiliesPanel from './FosterFamiliesPanel.jsx';
 
 const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
 const STATUS_COLOR = { active: 'success', paused: 'warning', exited: 'default' };
@@ -57,7 +61,7 @@ function FamilyCard({ family, onClick }) {
   );
 }
 
-export default function KlicovaOsobaDashboard() {
+function MyFamilies() {
   const navigate = useNavigate();
   const { currentUser } = useAuthStore();
 
@@ -81,40 +85,49 @@ export default function KlicovaOsobaDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
-  const activeCount = families.filter((f) => f.status === 'active').length;
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+  if (error) return <Alert severity="error">{error}</Alert>;
+  if (families.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          icon={<HomeOutlinedIcon sx={{ fontSize: 32 }} />}
+          title="Zatím nemáte přidělené žádné rodiny"
+          description="Přiřazení pěstounských rodin ke klíčovým osobám řeší Org. Admin vaší organizace."
+        />
+      </Card>
+    );
+  }
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: bento.gap }}>
+      {families.map((family) => (
+        <FamilyCard key={family.id} family={family} onClick={() => navigate(`/admin/terenni/${family.id}`)} />
+      ))}
+    </Box>
+  );
+}
+
+export default function KlicovaOsobaDashboard() {
+  const { organizationId } = useAuthStore();
+  const [tab, setTab] = useState('moje');
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>Moje rodiny</Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {loading ? 'Načítám…' : `${families.length} přidělených rodin, z toho ${activeCount} aktivních.`}
-      </Typography>
+      <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>Terén</Typography>
 
-      {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 6, justifyContent: 'center' }}>
-          <CircularProgress size={28} />
-        </Box>
-      )}
+      <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tab value="moje" label="Moje rodiny" />
+        <Tab value="organizace" label="Celá organizace" />
+      </Tabs>
 
-      {!loading && error && <Alert severity="error">{error}</Alert>}
-
-      {!loading && !error && families.length === 0 && (
-        <Card>
-          <EmptyState
-            icon={<HomeOutlinedIcon sx={{ fontSize: 32 }} />}
-            title="Zatím nemáte přidělené žádné rodiny"
-            description="Přiřazení pěstounských rodin ke klíčovým osobám řeší Org. Admin vaší organizace — ozvěte se mu, ať vám nějaké přidělí."
-          />
-        </Card>
-      )}
-
-      {!loading && !error && families.length > 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: bento.gap }}>
-          {families.map((family) => (
-            <FamilyCard key={family.id} family={family} onClick={() => navigate(`/admin/terenni/${family.id}`)} />
-          ))}
-        </Box>
-      )}
+      {tab === 'moje' && <MyFamilies />}
+      {tab === 'organizace' && <FosterFamiliesPanel organizationId={organizationId} basePath="/admin/terenni" canCreate={false} />}
     </Box>
   );
 }
