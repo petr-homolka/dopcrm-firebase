@@ -47,13 +47,13 @@ export default function OrganizationDetailPage() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
-        <IconButton onClick={() => navigate('/admin/superadmin')} aria-label="Zpět na organizace"><ArrowBackIcon /></IconButton>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h4" fontWeight={700} noWrap>{loading ? 'Načítám…' : (org?.name ?? 'Organizace')}</Typography>
+      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 1, flexWrap: 'wrap', rowGap: 1 }}>
+        <IconButton onClick={() => navigate('/admin/superadmin')} aria-label="Zpět na organizace" sx={{ mt: 0.5 }}><ArrowBackIcon /></IconButton>
+        <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+          <Typography variant="h4" fontWeight={700} sx={{ wordBreak: 'break-word' }}>{loading ? 'Načítám…' : (org?.name ?? 'Organizace')}</Typography>
           {org?.ico && <Typography variant="body2" color="text.secondary">IČO {org.ico}</Typography>}
         </Box>
-        {org && <Chip label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} />}
+        {org && <Chip label={STATUS_LABEL[org.status] ?? org.status} color={STATUS_COLOR[org.status] ?? 'default'} sx={{ mt: 0.5 }} />}
       </Stack>
 
       {loading && (
@@ -66,7 +66,7 @@ export default function OrganizationDetailPage() {
 
       {!loading && !error && org && (
         <>
-          <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
             <Tab value="rodiny" label="Pěstounské rodiny" />
             <Tab value="zamestnanci" label="Zaměstnanci" />
           </Tabs>

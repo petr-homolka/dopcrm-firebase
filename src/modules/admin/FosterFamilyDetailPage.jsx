@@ -258,13 +258,15 @@ export default function FosterFamilyDetailPage() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate(-1)} aria-label="Zpět"><ArrowBackIcon /></IconButton>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h4" fontWeight={700} noWrap>{loading ? 'Načítám…' : (family?.name ?? 'Rodina')}</Typography>
-        </Box>
-        {family && <Chip label={careLabel(family.careType)} />}
-        {family && <Chip label={STATUS_LABELS[family.status] ?? family.status} color={STATUS_COLOR[family.status] ?? 'default'} />}
+      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', rowGap: 1 }}>
+        <IconButton onClick={() => navigate(-1)} aria-label="Zpět" sx={{ mt: 0.5 }}><ArrowBackIcon /></IconButton>
+        <Typography variant="h4" fontWeight={700} sx={{ flex: '1 1 auto', minWidth: 0, wordBreak: 'break-word' }}>
+          {loading ? 'Načítám…' : (family?.name ?? 'Rodina')}
+        </Typography>
+        <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+          {family && <Chip label={careLabel(family.careType)} />}
+          {family && <Chip label={STATUS_LABELS[family.status] ?? family.status} color={STATUS_COLOR[family.status] ?? 'default'} />}
+        </Stack>
       </Stack>
 
       {loading && (
@@ -304,7 +306,14 @@ export default function FosterFamilyDetailPage() {
             </CardContent>
           </Card>
 
-          <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+          >
             <Tab value="pestouni" label={`Pěstouni (${(family.fosters ?? []).length})`} />
             <Tab value="respit" label="Respit a SPVPP" />
             <Tab value="social" label="Sociální prostor" />

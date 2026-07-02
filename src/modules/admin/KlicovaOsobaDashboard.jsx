@@ -121,7 +121,7 @@ export default function KlicovaOsobaDashboard() {
     <Box>
       <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>Terén</Typography>
 
-      <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+      <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab value="moje" label="Moje rodiny" />
         <Tab value="organizace" label="Celá organizace" />
       </Tabs>

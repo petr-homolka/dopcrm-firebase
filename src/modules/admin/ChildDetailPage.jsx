@@ -215,12 +215,12 @@ export default function ChildDetailPage() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
-        <IconButton onClick={() => navigate(`/admin/terenni/${familyId}`)} aria-label="Zpět na rodinu"><ArrowBackIcon /></IconButton>
-        <Typography variant="h4" fontWeight={700}>
+      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', rowGap: 1 }}>
+        <IconButton onClick={() => navigate(`/admin/terenni/${familyId}`)} aria-label="Zpět na rodinu" sx={{ mt: 0.5 }}><ArrowBackIcon /></IconButton>
+        <Typography variant="h4" fontWeight={700} sx={{ flex: '1 1 auto', minWidth: 0, wordBreak: 'break-word' }}>
           {loading ? 'Načítám…' : `${child?.firstName ?? ''} ${child?.lastName ?? ''}`.trim()}
         </Typography>
-        {child && <Chip label={careLabel(child.careType)} />}
+        {child && <Chip label={careLabel(child.careType)} sx={{ mt: 0.5 }} />}
       </Stack>
 
       {loading && (
