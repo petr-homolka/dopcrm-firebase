@@ -24,12 +24,6 @@
         ]
       },
       {
-        "source": "**/*.@(html|webmanifest)",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-        ]
-      },
-      {
         "source": "/sw.js",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
@@ -37,6 +31,12 @@
       },
       {
         "source": "/registerSW.js",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "**/!(*.js|*.mjs|*.css|*.map|*.json|*.ico|*.png|*.jpg|*.jpeg|*.svg|*.webp|*.woff|*.woff2|*.ttf)",
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
         ]
