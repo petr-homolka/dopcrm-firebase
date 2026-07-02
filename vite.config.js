@@ -22,12 +22,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
-      // Manifest odpovídá stávajícímu manifest.webmanifest v prototypu
+      // Branding dle DESIGN.md ("Přítomnost", primary-600 #1A6B64)
       manifest: {
-        name: 'Doprovázení CRM',
-        short_name: 'Doprovázení',
+        name: 'Přítomnost',
+        short_name: 'Přítomnost',
         description: 'CRM pro doprovázení pěstounských rodin',
-        theme_color: '#FFDB4D',
+        theme_color: '#1A6B64',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
