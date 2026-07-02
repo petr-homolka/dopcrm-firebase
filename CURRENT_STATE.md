@@ -17,8 +17,17 @@ Neprojevilo se dřív, protože předchozí 2 CI běhy byly bajtově identické 
 - `src/core/ErrorBoundary.jsx` (+ `App.js`) — defense-in-depth, budoucí neočekávaná chyba v renderu
   ukáže hlášku místo tiché bílé obrazovky.
 - Uživatel doplnil 7 GitHub secrets (`VITE_FIREBASE_API_KEY/AUTH_DOMAIN/PROJECT_ID/STORAGE_BUCKET/
-  MESSAGING_SENDER_ID/APP_ID/MEASUREMENT_ID`) do `dopcrm-firebase` repa — tento commit je jen
-  bezobsahový trigger pro nový CI běh, aby se secrets skutečně použily.
+  MESSAGING_SENDER_ID/APP_ID/MEASUREMENT_ID`) do `dopcrm-firebase` repa (commit `b4f6cce` = jen
+  bezobsahový trigger pro nový CI běh).
+- Dodatečná oprava (commit `b87bba6`): no-cache pravidlo se netrefilo na čisté cesty bez přípony
+  (`/`, `/login`) — rozšířeno na stejný extglob vzor jako rewrite.
+
+**Ověřeno přímo na živém webu (2026-07-02) po doběhnutí CI:**
+- `apiKey` v nasazeném bundlu = reálná hodnota (ne `undefined`).
+- `/` i `/login` → `Cache-Control: no-cache, no-store, must-revalidate`.
+- `/sw.js`, `/registerSW.js` → no-cache; `/assets/**` → `max-age=31536000, immutable`.
+- Neexistující hashovaný asset → skutečné `404` (dřív 200 s `text/html`).
+- **Incident uzavřen — appka na `https://moje.doprovazeni.com/login` běží.**
 
 ---
 
