@@ -1,5 +1,43 @@
 # CURRENT_STATE
-**Verze:** 1.2.2 (UI/UX polish + emoji cleanup + dev-only seed nástroj, 2026-07-02)
+**Verze:** 1.3.0 (Schéma obohaceno o RC/IČO/vztahy, hierarchická viditelnost do UI, 2026-07-02)
+
+## 2026-07-02 — Datový model dotažen dle vanilla prototypu + plný proklik hierarchie
+
+**Zpětná vazba:** nové schéma (v1.2.x) nemělo RČ jako primární identifikátor osob (existuje v
+`app.js` odjakživa), REL_TYPES/CARE_TYPES, ani hierarchickou viditelnost dotaženou do UI —
+SuperAdmin/OrgAdmin viděli jen zaměstnance, ne rodiny/děti. Detail viz paměť
+`crm-port-prototyp-pred-novym-schematem.md` a `crm-hierarchicka-viditelnost.md`.
+
+**Schéma (rozšířeno, `src/services/orgService.js` + `src/shared/domainConstants.js`):**
+- `organizations` — `ico`, `address`, `contactEmail`, `contactPhone`
+- `users` (zaměstnanci) — `rc`
+- `foster_families` — `careType` ('long'|'temp'|'kin'), `fosters[]` (osoby: name/rc/phone/email)
+- `children` — `rc`, `relatives[]` ({name, rc, rel: REL_TYPES key, legal, note}), `careType`
+- `REL_TYPES` (22 typů vztahů s `legal` flagem) a `CARE_TYPES` — konstanty v kódu, port z `app.js`
+
+**Plný proklik hierarchie (nové/upravené soubory v `src/modules/admin/`):**
+- `FosterFamiliesPanel.jsx` — sdílený seznam rodin organizace, použitý v `OrganizationDetailPage`
+  (superadmin), `OrgAdminDashboard` (org_admin), `KlicovaOsobaDashboard` (KO, záložka „Celá
+  organizace", `canCreate=false`)
+- `FosterFamilyDetailPage.jsx` — obohaceno o `fosters[]` (pěstouni s RČ) + klikací děti
+- `ChildDetailPage.jsx` (nové, route `/admin/terenni/:familyId/deti/:childId`) — identita dítěte
+  (RČ, datum narození) + `relatives[]` s typem vztahu a právním statusem
+- `OrganizationDetailPage`/`OrgAdminDashboard` — MUI Tabs (Pěstounské rodiny / Zaměstnanci) místo
+  jen seznamu zaměstnanců — řeší i „prázdný" layout
+- Router: `/admin/terenni/:familyId` a `/admin/terenni/:familyId/deti/:childId` rozšířeny o
+  `superadmin` v `RequireOrgRole` (dřív jen klicova_osoba/org_admin)
+
+**Seed data (`scripts/dev-seed.mjs`)** aktualizován na bohatá data odpovídající prototypu
+(sdílená bio matka napříč dvěma rodinami jako v `app.js` seed Terezy/Nely, nevlastní otec,
+polorodí sourozenci, příbuzenská péče u babičky) — `npm run seed` znovu spuštěno.
+
+**Známý bug (2026-07-02, neověřeno vyřešeno):** proklik na řádek organizace v SuperAdmin dashboardu
+nefungoval hned po prvním nasazení — pravděpodobná příčina: Service Worker v prohlížeči servíroval
+starou verzi JS (viz PWA cache poznámka u bílé obrazovky výše). Doporučeno „Clear site data" v
+DevTools. Nepotvrzeno uživatelem, zda to bug vyřešilo.
+
+---
+
 
 ## 2026-07-02 — UI/UX vylepšení, emoji pryč, testovací data (mimo web bundle)
 
