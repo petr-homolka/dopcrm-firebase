@@ -1,5 +1,26 @@
 # CURRENT_STATE
-**Verze:** 1.2.0 (NOVÉ: B2B SaaS multi-tenant DB vrstva + role dashboardy, 2026-07-01)
+**Verze:** 1.2.1 (Oprava bílé obrazovky v produkci — chybějící Firebase env proměnné v CI, 2026-07-02)
+
+## 2026-07-02 — Incident: bílá obrazovka na moje.doprovazeni.com (VYŘEŠENO)
+
+**Příčina:** GitHub Actions build (`npm ci && npm run build`) neměl nastavené `VITE_FIREBASE_*`
+proměnné (jen lokální `.env.local`, gitignored) → Vite zapekl `apiKey: undefined` do bundlu →
+`getAuth(app)` spadl synchronně před prvním renderem, appka bez error boundary → bílá stránka.
+Neprojevilo se dřív, protože předchozí 2 CI běhy byly bajtově identické s dřívějším ručním deployem
+(viz historie níže) — commit `d6bd949` byl první SKUTEČNÝ CI-driven deploy, proto se chyba objevila.
+
+**Oprava (commit `d422989`, 2026-07-01):**
+- `.github/workflows/*.yml` — build krok teď čte `VITE_FIREBASE_*` z GitHub repo secrets.
+- `firebase.json` — `no-cache` na `index.html`/`sw.js`/manifest, dlouhý immutable cache na
+  `/assets/**`, zúžený rewrite (chybějící hashovaný asset → skutečné 404, ne maskované jako HTML) —
+  brání stejnému symptomu po budoucích deployích i z jiné příčiny.
+- `src/core/ErrorBoundary.jsx` (+ `App.js`) — defense-in-depth, budoucí neočekávaná chyba v renderu
+  ukáže hlášku místo tiché bílé obrazovky.
+- Uživatel doplnil 7 GitHub secrets (`VITE_FIREBASE_API_KEY/AUTH_DOMAIN/PROJECT_ID/STORAGE_BUCKET/
+  MESSAGING_SENDER_ID/APP_ID/MEASUREMENT_ID`) do `dopcrm-firebase` repa — tento commit je jen
+  bezobsahový trigger pro nový CI běh, aby se secrets skutečně použily.
+
+---
 
 ## 2026-07-01 — B2B SaaS hierarchie (SuperAdmin → Organizace → Zaměstnanci → Pěstouni → Děti)
 
