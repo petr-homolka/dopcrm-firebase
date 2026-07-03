@@ -1,4 +1,30 @@
 {
+  "today": {
+    "header": "{{greeting}}, {{name}} · {{date}}",
+    "loadError": "Data se nepodařilo načíst.",
+    "greeting": {
+      "morning": "Dobré ráno",
+      "afternoon": "Dobré odpoledne",
+      "evening": "Dobrý večer"
+    },
+    "program": {
+      "title": "Dnešní program",
+      "empty": "Dnes nemáte naplánované žádné události."
+    },
+    "waiting": {
+      "title": "Čeká na vás",
+      "showAll": "Zobrazit vše",
+      "neverVisited": "Zatím žádná návštěva",
+      "daysAgo_one": "Návštěva před {{count}} dnem",
+      "daysAgo_few": "Návštěva před {{count}} dny",
+      "daysAgo_other": "Návštěva před {{count}} dny"
+    },
+    "upcoming": {
+      "title": "Nejbližší dny",
+      "tomorrow": "Zítra",
+      "dayAfterTomorrow": "Pozítří"
+    }
+  },
   "common": {
     "back": "Zpět",
     "loading": "Načítám…",

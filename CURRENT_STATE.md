@@ -1,5 +1,57 @@
 # CURRENT_STATE
-**Verze:** 1.7.0 (Krok 0+1+2 — Inventář, slug organizace, i18n základ, 2026-07-03)
+**Verze:** 1.8.0 (Krok 0+1+2+3 — Inventář, slug organizace, i18n základ, obrazovka Dnes, 2026-07-03)
+
+## 2026-07-03 — Krok 3: Obrazovka Dnes
+
+**Zadání:** nová domovská obrazovka pro `klicova_osoba` na `/` (DESIGN.md §6.1) — agenda dne,
+NE dashboard s KPI dlaždicemi/grafy. Pozdrav+datum, dnešní program, "Čeká na vás" (rodiny bez
+návštěvy >45 dní), nejbližší dva dny.
+
+- **Routing (zásadní změna):** `/` už NENÍ index route staršího `RequireAuth`+`Layout.jsx`
+  (Sekce A sidebar) — přesunuto na VLASTNÍ top-level route group se stejným `AdminLayout`
+  shellem jako zbytek `/admin/*` (topbar, ne stará sidebar), gated `RequireOrgRole
+  allowed={['klicova_osoba']}`. Důvod: kdyby `/` zůstalo pod starým `Layout`, klíčová osoba by
+  na své nové domovské stránce viděla legacy MVP sidebar (odkazy na 8řádkové stub stránky
+  `/pestouni`, `/deti`…), ne skutečnou B2B navigaci. `IndexRedirect` (starý komponent pro index
+  route) smazán — jeho roli teď dělá `RequireOrgRole` samo (fallback pro roli mimo `allowed`
+  pole = `homePathForRole(role)`).
+- `orgAuth.js` — nová `homePathForRole(role)`: `klicova_osoba` → `/` (Dnes), ostatní role beze
+  změny (`dashboardPathForRole` zůstává platná, jen přestala být VÝCHOZÍ landing page — pořád
+  se používá např. jako cíl "zobrazit vše" u sekce Čeká na vás → `/admin/terenni`). Použito v
+  `Login.jsx` (přesměrování po loginu) a `router.jsx` (`RequireOrgRole`, `RegisterRoute`).
+- `src/services/org/timeline.js` — `createTimelineEntry` nově zapisuje `foster_families.
+  lastVisitAt` v JEDNOM `writeBatch` VŽDY, když `type === 'visit'` (CLAUDE.md: denormalizovaná
+  pole aktualizovat v batch se změnou, která je vyvolala — `lastVisitAt` je v pravidle přímo
+  jmenovaný příklad). Poznámka: v appce zatím NEEXISTUJE UI cesta k založení timeline záznamu
+  typu `visit` (jen `note` — "Záznam v terénu/capture" je budoucí ⬜ funkce) — hook je tedy
+  připravený do budoucna, ověřen jen nepřímo (testovací `lastVisitAt` v seedu je zapsané přímo,
+  ne přes tuto cestu, viz níže).
+- `src/services/org/events.js` — nová `listEventsForAssignee(organizationId, uid, {from,to})`
+  (na rozdíl od `listEventsInRange` filtruje navíc `assignedTo`) + nový composite index
+  (`assignedTo`+`start`) v `firestore.indexes.json`, nasazeno na dev.
+- `src/modules/admin/TodayPage.jsx` + `useTodayPage.js` (nové) — max 25 rodin/KO (CLAUDE.md)
+  → řazení/filtrování "Čeká na vás" klidně na klientovi, žádný další index/stránkování potřeba.
+  Barva levého proužku dle typu události (`visit`=zelená/family, `meeting`=primary, `deadline`=
+  terakota, `education`=amber) a dle stáří návštěvy (>60 dní = terakota `entity-crisis`, 45–60
+  = amber, nikdy nenavštíveno = amber). Vokativ jména ("Jano" z "Jana") záměrně neřešen (1. pád).
+- i18n: nový namespace `today.*` v `cs.json`, plurál `daysAgo_one/_few/_other`.
+- Seed (`scripts/dev-seed.mjs`, `scripts/seed-calendar-events.mjs`): Rodina Kučerová dostala
+  testovací `lastVisitAt` 65 dní zpět (terakota), Rodina Nováková 50 dní zpět (amber), ostatní
+  bez pole (nikdy nenavštíveno); první rodina KAŽDÉ organizace dostala kalendářní návštěvu NA
+  DNES, druhá NA ZÍTRA — pokrývá všechny 3 scénáře ze zadání (den s událostmi/bez/stará návštěva)
+  napříč 3 demo KO účty, aniž by bylo nutné cokoli ručně překlikávat.
+
+**Ověřeno živě v Preview** (po dobuildění Firestore composite indexu, ~2,5 min): `demo.ko.jih.1`
+(dnešní návštěva Rodiny Kučerová v 13:00 se zelenou entity-family barvou, "Čeká na vás" s
+terakotovou `#C2410C` barvou a textem "Návštěva před 65 dny"), `demo.ko.sever.1` (dnešní událost
++ amber `#FBBF24` u Nováková/50 dní i Svobodová/"Zatím žádná návštěva"), `demo.ko.sever.2`
+(prázdný den — "Dnes nemáte naplánované žádné události.", sekce "Nejbližší dny" → "Zítra" s
+návštěvou Dvořákové). `org_admin` (`demo.admin.jih`) po loginu i při přímé návštěvě `/` správně
+skončí na `/admin/organizace`, ne na obrazovce Dnes. Mobilní viewport (390×844) ověřen přes
+`scrollWidth`/`getBoundingClientRect` (bez horizontálního přetečení, karty na plnou šířku,
+nadpis se zalamuje) — `preview_screenshot` v této session opakovaně timeoutoval (nesouvisející s
+kódem), ověření tedy funkční/strukturální, ne vizuální snímek. `npm run build`/`npm run lint`
+čisté po celou dobu.
 
 ## 2026-07-03 — Krok 2: i18n základ (react-i18next)
 

@@ -7,10 +7,12 @@
  * je vždy null, protože noví uživatelé nemají `user_roles/{uid}`).
  *
  * `/prehled` je dnes dosažitelné jen: (a) přímou navigací uživatele s rolí
- * (org_admin/klicova_osoba), nebo (b) jako fallback z `IndexRedirect` pro
- * účet BEZ role v novém schématu (legacy/osiřelý účet — pro ten Sekce B
- * nemá co zobrazit, viz `EmptyState` níže). Superadmin nemá organizaci
- * (`organizationId` vždy null) — přesměruje se na svůj vlastní dashboard.
+ * (org_admin/klicova_osoba), nebo (b) jako fallback z `homePathForRole()`
+ * (router.jsx) pro účet BEZ role v novém schématu (legacy/osiřelý účet —
+ * pro ten Sekce B nemá co zobrazit, viz `EmptyState` níže). Klicova_osoba má
+ * od Kroku 3 (2026-07-03) vlastní domovskou obrazovku Dnes na "/", ne tohle.
+ * Superadmin nemá organizaci (`organizationId` vždy null) — přesměruje se na
+ * svůj vlastní dashboard.
  *
  * Vizuální styl: Bento Grid (Apple-style), Tailwind dle DESIGN.md §4.
  */

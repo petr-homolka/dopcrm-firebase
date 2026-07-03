@@ -110,10 +110,17 @@ async function main() {
       }
     }
 
-    let dayOffset = 3;
+    // Krok 3 (2026-07-03, obrazovka Dnes): první rodina organizace dostane
+    // návštěvu DNES, druhá ZÍTRA (testuje "Dnešní program"/"Nejbližší dny"),
+    // zbytek jako dřív po 2 dnech — a alespoň jedna KO (ta bez rodiny na
+    // indexu 0/1) tak zůstane bez dnešní/zítřejší události, tedy testuje
+    // prázdný stav "Dnes nemáte naplánované žádné události.".
+    let familyIndex = 0;
     for (const familyDoc of familiesSnap.docs) {
       const family = familyDoc.data();
       if (!family.assignedTo) continue;
+      const dayOffset = familyIndex === 0 ? 0 : familyIndex === 1 ? 1 : 3 + (familyIndex - 2) * 2;
+      familyIndex += 1;
 
       const childrenSnap = await getDocs(
         query(collection(db, 'children'), where('fosterFamilyId', '==', familyDoc.id))
@@ -144,7 +151,6 @@ async function main() {
         });
         createdCount += 1;
       }
-      dayOffset += 2;
     }
   }
 

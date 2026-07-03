@@ -48,6 +48,25 @@ export async function listEventsInRange(organizationId, { from, to }, cursor = n
   return { items, lastDoc };
 }
 
+/**
+ * Události PŘIŘAZENÉ konkrétní klíčové osobě v časovém rozmezí (obrazovka
+ * Dnes, Krok 3) — na rozdíl od `listEventsInRange` (celoorganizační agenda
+ * v CalendarPage.jsx) filtruje navíc `assignedTo`. Vyžaduje composite index
+ * (`assignedTo` + `start`), viz firestore.indexes.json.
+ */
+export async function listEventsForAssignee(organizationId, uid, { from, to }) {
+  const snap = await getDocs(
+    query(
+      eventsCol(organizationId),
+      where('assignedTo', '==', uid),
+      where('start', '>=', from),
+      where('start', '<=', to),
+      orderBy('start', 'asc')
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function createEvent(organizationId, {
   title, type = 'other', start, end = null, allDay = false,
   location = '', note = '', assignedTo, fosterFamilyId = null, subjectRefs = [],

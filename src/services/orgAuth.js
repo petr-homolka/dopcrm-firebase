@@ -37,6 +37,16 @@ export function dashboardPathForRole(role) {
 }
 
 /**
+ * "Domovská" cesta po přihlášení/přesměrování (Krok 3, 2026-07-03) — pro
+ * klicova_osoba je to obrazovka Dnes (`/`), ne její scoped dashboard
+ * (`dashboardPathForRole` na `/admin/terenni` zůstává platná cesta, jen
+ * přestala být VÝCHOZÍ landing page). Ostatní role beze změny.
+ */
+export function homePathForRole(role) {
+  return role === 'klicova_osoba' ? '/' : dashboardPathForRole(role);
+}
+
+/**
  * Role, které smí jen ČÍST karty rodin/dětí (nikdy zápis/editace) — UI
  * skrývá zápisové akce, firestore.rules to navíc vynucují (rozhodnutí
  * 2026-07-03, docs/INVENTAR.md). `vedouci_pobocky`/`teamleader` vidí tým

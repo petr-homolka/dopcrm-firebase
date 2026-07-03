@@ -115,11 +115,12 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 |---|---|---|---|
 | Design systém „Přítomnost“ (soft/playful, Tailwind) | Barvy, typografie, komponenty | `DESIGN.md` | ⬜ (právě zaváděno, Krok 4 úklidu) |
 | Karta kontaktu = hub (chat/dokumenty/údaje/vazby/kalendář/vzdělávání) | Centrum všeho dění kolem osoby | `crm-karta-kontaktu-hub` (paměť) | 🟡 (`HubPage.jsx` je zatím stub) |
-| Chat / jednotná časová osa (jádro systému) | Interní vs. s pěstounem, systémové zápisy | `docs/history-claude-md.md` §4 | ⬜ |
-| Kalendář (měsíc/týden/den/agenda) | — | `docs/history-claude-md.md` §4 | 🟡 (`CalendarPage.jsx` stub) |
+| Chat / jednotná časová osa (jádro systému) | Interní vs. s pěstounem, systémové zápisy | `docs/history-claude-md.md` §4 | 🟡 (Osa/timeline u rodiny ✅ implementována, sjednocený „chat" napříč celou appkou ⬜) |
+| Obrazovka Dnes (agenda, domovská pro klicova_osoba) | Pozdrav+datum, dnešní program, „Čeká na vás" (lastVisitAt > 45 dní), nejbližší dny; žádné KPI/grafy | `DESIGN.md` §6.1, `CURRENT_STATE.md` (Krok 3, 2026-07-03) | ✅ route `/`, `TodayPage.jsx` |
+| Kalendář (měsíc/týden/den/agenda) | Zatím jen agenda pohled (30 dní dopředu), ne plný měsíční/týdenní grid | `docs/history-claude-md.md` §4 | 🟡 (`CalendarPage.jsx` — agenda funkční, 2026-07-03) |
 | Úkoly (kanban/termíny) | — | `docs/history-claude-md.md` §6 | ⬜ |
 | Globální vyhledávání | Napříč pěstouny/dětmi/dokumenty/událostmi | `docs/history-claude-md.md` §5 | ⬜ |
-| Akční upozornění | Návštěva due, vzdělávání low, výroční revize | `docs/history-claude-md.md` §5 | ⬜ |
+| Akční upozornění | Návštěva due, vzdělávání low, výroční revize | `docs/history-claude-md.md` §5 | 🟡 (návštěva due řeší obrazovka Dnes „Čeká na vás", 2026-07-03; vzdělávání/výroční revize ⬜) |
 | Reporty pro OSPOD (editovatelné, generované z osy) | — | `docs/history-claude-md.md` §4 | ⬜ |
 | Gating dle role v UI (skryté akce, scope-aware seznamy) | — | `crm-prava-a-role-todo` (paměť), `crm-hierarchicka-viditelnost` (paměť) | 🟡 (základ gating v routách ✅, hloubkové polní gating ⬜) |
 | Emoji zákaz napříč UI | Lineart/lucide-react ikony místo emoji | `crm-zadne-emoji-nikde` (paměť) | ✅ pravidlo dodržováno |

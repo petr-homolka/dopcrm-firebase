@@ -19,7 +19,7 @@
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
-import { dashboardPathForRole } from '../services/orgAuth.js';
+import { homePathForRole } from '../services/orgAuth.js';
 
 // Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
 // ODSTRANĚNO 2026-07-03 — způsobovalo redirect smyčku po přihlášení, protože
@@ -52,6 +52,7 @@ const TeamDashboard          = lazy(() => import('../modules/admin/TeamDashboard
 const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
 const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
 const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
+const TodayPage              = lazy(() => import('../modules/admin/TodayPage.jsx'));
 
 // Non-MVP (zakomentováno):
 // const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));
@@ -114,21 +115,6 @@ function RequireAuth() {
   );
 }
 
-// ── Index route (kořen "/") ──────────────────────────────────
-// Bug (2026-07-02): byl to natvrdo <Navigate to="/prehled">, takže KAŽDÝ
-// přihlášený uživatel (i superadmin/org_admin/klíčová osoba z nového B2B
-// schématu) skončil v LEGACY MVP shellu místo svého /admin/* dashboardu —
-// legacy Layout navíc hlásil chybu "currentTenantId() je null", protože noví
-// uživatelé žádný user_roles/{uid} záznam nemají. Teď se rozhoduje podle role
-// z nového authStore (Zustand); jen uživatelé BEZ nové role (staré demo účty)
-// padají na legacy /prehled.
-function IndexRedirect() {
-  const { loading, role } = useAuthStore();
-  if (loading) return <Loading />;
-  if (role) return <Navigate to={dashboardPathForRole(role)} replace />;
-  return <Navigate to="/prehled" replace />;
-}
-
 // ── Nový B2B SaaS role guard (Zustand authStore, ne legacy AuthContext) ──
 // Používá se jen na /admin/* větvi — starší /prehled apod. zůstávají na
 // RequireAuth výše (jen ověří přihlášení, ne konkrétní roli).
@@ -140,8 +126,8 @@ function RequireOrgRole({ allowed }) {
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   if (!allowed.includes(role)) {
-    // Přihlášen, ale jiná role — pošli na JEHO vlastní dashboard, ne na login.
-    return <Navigate to={dashboardPathForRole(role)} replace />;
+    // Přihlášen, ale jiná role — pošli na JEHO domovskou stránku, ne na login.
+    return <Navigate to={homePathForRole(role)} replace />;
   }
   return <Outlet />;
 }
@@ -171,7 +157,7 @@ function LoginRoute() {
 function RegisterRoute() {
   const { loading, currentUser, role } = useAuthStore();
   if (loading) return <Loading />;
-  if (currentUser) return <Navigate to={role ? dashboardPathForRole(role) : '/prehled'} replace />;
+  if (currentUser) return <Navigate to={role ? homePathForRole(role) : '/prehled'} replace />;
   return (
     <Suspense fallback={<Loading />}>
       <RegisterPage />
@@ -188,7 +174,6 @@ const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { index: true,              element: <IndexRedirect /> },
       { path: '/prehled',         element: <Suspense fallback={<Loading />}><DashboardPage /></Suspense> },
       { path: '/pestouni',        element: <Suspense fallback={<Loading />}><FamiliesPage /></Suspense> },
       { path: '/pestouni/:id',    element: <Suspense fallback={<Loading />}><FamilyDetailPage /></Suspense> },
@@ -212,6 +197,20 @@ const router = createBrowserRouter([
 
   // ── Nové B2B SaaS dashboardy (2026-07-01) ────────────────────
   // Vlastní AdminLayout (topbar, ne stará sidebar), guard přes RequireOrgRole.
+
+  // Obrazovka Dnes (Krok 3, 2026-07-03) — domovská stránka klíčové osoby na
+  // kořeni "/", stejný AdminLayout shell jako zbytek /admin/* (NE legacy
+  // sidebar Layout výš — ten patří starším Sekce A stubům). Jiná role na "/"
+  // dostane RequireOrgRole přesměrování na svůj vlastní dashboard.
+  {
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Dnes" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba']} />,
+      children: [
+        { path: '/', element: <Suspense fallback={<Loading />}><TodayPage /></Suspense> },
+      ],
+    }],
+  },
   {
     element: <Suspense fallback={<Loading />}><AdminLayout title="SuperAdmin" /></Suspense>,
     children: [{

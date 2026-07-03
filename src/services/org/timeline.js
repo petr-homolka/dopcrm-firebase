@@ -6,7 +6,7 @@
  */
 
 import {
-  collection, doc, getDocs, addDoc, updateDoc,
+  collection, doc, getDocs, setDoc, updateDoc, writeBatch,
   query, where, orderBy, limit, startAfter,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
@@ -44,12 +44,25 @@ export async function listPinnedTimelineEntries(familyId) {
 export async function createTimelineEntry(familyId, {
   type, title, body, subjectRefs = [], occurredAt, attachments = [], source = 'web', correctsEntryId = null,
 }) {
-  const ref = await addDoc(timelineCol(familyId), {
+  const ref = doc(timelineCol(familyId));
+  const payload = {
     type, title, body, subjectRefs, occurredAt, attachments, source,
     pinned: false,
     correctsEntryId,
     ...createMeta(),
-  });
+  };
+
+  if (type === 'visit') {
+    // `lastVisitAt` je denormalizované pole na rodině (obrazovka Dnes, sekce
+    // "Čeká na vás") — CLAUDE.md: aktualizovat VŽDY v jednom batch zápisu se
+    // změnou, která ho vyvolala, ne dodatečně.
+    const batch = writeBatch(db);
+    batch.set(ref, payload);
+    batch.update(doc(db, 'foster_families', familyId), { lastVisitAt: occurredAt });
+    await batch.commit();
+  } else {
+    await setDoc(ref, payload);
+  }
   return ref.id;
 }
 

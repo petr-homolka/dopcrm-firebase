@@ -51,7 +51,15 @@ import {
   setDoc,
   writeBatch,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
+
+/** Pomůcka pro testovací `lastVisitAt` (obrazovka Dnes, Krok 3). */
+function daysAgoTimestamp(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return Timestamp.fromDate(d);
+}
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -87,7 +95,9 @@ const DEMO_ORGS = [
     ],
     families: [
       {
-        name: 'Rodina Nováková', koIndex: 0, careType: 'long',
+        // Krok 3 (2026-07-03, obrazovka Dnes): 50 dní bez návštěvy — testuje
+        // "Čeká na vás" v mezipásmu 45–60 dní (amber proužek, ne terakota).
+        name: 'Rodina Nováková', koIndex: 0, careType: 'long', lastVisitAtDaysAgo: 50,
         address: 'Teplice, Čelakovského 772/3', contactPhone: '+420 702 111 222',
         fosters: [{ name: 'Jana Nováková', rc: '775123/4567', phone: '+420 702 111 222', email: 'jana.novakova@example.cz' }],
         children: [
@@ -146,7 +156,9 @@ const DEMO_ORGS = [
     ],
     families: [
       {
-        name: 'Rodina Kučerová', koIndex: 0, careType: 'long',
+        // Krok 3 (2026-07-03, obrazovka Dnes): 65 dní bez návštěvy — testuje
+        // "Čeká na vás" nad prahem 60 dní (terakotový proužek, "krizová" položka).
+        name: 'Rodina Kučerová', koIndex: 0, careType: 'long', lastVisitAtDaysAgo: 65,
         address: 'Písek, Budějovická 55', contactPhone: '+420 606 333 444',
         fosters: [
           { name: 'Alena Kučerová', rc: '790423/1010', phone: '+420 606 333 444', email: '' },
@@ -330,6 +342,9 @@ async function seedDemoData(db, app, myUid) {
         fosters,
         agreement: { scope: 'spolecna', signatories: fosterIds, separationDecision: null },
         remuneration: { mode: 'single', recipients: fosterIds.slice(0, 1) },
+        // Krok 3 (2026-07-03): testovací "stará návštěva" pro obrazovku Dnes —
+        // chybí u ostatních rodin záměrně (simuluje "zatím žádná návštěva").
+        ...(familyDef.lastVisitAtDaysAgo != null ? { lastVisitAt: daysAgoTimestamp(familyDef.lastVisitAtDaysAgo) } : {}),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: myUid,

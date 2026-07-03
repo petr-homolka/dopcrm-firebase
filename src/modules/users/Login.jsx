@@ -4,9 +4,9 @@
  * Využívá services/orgAuth.js (NOVÉ schéma, 2026-07-01):
  *   - identita ověřena přes Firebase Auth (e-mail + heslo)
  *   - role/organizace načtena z Firestore users/{uid}, NIKDY z Custom Claims
- *   - po přihlášení redirect podle role: superadmin/org_admin/klicova_osoba
- *     mají každý svůj dashboard (dashboardPathForRole), ostatní (legacy
- *     user_roles účty) padají na starší /prehled.
+ *   - po přihlášení redirect podle role (homePathForRole): superadmin/org_admin
+ *     na svůj dashboard, klicova_osoba na obrazovku Dnes ("/"), ostatní
+ *     (legacy user_roles účty) padají na starší /prehled.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +16,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase.js';
-import { signIn, dashboardPathForRole } from '../../services/orgAuth.js';
+import { signIn, homePathForRole } from '../../services/orgAuth.js';
 import { useAuthStore } from '../../store/authStore.js';
 import Button from '../../components/ui/Button.jsx';
 import Card from '../../components/ui/Card.jsx';
@@ -62,7 +62,7 @@ export default function Login() {
   // Pokud je uživatel už přihlášen (store stihl dotáhnout roli), přesměruj okamžitě.
   useEffect(() => {
     if (!authLoading && authUser) {
-      navigate(explicitFrom ?? dashboardPathForRole(authRole), { replace: true });
+      navigate(explicitFrom ?? homePathForRole(authRole), { replace: true });
     }
   }, [authLoading, authUser, authRole, explicitFrom, navigate]);
 
@@ -105,7 +105,7 @@ export default function Login() {
       const user = await signIn(email.trim(), password);
       const profileSnap = await getDoc(doc(db, 'users', user.uid));
       const role = profileSnap.exists() ? profileSnap.data().role : null;
-      navigate(explicitFrom ?? dashboardPathForRole(role), { replace: true });
+      navigate(explicitFrom ?? homePathForRole(role), { replace: true });
     } catch (err) {
       setError(t(`auth.login.errors.${ERROR_KEY_MAP[err.code] ?? 'generic'}`));
     } finally {
