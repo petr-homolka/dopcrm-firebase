@@ -15,6 +15,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 |---|---|---|---|
 | B2B multi-tenant schéma | `organizations → users → foster_families → children` | `docs/history.md` | ✅ |
 | Self-service registrace organizace | Veřejná `/registrace`, žádné zakládání superadminem | `docs/history.md` (Fáze 1) | ✅ |
+| Veřejný profil organizace | `doprovazeni.com/{slug}`; čte VÝHRADNĚ oddělenou kolekci `public_profiles` a Storage cestu `public/{orgId}/`; publikace dokumentu = vědomé kopírování org_adminem; správa slugů | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
 | Hierarchie zaměstnanců | `org_admin → vedouci_pobocky → teamleader → klicova_osoba → asistent_ko`, `nadrizeny` | `docs/history.md` (Fáze 1) | ✅ |
 | Limit 25 rodin / klíčová osoba | `assertFamilyCapacity` | `docs/history.md` (Fáze 1) | ✅ |
 | Role/scope/práva (6 rolí, capability matice) | superadmin/vedení/KO/asistentka/pěstoun/dítě, scope all/own/self | `docs/history-claude-md.md` §5 | 🟡 (React má 5 rolí s vlastním dashboardem: superadmin/org_admin/vedouci_pobocky/teamleader/klicova_osoba — `asistent_ko`/`zamestnanec` zatím žádný) |
@@ -27,6 +28,8 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 |---|---|---|---|
 | Druhy péče (PPPD/dlouhodobá/příbuzenská) + odměna | Nárok na odměnu dle typu, i bez dítěte u PPPD | `docs/domain/druhy-pece-a-odmeny.md` | ✅ (`householdCareType`, `odmenaEligible` portováno) |
 | SPVPP (59 400 Kč/rok/dohoda) | Legislativní příspěvek, ne per dítě | `docs/domain/druhy-pece-a-odmeny.md` | 🟡 (React má jen interní peněženku per dítě, ne evidenci per dohoda) |
+| Časově platné sazebníky | `tariffs` s `validFrom` (i v minulosti), poměrný výpočet po dnech; zpětná změna = asistovaný krok (systém vyčíslí dotčené záznamy → Přepočítat/Ponechat), oprava překlepu stejným mechanismem, připomínka dlouho neměněné sazby, historie sazeb viditelná, bez tichých přepočtů | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
+| Evidence výplaty dávek MPSV | Na vazbě dítě↔pěstoun (příspěvek na úhradu potřeb) a na pěstounovi (odměna/příspěvek): `{vyplácena: ano/ne/nezjištěno, poznámka, zjištěno kdy+kým}`; změna stavu = system záznam do timeline; KO jen eviduje, systém nic nepočítá | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
 | Respit (2 metriky: vykázaný / reálný) | Zákonné minimum §47a, IPOD nadstandard | `docs/domain/druhy-pece-a-odmeny.md` | ✅ |
 | Svěření dítěte (`custody`, 1 nebo 2 osoby) | Jen manželé mohou mít společnou PP (§958 NOZ), spis. zn./soud/datum | `docs/domain/druhy-pece-a-odmeny.md` | ✅ pole na `children`, auto-default při založení, badge na kartě dítěte; sp.zn./soud editovatelné jen přes `updateChild` (bez formuláře zatím) |
 | Odměna pěstouna u společné PP (`remuneration.mode`) | Výchozí jen 1 osoba, `split50` možný na žádost obou (§47j) | `docs/domain/druhy-pece-a-odmeny.md` | 🟡 pole na `foster_families` + výchozí hodnoty existují; MVP implementuje jen `single`, `split50` bez formuláře (čeká na V-next) |
@@ -35,7 +38,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Adresy pěstouna (trvalé bydliště/pobyt) | — | `docs/history.md` (Fáze 2) | ✅ |
 | Sociální prostor domácnosti | Partner, biologické děti, rodiče pěstouna | `docs/history.md` (Fáze 2) | ✅ |
 | Šablony karet (Superadmin) + globální číselník institucí | Sdílené napříč organizacemi | `crm-sablony-a-sdilene-kontakty-todo` (paměť) | ⬜ |
-| Branding organizace (barvy, logo, theme-color) | Musí jít měnit v Nastavení | `crm-settings-branding-todo` (paměť) | ⬜ |
+| Branding organizace | Logo/avatar/motto/patička do `orgs/{orgId}/branding/` ve Storage, jedna akcentová barva s kontrolou kontrastu (entity barvy neměnné!), použití: hlavička aplikace, šablony generovaných dokumentů, e-maily; spravuje org_admin | `crm-settings-branding-todo` (paměť), zadání 2026-07-03 (Krok 0) | ⬜ |
 
 ## 3. Dítě
 
@@ -80,6 +83,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
 | Životní cyklus dokumentu (CLM, stavy) | draft→review→...→terminated | `docs/domain/dokumenty-clm.md` | ⬜ |
+| Break-glass režim podpory pro superadmina | Aktivace u avatara, plný přístup, souhlas org_admina NEBO nouzová větev s povinným odůvodněním, neměnný audit log, banner po dobu aktivace, automatická expirace, zápisy se `source: 'support'` | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
 | Kolaborace KO↔pěstoun (sdílení, komentář, verze) | — | `docs/domain/dokumenty-clm.md` | ⬜ |
 | Dodatek vs. odvozený nový dokument | — | `docs/domain/dokumenty-clm.md` | ⬜ |
 | Pozastavení/ukončení = návrh→schválení | Základní dohoda vždy jen fyzicky | `docs/domain/dokumenty-clm.md` | ⬜ |
@@ -150,6 +154,8 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | GCP all-in-one (produkce) | **Závazné rozhodnutí do odvolání** | `crm-ai-zapojeni-uvaha` (paměť) | 🟡 (Firebase/Firestore zatím, ne plný Cloud Run/SQL) |
 | V8 Blueprint (~143 tabulek, 10 milníků, RLS+audit+WORM) | **Má vždy přednost** | `crm-v8-blueprint` (paměť) | ⬜ velká budoucí etapa |
 | i18n přes translation_keys | Žádný natvrdo text | V8 blueprint | ⬜ |
+| Editovatelné systémové texty | Kolekce `system_texts`, dvě úrovně (systémové = superadmin, organizační přepisy = org_admin, organizační vyhrává), MD editor, u právně významných textů `updatedBy`/`updatedAt` | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
+| Lokalizace legislativy | Zásada: legislativní logika (sazby, druhy péče, workflow) jako konfigurace per země; MVP čistě CZ | `docs/domain/lokalizace-legislativy.md` | ⬜ |
 
 ## 11. Audit datového modelu (2026-07-03, opraveno 2026-07-03)
 
