@@ -47,7 +47,7 @@ export default function FosterFamilyDetailPage() {
   const navigate = useNavigate();
   const state = useFosterFamilyDetail(familyId);
   const {
-    loading, error, family, children, respitEvents, tab, setTab,
+    loading, error, family, children, respitEvents, fosterCourses, tab, setTab,
     nadstandardInput, setNadstandardInput, socialForm,
     vykazano, realny, limit, eligible,
     handleSaveNadstandard, openSocialDialog,
@@ -142,6 +142,7 @@ export default function FosterFamilyDetailPage() {
           {tab === 'pestouni' && (
             <FosterFamilyFostersTab
               fosters={fosters}
+              fosterCourses={fosterCourses}
               requiredHours={requiredHours}
               onAddFoster={() => setFosterDialogOpen(true)}
               onAddCourse={(fosterId) => setCourseDialogFor(fosterId)}

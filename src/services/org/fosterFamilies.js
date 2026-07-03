@@ -13,6 +13,7 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
   runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
@@ -130,7 +131,7 @@ export async function deleteFoster(familyId) {
 export async function addFosterPerson(familyId, person) {
   const family = await getFoster(familyId);
   if (!family) throw new Error('Rodina nenalezena.');
-  const fosters = [...(family.fosters ?? []), { id: genId('p'), courses: [], ...person }];
+  const fosters = [...(family.fosters ?? []), { id: genId('p'), ...person }];
   await setFosterPersons(familyId, fosters);
   return fosters;
 }
@@ -144,21 +145,29 @@ export async function updateFosterPerson(familyId, personId, patch) {
   return fosters;
 }
 
+// ── Vzdělávání pěstounů — append-only subkolekce ────────────────
+// Kurzy rostou v čase (opakují se každý rok), proto vlastní podkolekce
+// místo pole vnořeného v poli `fosters[]` (audit nálezu #4, 2026-07-03).
+// `personId` odkazuje na konkrétní osobu v `fosters[]` rodičovské rodiny.
+
+/** Všechny kurzy rodiny napříč jejími pěstouny — UI si je rozdělí podle `personId`. */
+export async function listFosterCourses(familyId) {
+  const snap = await getDocs(
+    query(collection(db, 'foster_families', familyId, 'fosterCourses'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 /**
  * Zapíše absolvovaný/plánovaný kurz vzdělávání pěstouna. Struktura dle zadání
  * 2026-07-02: kód kurzu / kde / kdy / forma / pořadatel / certifikát (+ hodiny
  * pro součet do CARE_TYPES.requiredHours).
  */
 export async function addFosterCourse(familyId, personId, course) {
-  const family = await getFoster(familyId);
-  if (!family) throw new Error('Rodina nenalezena.');
-  const fosters = (family.fosters ?? []).map((p) => {
-    if (p.id !== personId) return p;
-    const courses = [...(p.courses ?? []), { id: genId('c'), ...course }];
-    return { ...p, courses };
+  const ref = await addDoc(collection(db, 'foster_families', familyId, 'fosterCourses'), {
+    personId, ...course, ...createMeta(),
   });
-  await setFosterPersons(familyId, fosters);
-  return fosters;
+  return ref.id;
 }
 
 /** Sociální prostor domácnosti (manžel/partner, biologické děti, rodiče). */

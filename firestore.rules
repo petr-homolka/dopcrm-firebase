@@ -199,6 +199,21 @@ service cloud.firestore {
           || (isKlicovaOsoba() && sameOrg(parentFamily().organizationId)
               && parentFamily().assignedTo == request.auth.uid);
       }
+
+      // Vzdělávání pěstounů (kurzy) — append-only, roste v čase (audit nálezu
+      // #4, 2026-07-03: dřív pole fosters[].courses[] vnořené v poli, teď
+      // podkolekce s `personId` odkazem na konkrétní osobu ve `fosters[]`).
+      match /fosterCourses/{courseId} {
+        function parentFamilyCourses() {
+          return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentFamilyCourses().organizationId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(parentFamilyCourses().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentFamilyCourses().organizationId)
+              && parentFamilyCourses().assignedTo == request.auth.uid);
+        allow update, delete: if false;
+      }
     }
 
     // ── children (děti svěřené do péče) ──────────────────────

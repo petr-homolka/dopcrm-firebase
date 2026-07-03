@@ -10,7 +10,7 @@ import { UserPlus, User, Plus, GraduationCap } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 
-export default function FosterFamilyFostersTab({ fosters, requiredHours, onAddFoster, onAddCourse }) {
+export default function FosterFamilyFostersTab({ fosters, fosterCourses, requiredHours, onAddFoster, onAddCourse }) {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
@@ -27,7 +27,8 @@ export default function FosterFamilyFostersTab({ fosters, requiredHours, onAddFo
 
       <div className="flex flex-col divide-y divide-stone-100">
         {fosters.map((foster, idx) => {
-          const hours = (foster.courses ?? []).reduce((sum, c) => sum + (Number(c.hodiny) || 0), 0);
+          const courses = (fosterCourses ?? []).filter((c) => c.personId === foster.id);
+          const hours = courses.reduce((sum, c) => sum + (Number(c.hodiny) || 0), 0);
           const meetsHours = hours >= requiredHours;
           return (
             <div key={foster.id ?? idx} className={idx > 0 ? 'pt-4' : ''}>
@@ -59,9 +60,9 @@ export default function FosterFamilyFostersTab({ fosters, requiredHours, onAddFo
                     </p>
                   </div>
 
-                  {(foster.courses ?? []).length > 0 && (
+                  {courses.length > 0 && (
                     <ul className="mt-1.5 flex flex-col gap-1">
-                      {(foster.courses ?? []).map((c) => (
+                      {courses.map((c) => (
                         <li key={c.id} className="text-sm text-stone-600">
                           <span className="font-medium text-stone-700">{c.kod}</span>
                           {[c.kde, c.kdy, c.forma, c.poradatel, `${c.hodiny || 0} h`, c.certifikat ? 'certifikát ✓' : null]

@@ -11,7 +11,8 @@ import {
 } from '../../shared/domainConstants.js';
 import {
   getFoster, listChildrenByFamily, createChild, addFosterPerson,
-  addFosterCourse, listRespitEvents, addRespitEvent, setRespitNadstandard, setFamilySocialSpace,
+  addFosterCourse, listFosterCourses, listRespitEvents, addRespitEvent,
+  setRespitNadstandard, setFamilySocialSpace,
 } from '../../services/orgService.js';
 
 const emptyFosterForm = { name: '', rc: '', phone: '', email: '', addressPermanentText: '', addressResidenceText: '' };
@@ -26,6 +27,7 @@ export default function useFosterFamilyDetail(familyId) {
   const [family, setFamily] = useState(null);
   const [children, setChildren] = useState([]);
   const [respitEvents, setRespitEvents] = useState([]);
+  const [fosterCourses, setFosterCourses] = useState([]);
   const [tab, setTab] = useState('pestouni');
 
   const [fosterDialogOpen, setFosterDialogOpen] = useState(false);
@@ -51,13 +53,15 @@ export default function useFosterFamilyDetail(familyId) {
     try {
       const familyData = await getFoster(familyId);
       if (!familyData) throw new Error('Rodina nenalezena.');
-      const [childrenData, respitData] = await Promise.all([
+      const [childrenData, respitData, coursesData] = await Promise.all([
         listChildrenByFamily(familyId, familyData.organizationId),
         listRespitEvents(familyId),
+        listFosterCourses(familyId),
       ]);
       setFamily(familyData);
       setChildren(childrenData);
       setRespitEvents(respitData);
+      setFosterCourses(coursesData);
       setNadstandardInput(String(familyData.respitNadstandard ?? 0));
       setSocialForm(familyData.socialSpace ?? emptySocialSpace);
     } catch (err) {
@@ -208,7 +212,7 @@ export default function useFosterFamilyDetail(familyId) {
   }
 
   return {
-    loading, error, family, children, respitEvents, tab, setTab,
+    loading, error, family, children, respitEvents, fosterCourses, tab, setTab,
     fosterDialogOpen, setFosterDialogOpen, fosterForm, setFosterForm,
     childDialogOpen, setChildDialogOpen, childForm, setChildForm,
     courseDialogFor, setCourseDialogFor, courseForm, setCourseForm,
