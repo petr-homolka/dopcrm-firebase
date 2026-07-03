@@ -159,7 +159,7 @@ Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory
 | `previousFosters[]` roste v čase, ale byl pole v dokumentu | `children.previousFosters` | totéž | ✅ Přesunuto do `children/{id}/previousFosters` (migrace `scripts/migrate-previous-fosters.mjs`) |
 | `courtCase.rozsudky[]` rostlo v čase uvnitř vnořeného pole | `children.courtCase.rozsudky` | totéž | ✅ `courtCase` teď jen identita spisu; rozsudky v `children/{id}/courtVerdicts` (migrace `scripts/migrate-court-verdicts.mjs`) |
 | Vzdělávání (`courses[]`) rostlo v čase, vnořené 2 úrovně v poli | `foster_families.fosters[].courses[]` | totéž | ✅ Podkolekce `foster_families/{id}/fosterCourses` s polem `personId` (migrace `scripts/migrate-foster-courses.mjs`) |
-| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů | 🟡 ČÁSTEČNĚ ŘEŠENO 2026-07-03: Kalendář přepojen na Sekci B (`organizations/{orgId}/events`, viz níže), Dokumenty vypnuty do `/legacy-modules` (nahradí je `docs/domain/dokumentova-pipeline.md` implementace + AI generování). Zbytek (`Přehled`, `Pěstouni`, `Děti`, `Kontakty`, `Vzdělávání`, `Hub`, `Uživatelé`, `Nastavení` na `/pestouni` atd.) zůstává na Sekci A, viz inventura níže. |
+| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů | 🟡 ČÁSTEČNĚ ŘEŠENO 2026-07-03: Kalendář přepojen na Sekci B (`organizations/{orgId}/events`), Dokumenty vypnuty do `/legacy-modules`, Přehled (`DashboardPage`) opraven na Sekci B — byl živě rozbitý pro každého B2B uživatele. Zbytek (`Pěstouni`, `Děti`, `Kontakty`, `Vzdělávání`, `Hub`, `Uživatelé`, `Nastavení` na `/pestouni` atd., plus samotné `auth.js`/`dataService.js`/`db.js`/`RequireAuth`) zůstává na Sekci A, viz inventura níže. |
 
 **Střední závažnost — OPRAVENO:**
 
@@ -199,7 +199,18 @@ Zbývá na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
 - `src/services/db.js` — plný CRUD nad stejným legacy stromem (`data_objects`, `timeline`, `institutions`, `card_templates`).
 - `src/core/router.jsx` (`AuthContext`/`useAuth`/`RequireAuth`) — hlídá zbylý strom `/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /vzdelavani, /hub/:typ/:id, /uzivatele, /nastaveni` (`/dokumenty` odebráno, `/kalendar` už na Sekci B).
 - `src/core/Layout.jsx` — sidebar shell těchto routes, čte `currentUser()/currentRole()` a volá `signOut()` z `services/auth.js`.
-- `src/modules/families/DashboardPage.jsx` (route `/prehled`) — ✅ OPRAVENO 2026-07-03, viz níže.
+- `src/modules/families/DashboardPage.jsx` (route `/prehled`) — ✅ OPRAVENO 2026-07-03: nečte
+  už `dataService.js` (byla živě rozbitá — `currentTenantId() je null` pro každého B2B
+  uživatele). Teď scoped přes `useAuthStore`: `klicova_osoba` → `listFostersAssignedTo` +
+  součet dětí po rodinách, `org_admin` → `listFostersByOrg`/`listChildrenByOrg` (celá
+  organizace), `superadmin` → `<Navigate>` na vlastní dashboard (nemá `organizationId`),
+  účet bez role v novém schématu → informativní `NoOrganizationCard` místo pádu. Ověřeno
+  živě pro `klicova_osoba` i `org_admin` (reálná data, žádná chyba v konzoli).
+  **Vedlejší nález:** při ověřování objeven nesouvisející pre-existující bug — `Login.jsx`
+  a legacy `LoginRoute` (`router.jsx`) mají dva nezávislé redirect mechanismy (`AuthContext`
+  vs. `useAuthStore`), které si mohou konkurovat a způsobit "Maximum update depth exceeded"
+  smyčku po přihlášení. Nahlášeno jako samostatný úkol (task_97b6c7fd), neopraveno v rámci
+  tohoto kroku.
 
 Jen stub bez logiky (8–11 řádků, žádná Sekce A závislost, jen zavěšené do routy/Layoutu):
 `FamiliesPage`, `FamilyDetailPage`, `ChildrenPage` (modul `children/`, ne `admin/`), `ContactsPage`,
