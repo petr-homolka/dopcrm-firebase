@@ -44,6 +44,31 @@ Rozhraní pro zadání vztahu vede uživatele číselníkem po skupinách s náp
 položky, a nabízí průvodce „pomoct s otcem“ (pár otázek → navrhne správný právní status —
 pravděpodobný/domnělý/sociální).
 
+## Právní síla vazeb — `legalWeight` (tři úrovně, zobrazují se graficky)
+
+Pro vizuální štítek u KAŽDÉ osoby v okolí dítěte (karta dítěte, Krok 2) se `legal` z výše
+uvedeného číselníku zjednodušuje na tři úrovně `legalWeight` — barvy dle DESIGN.md:
+
+- **`pecujici`** (zelená) — pěstoun(ka) se skutečným svěřením tohoto dítěte: jedná za dítě
+  v **běžných záležitostech** (§966 zákona č. 89/2012 Sb.). Není položka v `REL_TYPES` —
+  odvozuje se ze struktury svěření (`custody`, viz `druhy-pece-a-odmeny.md`), ne z výběru
+  vztahu u příbuzného.
+- **`bez_prav`** (stone) — žádná práva k dítěti. Zahrnuje všechny `REL_TYPES` položky
+  s `legal: false` (domnělý/pravděpodobný biologický rodič, nevlastní rodič, rodič mimo RL)
+  A NOVĚ **partnera/manžela pěstouna, který není součástí svěření** (viz níže) A pro účely
+  tohoto štítku i vztahy s `legal: 'na'` (sourozenci, širší rodina) — ti nemají k dítěti
+  žádnou rozhodovací pravomoc, i když jde o jinak platnou rodinnou vazbu.
+- **`rodicovska_odpovednost`** (amber) — nositel rodičovské odpovědnosti do zletilosti dítěte,
+  nebo kdo ji vykonává místo rodiče. Zahrnuje `REL_TYPES` položky s `legal: true` (rodič v RL,
+  matka dle fikce/soudu, osvojitel) i `legal: 'rep'`/`'birth'` (poručník, opatrovník, náhradní
+  matka dle porodu) — všichni jednají v **podstatných věcech** (pas, léčba, volba školy…),
+  ne jen běžných.
+
+**Nová položka číselníku `REL_TYPES`** (skupina „Pěstoun“, dosud chybí): `partner_pestouna`
+— „Partner/manžel pěstouna (bez svěření)“, `legal: false`, `legalWeight: 'bez_prav'`. Zapisuje
+se u dítěte, jehož pěstoun žije v domácnosti s partnerem/manželem, který ale sám není
+uveden ve svěření (viz `druhy-pece-a-odmeny.md` — svěření 1 vs. 2 osobám).
+
 ## Rodné číslo jako primární identifikátor osoby
 
 Rodné číslo (RČ), ne jméno, je primárním identifikátorem osoby v systému — je celoživotně

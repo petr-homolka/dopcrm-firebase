@@ -113,6 +113,27 @@ Když případ nezapadá do žádného předdefinovaného WF, KO/vedení si **po
 pojmenovaný postup** (seznam kroků), uloží ho k opakovanému použití, aplikuje na konkrétní
 rodinu a postupně odškrtává kroky (auditováno).
 
+## WF-16 · Rozvod pěstounů se společnou PP
+
+**Spouštěč: nové soudní rozhodnutí o svěření dítěte**, vydané ještě PŘED samotným
+rozvodem — soud nerozvede manžele, kteří jsou společnými pěstouny, dokud nejsou upravena
+práva a povinnosti pěstounů pro dobu po rozvodu (dítě zůstává v mezidobí svěřené oběma,
+viz `druhy-pece-a-odmeny.md`, §958 NOZ).
+
+1. **Svěření zůstane jen jednomu** z manželů → vazba dítě↔pěstoun u druhého manžela
+   zaniká (mění se z `legalWeight: 'pecujici'` na `'bez_prav'`, viz `vztahy-a-osoby.md`);
+   dítě zůstává s tím, komu bylo svěřeno. Rozvod manželství společnou PP manželů
+   automaticky ukončuje, i bez výslovného dodatečného rozhodnutí.
+2. **Svěření zůstane oběma** (výjimečně, střídavá péče po rozvodu) → `custody.type`
+   zůstává `'spolecne'`, ale manželství skončilo → dohoda o výkonu PP (`agreement`) se
+   musí přehodnotit na `scope: 'oddelena'` s evidovaným rozhodnutím obecního úřadu
+   (podmínka 3 měsíců odděleného soužití se u rozvedených považuje za splněnou).
+3. **Odměna (`remuneration`)** se přehodnotí: byla-li `split50`, rozdělení zaniká spolu
+   se zánikem manželství — přechod na `mode: 'single'` s příjemcem tím, komu zůstalo
+   svěřeno (nebo oběma jako dvěma samostatným domácnostem, řeší se case-by-case s ÚP).
+4. Zapsat **systémový záznam** do timeline rodiny (`type: 'system'`, dle `timeline.md`)
+   s lidsky čitelným popisem nového rozhodnutí a jeho dopadu na svěření/odměnu/dohodu.
+
 ## Checklisty (terénní sběr KO)
 
 Účel: KO rychle a bez komplikací **sbírá informace** (kdo je přítomen, jaká je situace) —
