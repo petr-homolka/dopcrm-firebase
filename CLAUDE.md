@@ -32,6 +32,10 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
   react-router-dom, zustand. PWA přes **vite-plugin-pwa** (žádný ruční sw.js).
 - **Backend:** Firebase — Auth, Firestore (multi-tenant schéma „sekce B" ve firestore.rules),
   Storage, Functions v2. AI: Vertex AI (Gemini) přes EU proxy, mock fallback bez backendu.
+- **i18n:** react-i18next, jediný jazyk `cs` (`src/locales/cs.json`, `src/i18n.js`). Nové
+  obrazovky POVINNĚ přes `useTranslation()`/`t()` — žádný natvrdo psaný text v JSX. Výjimka:
+  popisky odvozené z `src/shared/domainConstants.js` (REL_TYPES, CARE_TYPES apod.) — jejich
+  i18n je samostatný budoucí úkol (`docs/INVENTAR.md` „i18n přes translation_keys").
 - **Zakázáno:** MUI (@mui/*, @emotion/*) — probíhá odstranění; nové komponenty NIKDY v MUI.
   Bootstrap, jQuery, inline styly (`style={{}}`), ad-hoc hex barvy mimo tailwind.config.
 

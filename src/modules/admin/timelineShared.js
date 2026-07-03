@@ -16,12 +16,14 @@ export const TIMELINE_TYPE_META = {
   system: { label: 'Systém', icon: GitCommitHorizontal, tone: 'neutral' },
 };
 
+// `labelKey` místo natvrdo textu (Krok 2, i18n) — tohle je datová konstanta,
+// ne komponenta; t() překlad dělá až konzument (FosterFamilyTimelineTab.jsx).
 export const TIMELINE_FILTERS = [
-  { key: null, label: 'Vše' },
-  { key: 'visit', label: 'Návštěvy' },
-  { key: 'note', label: 'Poznámky' },
-  { key: 'document', label: 'Dokumenty' },
-  { key: 'system', label: 'Systém' },
+  { key: null, labelKey: 'timeline.filters.all' },
+  { key: 'visit', labelKey: 'timeline.filters.visits' },
+  { key: 'note', labelKey: 'timeline.filters.notes' },
+  { key: 'document', labelKey: 'timeline.filters.documents' },
+  { key: 'system', labelKey: 'timeline.filters.system' },
 ];
 
 export function toDate(value) {
@@ -31,11 +33,13 @@ export function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function formatDayHeading(date) {
+// `t` se předává z volající komponenty (Krok 2, i18n) — tohle je plain funkce,
+// ne komponenta/hook, nemůže si `useTranslation()` zavolat samo.
+export function formatDayHeading(date, t) {
   if (!date) return '—';
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
-  if (isToday) return 'Dnes';
+  if (isToday) return t('timeline.today');
   return date.toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 

@@ -8,6 +8,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 
 import { registerOrganization } from '../../services/registrationService.js';
@@ -23,15 +24,12 @@ const inputClass =
 const labelClass = 'mb-1 block text-xs font-medium text-stone-500';
 const sectionLabelClass = 'text-xs font-semibold uppercase tracking-wide text-stone-400';
 
-function mapFirebaseError(code) {
-  const map = {
-    'auth/email-already-in-use': 'Tento e-mail už je zaregistrovaný. Zkuste se přihlásit.',
-    'auth/invalid-email': 'Neplatný formát e-mailu.',
-    'auth/weak-password': 'Heslo je příliš slabé — zvolte alespoň 6 znaků.',
-    'auth/network-request-failed': 'Síťová chyba. Zkontrolujte připojení.',
-  };
-  return map[code] ?? 'Registrace se nezdařila. Zkuste to znovu.';
-}
+const ERROR_KEY_MAP = {
+  'auth/email-already-in-use': 'emailInUse',
+  'auth/invalid-email': 'invalidEmail',
+  'auth/weak-password': 'weakPassword',
+  'auth/network-request-failed': 'networkFailed',
+};
 
 const emptyForm = {
   orgName: '', slug: '', ico: '', dataBoxId: '',
@@ -52,6 +50,7 @@ function Field({ label, colSpan, ...props }) {
 }
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState(emptyForm);
   const [slugTouched, setSlugTouched] = useState(false);
@@ -78,11 +77,11 @@ export default function RegisterPage() {
     setError('');
 
     if (!form.orgName.trim() || !form.zFirstName.trim() || !form.zLastName.trim() || !form.email.trim() || form.password.length < 6) {
-      setError('Vyplňte prosím povinná pole. Heslo musí mít alespoň 6 znaků.');
+      setError(t('auth.register.errors.requiredFields'));
       return;
     }
     if (slugStatus !== 'ok') {
-      setError('Zvolte prosím platnou a volnou adresu URL organizace.');
+      setError(t('auth.register.errors.slugInvalid'));
       return;
     }
 
@@ -105,7 +104,7 @@ export default function RegisterPage() {
       navigate(dashboardPathForRole(role), { replace: true });
     } catch (err) {
       console.error('[RegisterPage] registerOrganization selhalo:', err);
-      setError(mapFirebaseError(err.code) ?? err.message);
+      setError(t(`auth.register.errors.${ERROR_KEY_MAP[err.code] ?? 'generic'}`));
     } finally {
       setSubmitting(false);
     }
@@ -119,9 +118,9 @@ export default function RegisterPage() {
             <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-600 text-2xl font-semibold text-white">
               D
             </span>
-            <h1 className="text-center text-lg font-semibold text-stone-800">Založit organizaci</h1>
+            <h1 className="text-center text-lg font-semibold text-stone-800">{t('auth.register.title')}</h1>
             <p className="text-center text-sm text-stone-500">
-              Doprovázení.com — registrace nové doprovázející organizace
+              {t('auth.register.subtitle')}
             </p>
           </div>
 
@@ -132,8 +131,8 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-            <p className={sectionLabelClass}>Organizace</p>
-            <Field label="Název organizace" value={form.orgName} onChange={updateOrgName} required disabled={submitting} autoFocus />
+            <p className={sectionLabelClass}>{t('auth.register.sectionOrganization')}</p>
+            <Field label={t('auth.register.orgName')} value={form.orgName} onChange={updateOrgName} required disabled={submitting} autoFocus />
             <SlugField
               value={form.slug}
               onChange={updateSlug}
@@ -142,16 +141,16 @@ export default function RegisterPage() {
               disabled={submitting}
             />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="IČO" value={form.ico} onChange={updateForm('ico')} disabled={submitting} />
-              <Field label="Datová schránka" value={form.dataBoxId} onChange={updateForm('dataBoxId')} disabled={submitting} />
+              <Field label={t('auth.register.ico')} value={form.ico} onChange={updateForm('ico')} disabled={submitting} />
+              <Field label={t('auth.register.dataBoxId')} value={form.dataBoxId} onChange={updateForm('dataBoxId')} disabled={submitting} />
             </div>
 
             <div className="h-px bg-stone-100" />
-            <p className={sectionLabelClass}>Adresa sídla</p>
-            <Field label="Ulice a číslo" value={form.sidloStreet} onChange={updateForm('sidloStreet')} disabled={submitting} />
+            <p className={sectionLabelClass}>{t('auth.register.sectionSidlo')}</p>
+            <Field label={t('auth.register.street')} value={form.sidloStreet} onChange={updateForm('sidloStreet')} disabled={submitting} />
             <div className="grid grid-cols-3 gap-3">
-              <Field label="Město" colSpan="col-span-2" value={form.sidloCity} onChange={updateForm('sidloCity')} disabled={submitting} />
-              <Field label="PSČ" value={form.sidloZip} onChange={updateForm('sidloZip')} disabled={submitting} />
+              <Field label={t('auth.register.city')} colSpan="col-span-2" value={form.sidloCity} onChange={updateForm('sidloCity')} disabled={submitting} />
+              <Field label={t('auth.register.zip')} value={form.sidloZip} onChange={updateForm('sidloZip')} disabled={submitting} />
             </div>
 
             <label className="flex items-center gap-2.5 text-sm text-stone-700">
@@ -162,47 +161,47 @@ export default function RegisterPage() {
                 disabled={submitting}
                 className="h-4 w-4 rounded border-0 bg-stone-100 text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600"
               />
-              Adresa provozovny je stejná jako sídlo
+              {t('auth.register.sameAsSidlo')}
             </label>
 
             {!form.sameAsSidlo && (
               <>
-                <p className={sectionLabelClass}>Adresa provozovny</p>
-                <Field label="Ulice a číslo" value={form.provStreet} onChange={updateForm('provStreet')} disabled={submitting} />
+                <p className={sectionLabelClass}>{t('auth.register.sectionProvozovna')}</p>
+                <Field label={t('auth.register.street')} value={form.provStreet} onChange={updateForm('provStreet')} disabled={submitting} />
                 <div className="grid grid-cols-3 gap-3">
-                  <Field label="Město" colSpan="col-span-2" value={form.provCity} onChange={updateForm('provCity')} disabled={submitting} />
-                  <Field label="PSČ" value={form.provZip} onChange={updateForm('provZip')} disabled={submitting} />
+                  <Field label={t('auth.register.city')} colSpan="col-span-2" value={form.provCity} onChange={updateForm('provCity')} disabled={submitting} />
+                  <Field label={t('auth.register.zip')} value={form.provZip} onChange={updateForm('provZip')} disabled={submitting} />
                 </div>
               </>
             )}
 
             <div className="h-px bg-stone-100" />
-            <p className={sectionLabelClass}>Zástupce organizace (váš účet)</p>
+            <p className={sectionLabelClass}>{t('auth.register.sectionZastupce')}</p>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Jméno" value={form.zFirstName} onChange={updateForm('zFirstName')} required disabled={submitting} />
-              <Field label="Příjmení" value={form.zLastName} onChange={updateForm('zLastName')} required disabled={submitting} />
+              <Field label={t('auth.register.firstName')} value={form.zFirstName} onChange={updateForm('zFirstName')} required disabled={submitting} />
+              <Field label={t('auth.register.lastName')} value={form.zLastName} onChange={updateForm('zLastName')} required disabled={submitting} />
             </div>
-            <Field label="Funkce v organizaci" value={form.zFunkce} onChange={updateForm('zFunkce')} disabled={submitting} />
+            <Field label={t('auth.register.funkce')} value={form.zFunkce} onChange={updateForm('zFunkce')} disabled={submitting} />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Rodné číslo" placeholder="např. 765912/3210" value={form.zRc} onChange={updateForm('zRc')} disabled={submitting} />
-              <Field label="Telefon" value={form.zPhone} onChange={updateForm('zPhone')} disabled={submitting} />
+              <Field label={t('auth.register.rc')} placeholder={t('auth.register.rcPlaceholder')} value={form.zRc} onChange={updateForm('zRc')} disabled={submitting} />
+              <Field label={t('auth.register.phone')} value={form.zPhone} onChange={updateForm('zPhone')} disabled={submitting} />
             </div>
-            <Field label="Přihlašovací e-mail" type="email" value={form.email} onChange={updateForm('email')} required disabled={submitting} />
+            <Field label={t('auth.register.email')} type="email" value={form.email} onChange={updateForm('email')} required disabled={submitting} />
             <div>
-              <Field label="Heslo" type="password" value={form.password} onChange={updateForm('password')} required disabled={submitting} />
-              <p className="mt-1 text-xs text-stone-400">Alespoň 6 znaků.</p>
+              <Field label={t('auth.register.password')} type="password" value={form.password} onChange={updateForm('password')} required disabled={submitting} />
+              <p className="mt-1 text-xs text-stone-400">{t('auth.register.passwordHint')}</p>
             </div>
 
             <Button type="submit" size="lg" disabled={submitting || slugStatus !== 'ok'} className="mt-1 w-full">
               {submitting && <Loader2 size={18} className="animate-spin" />}
-              {submitting ? 'Zakládám organizaci…' : 'Založit organizaci a pokračovat'}
+              {submitting ? t('auth.register.submitting') : t('auth.register.submit')}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-stone-500">
-            Už máte účet?{' '}
+            {t('auth.register.hasAccountPrompt')}{' '}
             <a href="/login" className="font-semibold text-primary-600 no-underline">
-              Přihlaste se
+              {t('auth.register.loginCta')}
             </a>
           </p>
         </Card>

@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   respitVykazano, respitRealny, respitLimitFor, odmenaEligible,
 } from '../../shared/domainConstants.js';
@@ -22,6 +23,7 @@ const emptyRespitForm = { from: '', to: '', typ: 'tabor_pobyt', childIds: [], kc
 const emptySocialSpace = { partner: { name: '', rc: '', phone: '', relationship: '' }, biologicalChildren: [], parents: [] };
 
 export default function useFosterFamilyDetail(familyId) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [family, setFamily] = useState(null);
@@ -52,7 +54,7 @@ export default function useFosterFamilyDetail(familyId) {
     setError('');
     try {
       const familyData = await getFoster(familyId);
-      if (!familyData) throw new Error('Rodina nenalezena.');
+      if (!familyData) throw new Error(t('family.detail.errors.familyNotFound'));
       const [childrenData, respitPage, coursesPage] = await Promise.all([
         listChildrenByFamily(familyId, familyData.organizationId),
         listRespitEvents(familyId),
@@ -66,11 +68,11 @@ export default function useFosterFamilyDetail(familyId) {
       setSocialForm(familyData.socialSpace ?? emptySocialSpace);
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Načtení selhalo:', err);
-      setError(err.message ?? 'Data se nepodařilo načíst.');
+      setError(err.message ?? t('family.detail.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [familyId]);
+  }, [familyId, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -82,7 +84,7 @@ export default function useFosterFamilyDetail(familyId) {
   async function handleAddFoster(e) {
     e.preventDefault();
     setSubmitError('');
-    if (!fosterForm.name.trim()) { setSubmitError('Zadejte jméno pěstouna.'); return; }
+    if (!fosterForm.name.trim()) { setSubmitError(t('family.detail.errors.enterFosterName')); return; }
     setSubmitting(true);
     try {
       await addFosterPerson(familyId, {
@@ -95,7 +97,7 @@ export default function useFosterFamilyDetail(familyId) {
       await load();
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Přidání pěstouna selhalo:', err);
-      setSubmitError(err.message ?? 'Přidání se nezdařilo.');
+      setSubmitError(err.message ?? t('family.detail.errors.addFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -105,7 +107,7 @@ export default function useFosterFamilyDetail(familyId) {
     e.preventDefault();
     setSubmitError('');
     if (!childForm.firstName.trim() || !childForm.lastName.trim()) {
-      setSubmitError('Zadejte jméno a příjmení dítěte.');
+      setSubmitError(t('family.detail.errors.enterChildName'));
       return;
     }
     setSubmitting(true);
@@ -122,7 +124,7 @@ export default function useFosterFamilyDetail(familyId) {
       await load();
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Přidání dítěte selhalo:', err);
-      setSubmitError(err.message ?? 'Přidání se nezdařilo.');
+      setSubmitError(err.message ?? t('family.detail.errors.addFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -131,7 +133,7 @@ export default function useFosterFamilyDetail(familyId) {
   async function handleAddCourse(e) {
     e.preventDefault();
     setSubmitError('');
-    if (!courseForm.kod.trim()) { setSubmitError('Zadejte kód/název kurzu.'); return; }
+    if (!courseForm.kod.trim()) { setSubmitError(t('family.detail.errors.enterCourseCode')); return; }
     setSubmitting(true);
     try {
       await addFosterCourse(familyId, courseDialogFor, {
@@ -144,7 +146,7 @@ export default function useFosterFamilyDetail(familyId) {
       await load();
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Zápis kurzu selhal:', err);
-      setSubmitError(err.message ?? 'Zápis se nezdařil.');
+      setSubmitError(err.message ?? t('family.detail.errors.recordFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +155,7 @@ export default function useFosterFamilyDetail(familyId) {
   async function handleAddRespit(e) {
     e.preventDefault();
     setSubmitError('');
-    if (!respitForm.from) { setSubmitError('Zadejte datum od.'); return; }
+    if (!respitForm.from) { setSubmitError(t('family.detail.errors.enterFromDate')); return; }
     setSubmitting(true);
     try {
       await addRespitEvent(familyId, {
@@ -165,7 +167,7 @@ export default function useFosterFamilyDetail(familyId) {
       await load();
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Zápis respitu selhal:', err);
-      setSubmitError(err.message ?? 'Zápis se nezdařil.');
+      setSubmitError(err.message ?? t('family.detail.errors.recordFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +201,7 @@ export default function useFosterFamilyDetail(familyId) {
       await load();
     } catch (err) {
       console.error('[FosterFamilyDetailPage] Uložení sociálního prostoru selhalo:', err);
-      setSubmitError(err.message ?? 'Uložení se nezdařilo.');
+      setSubmitError(err.message ?? t('family.detail.errors.saveFailed'));
     } finally {
       setSubmitting(false);
     }

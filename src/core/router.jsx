@@ -63,15 +63,17 @@ const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPa
 
 // ── Navigační definice (odpovídá RAIL v prototypu) ───────────
 
-// Datová konstanta sdílená s Layout.jsx, ne komponenta.
+// Datová konstanta sdílená s Layout.jsx, ne komponenta. `labelKey` místo natvrdo
+// textu (Krok 2, i18n) — router.jsx je jen směrovač/konfigurace (CLAUDE.md), samotný
+// t() překlad dělá až konzument (Layout.jsx), který běží uvnitř komponenty.
 // eslint-disable-next-line react-refresh/only-export-components
 export const MVP_NAV = [
-  { path: '/prehled',    label: 'Přehled',     icon: 'grid' },
-  { path: '/pestouni',   label: 'Pěstouni',    icon: 'user' },
-  { path: '/deti',       label: 'Děti',        icon: 'child' },
-  { path: '/kontakty',   label: 'Kontakty',    icon: 'building' },
-  { path: '/kalendar',   label: 'Kalendář',    icon: 'calendar' },
-  { path: '/vzdelavani', label: 'Vzdělávání',  icon: 'book' },
+  { path: '/prehled',    labelKey: 'nav.items.prehled',    icon: 'grid' },
+  { path: '/pestouni',   labelKey: 'nav.items.pestouni',   icon: 'user' },
+  { path: '/deti',       labelKey: 'nav.items.deti',       icon: 'child' },
+  { path: '/kontakty',   labelKey: 'nav.items.kontakty',   icon: 'building' },
+  { path: '/kalendar',   labelKey: 'nav.items.kalendar',   icon: 'calendar' },
+  { path: '/vzdelavani', labelKey: 'nav.items.vzdelavani', icon: 'book' },
 ];
 
 // Dokumenty vypnuty (audit #5, docs/INVENTAR.md §11) — viz legacy-modules/README.md.

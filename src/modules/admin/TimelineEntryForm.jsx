@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import ChildFormModal from './ChildFormModal.jsx';
 import { fieldClass, labelClass } from './childDetailShared.js';
 import { cn } from '../../components/ui/cn.js';
@@ -11,6 +12,8 @@ import { cn } from '../../components/ui/cn.js';
 export default function TimelineEntryForm({
   form, setForm, childrenList, correctingEntry, onClose, onSubmit,
 }) {
+  const { t } = useTranslation();
+
   function toggleChild(childId) {
     setForm((f) => ({
       ...f,
@@ -27,18 +30,18 @@ export default function TimelineEntryForm({
 
   return (
     <ChildFormModal
-      title={correctingEntry ? `Oprava: ${correctingEntry.title}` : 'Nová poznámka'}
+      title={correctingEntry ? t('timeline.correctionTitle', { title: correctingEntry.title }) : t('timeline.form.newNoteTitle')}
       onClose={onClose}
       onSubmit={handleSubmit}
       submitting={false}
-      submitLabel="Uložit"
+      submitLabel={t('common.save')}
     >
       {!correctingEntry && (
         <div>
-          <label className={labelClass}>Titulek</label>
+          <label className={labelClass}>{t('timeline.form.titleLabel')}</label>
           <input
             className={fieldClass}
-            placeholder="Poznámka"
+            placeholder={t('timeline.defaultTitle')}
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
           />
@@ -46,7 +49,7 @@ export default function TimelineEntryForm({
       )}
 
       <div>
-        <label className={labelClass}>Text</label>
+        <label className={labelClass}>{t('timeline.form.textLabel')}</label>
         <textarea
           className={fieldClass}
           rows={4}
@@ -58,7 +61,7 @@ export default function TimelineEntryForm({
       </div>
 
       <div>
-        <label className={labelClass}>Datum události</label>
+        <label className={labelClass}>{t('timeline.form.dateLabel')}</label>
         <input
           type="date"
           className={fieldClass}
@@ -68,7 +71,7 @@ export default function TimelineEntryForm({
       </div>
 
       <div>
-        <label className={labelClass}>Koho se týká (prázdné = celá rodina)</label>
+        <label className={labelClass}>{t('timeline.form.subjectsLabel')}</label>
         <div className="flex flex-wrap gap-1.5">
           {childrenList.map((child) => (
             <button

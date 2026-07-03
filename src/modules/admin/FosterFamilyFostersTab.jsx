@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserPlus, User, Plus, GraduationCap } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -21,20 +22,21 @@ export default function FosterFamilyFostersTab({
   onAddCourse,
   canManage = true,
 }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">Pěstouni v domácnosti</h2>
+        <h2 className="text-base font-semibold text-stone-800">{t('family.detail.fosters.title')}</h2>
         {canManage && (
           <Button size="sm" variant="secondary" onClick={onAddFoster}>
             <UserPlus size={16} strokeWidth={1.75} />
-            Přidat pěstouna
+            {t('family.detail.fosters.addFoster')}
           </Button>
         )}
       </div>
 
       {fosters.length === 0 && (
-        <p className="py-4 text-sm text-stone-500">Zatím žádný pěstoun v evidenci.</p>
+        <p className="py-4 text-sm text-stone-500">{t('family.detail.fosters.empty')}</p>
       )}
 
       <div className="flex flex-col divide-y divide-stone-100">
@@ -51,12 +53,12 @@ export default function FosterFamilyFostersTab({
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-stone-800">{foster.name}</p>
                   <p className="text-sm text-stone-500">
-                    {[foster.rc && `RČ ${foster.rc}`, foster.phone, foster.email].filter(Boolean).join(' · ') || '—'}
+                    {[foster.rc && t('family.detail.fosters.rcPrefix', { rc: foster.rc }), foster.phone, foster.email].filter(Boolean).join(' · ') || '—'}
                   </p>
                   {(foster.addressPermanentText || foster.addressResidenceText) && (
                     <p className="mt-0.5 text-sm text-stone-500">
-                      {foster.addressPermanentText && <>Trvalé bydliště: {foster.addressPermanentText}. </>}
-                      {foster.addressResidenceText && <>Adresa pobytu: {foster.addressResidenceText}.</>}
+                      {foster.addressPermanentText && <>{t('family.detail.fosters.permanentAddress', { address: foster.addressPermanentText })} </>}
+                      {foster.addressResidenceText && <>{t('family.detail.fosters.residenceAddress', { address: foster.addressResidenceText })}</>}
                     </p>
                   )}
 
@@ -67,8 +69,8 @@ export default function FosterFamilyFostersTab({
                       className={meetsHours ? 'text-green-700' : 'text-amber-700'}
                     />
                     <p className="text-sm text-stone-700">
-                      Vzdělávání: <b>{hours} h</b> / {requiredHours} h za posledních 12 měsíců
-                      {meetsHours ? ' — splněno' : ' — pod plánem'}
+                      {t('family.detail.fosters.educationLabel')} <b>{t('family.detail.fosters.hoursValue', { hours })}</b> / {t('family.detail.fosters.hoursOf12Months', { hours: requiredHours })}
+                      {meetsHours ? t('family.detail.fosters.educationMet') : t('family.detail.fosters.educationBelowPlan')}
                     </p>
                   </div>
 
@@ -77,7 +79,7 @@ export default function FosterFamilyFostersTab({
                       {courses.map((c) => (
                         <li key={c.id} className="text-sm text-stone-600">
                           <span className="font-medium text-stone-700">{c.kod}</span>
-                          {[c.kde, c.kdy, c.forma, c.poradatel, `${c.hodiny || 0} h`, c.certifikat ? 'certifikát ✓' : null]
+                          {[c.kde, c.kdy, c.forma, c.poradatel, t('family.detail.fosters.hoursValue', { hours: c.hodiny || 0 }), c.certifikat ? t('family.detail.fosters.certificateMark') : null]
                             .filter(Boolean)
                             .map((part) => ` · ${part}`)}
                         </li>
@@ -93,7 +95,7 @@ export default function FosterFamilyFostersTab({
                       className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:pointer-events-none"
                     >
                       <Plus size={16} strokeWidth={1.75} />
-                      Zapsat kurz
+                      {t('family.detail.fosters.addCourse')}
                     </button>
                   )}
                 </div>

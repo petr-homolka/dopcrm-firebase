@@ -20,6 +20,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import Badge from '../../components/ui/Badge.jsx';
@@ -33,19 +34,20 @@ import { useChildDetailForms } from './useChildDetailForms.js';
 import { useChildDetailLists } from './useChildDetailLists.js';
 import ChildDetailTabs from './ChildDetailTabs.jsx';
 
-const TABS = [
-  { key: 'identita', label: 'Identita' },
-  { key: 'skola', label: 'Škola' },
-  { key: 'ospod', label: 'OSPOD a soud' },
-  { key: 'rodina', label: 'Biologická rodina' },
-  { key: 'socialni', label: 'Sociální prostor' },
-  { key: 'poznamky', label: 'Poznámky' },
-  { key: 'historie', label: 'Historie' },
-];
-
 export default function ChildDetailPage() {
+  const { t } = useTranslation();
   const { familyId, childId } = useParams();
   const navigate = useNavigate();
+
+  const TABS = [
+    { key: 'identita', label: t('child.detail.tabs.identita') },
+    { key: 'skola', label: t('child.detail.tabs.skola') },
+    { key: 'ospod', label: t('child.detail.tabs.ospod') },
+    { key: 'rodina', label: t('child.detail.tabs.rodina') },
+    { key: 'socialni', label: t('child.detail.tabs.socialni') },
+    { key: 'poznamky', label: t('child.detail.tabs.poznamky') },
+    { key: 'historie', label: t('child.detail.tabs.historie') },
+  ];
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -59,16 +61,16 @@ export default function ChildDetailPage() {
     setError('');
     try {
       const [data] = await Promise.all([getChild(childId), loadLists()]);
-      if (!data) throw new Error('Dítě nenalezeno.');
+      if (!data) throw new Error(t('child.detail.errors.notFound'));
       setChild(data);
       setFamily(await getFoster(data.fosterFamilyId));
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
-      setError(err.message ?? 'Data se nepodařilo načíst.');
+      setError(err.message ?? t('child.detail.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [childId, loadLists]);
+  }, [childId, loadLists, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -82,13 +84,13 @@ export default function ChildDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`/admin/terenni/${familyId}`)}
-          aria-label="Zpět na rodinu"
+          aria-label={t('child.detail.backToFamily')}
           className="mt-0.5 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
         >
           <ArrowLeft size={20} strokeWidth={1.75} />
         </button>
         <h1 className="min-w-0 flex-1 break-words text-lg font-semibold text-stone-800 sm:text-xl">
-          {loading ? 'Načítám…' : `${child?.firstName ?? ''} ${child?.lastName ?? ''}`.trim()}
+          {loading ? t('common.loading') : `${child?.firstName ?? ''} ${child?.lastName ?? ''}`.trim()}
         </h1>
         {child && <Badge tone="family" className="mt-0.5">{careLabel(child.careType)}</Badge>}
       </div>

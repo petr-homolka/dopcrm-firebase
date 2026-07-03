@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserPlus } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -23,24 +24,25 @@ export default function ChildSocialSpaceTab({
   submitError,
   canManage = true,
 }) {
+  const { t } = useTranslation();
   const socialSpace = child.socialSpace ?? [];
 
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">Sociální prostor ({socialSpace.length})</h2>
+        <h2 className="text-base font-semibold text-stone-800">{t('child.detail.socialSpace.title', { count: socialSpace.length })}</h2>
         {canManage && (
           <Button variant="secondary" size="sm" onClick={onOpen}>
             <UserPlus size={16} strokeWidth={1.75} />
-            Přidat osobu
+            {t('child.detail.socialSpace.addPerson')}
           </Button>
         )}
       </div>
       <p className="mb-1 text-sm text-stone-500">
-        Osoby v okolí dítěte bez biologické vazby — kmotři, blízcí rodinní přátelé, širší okolí.
+        {t('child.detail.socialSpace.description')}
       </p>
 
-      {socialSpace.length === 0 && <p className="py-2 text-sm text-stone-500">Zatím nikdo evidován.</p>}
+      {socialSpace.length === 0 && <p className="py-2 text-sm text-stone-500">{t('child.detail.socialSpace.empty')}</p>}
 
       <ul>
         {socialSpace.map((p) => (
@@ -52,21 +54,21 @@ export default function ChildSocialSpaceTab({
       </ul>
 
       {socialDialogOpen && (
-        <ChildFormModal title="Přidat do sociálního prostoru" onClose={onClose} onSubmit={onAdd} submitting={submitting} submitError={submitError} submitLabel="Přidat">
+        <ChildFormModal title={t('child.detail.socialSpace.modalTitle')} onClose={onClose} onSubmit={onAdd} submitting={submitting} submitError={submitError} submitLabel={t('child.detail.socialSpace.add')}>
           <div>
-            <label className={labelClass}>Jméno a příjmení</label>
+            <label className={labelClass}>{t('child.detail.socialSpace.nameLabel')}</label>
             <input className={fieldClass} value={socialForm.name} onChange={(e) => setSocialForm((f) => ({ ...f, name: e.target.value }))} required disabled={submitting} autoFocus />
           </div>
           <div>
-            <label className={labelClass}>Vztah k dítěti</label>
-            <input className={fieldClass} placeholder="např. kmotra, rodinná přítelkyně" value={socialForm.vztah} onChange={(e) => setSocialForm((f) => ({ ...f, vztah: e.target.value }))} disabled={submitting} />
+            <label className={labelClass}>{t('child.detail.socialSpace.relationLabel')}</label>
+            <input className={fieldClass} placeholder={t('child.detail.socialSpace.relationPlaceholder')} value={socialForm.vztah} onChange={(e) => setSocialForm((f) => ({ ...f, vztah: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Telefon</label>
+            <label className={labelClass}>{t('child.detail.socialSpace.phoneLabel')}</label>
             <input className={fieldClass} value={socialForm.phone} onChange={(e) => setSocialForm((f) => ({ ...f, phone: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>E-mail</label>
+            <label className={labelClass}>{t('child.detail.socialSpace.emailLabel')}</label>
             <input className={fieldClass} value={socialForm.email} onChange={(e) => setSocialForm((f) => ({ ...f, email: e.target.value }))} disabled={submitting} />
           </div>
         </ChildFormModal>

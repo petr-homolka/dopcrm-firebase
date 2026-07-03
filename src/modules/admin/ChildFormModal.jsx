@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -16,9 +17,10 @@ export default function ChildFormModal({
   onSubmit,
   submitting,
   submitError,
-  submitLabel = 'Uložit',
+  submitLabel,
   children,
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
@@ -33,7 +35,7 @@ export default function ChildFormModal({
           <button
             type="button"
             onClick={() => !submitting && onClose()}
-            aria-label="Zavřít"
+            aria-label={t('common.close')}
             className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
           >
             <X size={18} strokeWidth={1.75} />
@@ -49,10 +51,10 @@ export default function ChildFormModal({
 
           <div className="mt-1 flex justify-end gap-2.5">
             <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
-              Zrušit
+              {t('common.cancel')}
             </Button>
             <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? 'Ukládám…' : submitLabel}
+              {submitting ? t('common.saving') : (submitLabel ?? t('common.save'))}
             </Button>
           </div>
         </form>

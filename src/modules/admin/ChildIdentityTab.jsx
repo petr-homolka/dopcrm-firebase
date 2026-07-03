@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { BadgeCheck, Cake } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -29,29 +30,30 @@ export default function ChildIdentityTab({
   submitError,
   canManage = true,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card>
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Základní identita</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t('child.detail.identity.basicIdentity')}</p>
           <div className="flex items-center gap-2 text-stone-500">
             <BadgeCheck size={16} strokeWidth={1.75} />
-            <p className="text-sm">{child.rc ? `RČ ${child.rc}` : 'Rodné číslo nezadáno'}</p>
+            <p className="text-sm">{child.rc ? t('child.detail.identity.rcValue', { rc: child.rc }) : t('child.detail.identity.rcMissing')}</p>
           </div>
           <div className="flex items-center gap-2 text-stone-500">
             <Cake size={16} strokeWidth={1.75} />
-            <p className="text-sm">Narození {formatDate(child.birthDate)}</p>
+            <p className="text-sm">{t('child.detail.identity.birthDate', { date: formatDate(child.birthDate) })}</p>
           </div>
           <div className="my-1 h-px bg-stone-100" />
           <p className="text-sm text-stone-800">
-            Občanský průkaz: {child.idCard ? `${child.idCard.number}${child.idCard.validUntil ? ` (platný do ${child.idCard.validUntil})` : ''}` : 'nevydán'}
+            {t('child.detail.identity.idCardLabel')} {child.idCard ? `${child.idCard.number}${child.idCard.validUntil ? ` ${t('child.detail.identity.validUntil', { date: child.idCard.validUntil })}` : ''}` : t('child.detail.identity.notIssued')}
           </p>
           <p className="text-sm text-stone-800">
-            Cestovní pas: {child.passport ? `${child.passport.number}${child.passport.validUntil ? ` (platný do ${child.passport.validUntil})` : ''}` : 'nevydán'}
+            {t('child.detail.identity.passportLabel')} {child.passport ? `${child.passport.number}${child.passport.validUntil ? ` ${t('child.detail.identity.validUntil', { date: child.passport.validUntil })}` : ''}` : t('child.detail.identity.notIssued')}
           </p>
           {canManage && (
             <Button variant="secondary" size="sm" className="mt-1 self-start" onClick={onOpenDocs}>
-              {child.idCard || child.passport ? 'Upravit doklady' : 'Doplnit doklady'}
+              {child.idCard || child.passport ? t('child.detail.identity.editDocs') : t('child.detail.identity.addDocs')}
             </Button>
           )}
         </div>
@@ -59,23 +61,23 @@ export default function ChildIdentityTab({
 
       <Card>
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Adresy</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t('child.detail.identity.addresses')}</p>
           <div>
-            <p className="text-sm font-semibold text-stone-800">Trvalé bydliště</p>
-            <p className="text-sm text-stone-500">{addressLabel(child.addressPermanent) ?? 'Nevyplněno'}</p>
+            <p className="text-sm font-semibold text-stone-800">{t('child.detail.identity.permanentAddress')}</p>
+            <p className="text-sm text-stone-500">{addressLabel(child.addressPermanent) ?? t('child.detail.identity.notFilled')}</p>
             {canManage && (
               <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressPermanent', child.addressPermanent)}>
-                Upravit
+                {t('child.detail.identity.edit')}
               </Button>
             )}
           </div>
           <div className="h-px bg-stone-100" />
           <div>
-            <p className="text-sm font-semibold text-stone-800">Adresa pobytu (pokud jiná)</p>
-            <p className="text-sm text-stone-500">{addressLabel(child.addressResidence) ?? 'Stejná jako trvalé bydliště'}</p>
+            <p className="text-sm font-semibold text-stone-800">{t('child.detail.identity.residenceAddress')}</p>
+            <p className="text-sm text-stone-500">{addressLabel(child.addressResidence) ?? t('child.detail.identity.sameAsPermanent')}</p>
             {canManage && (
               <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressResidence', child.addressResidence)}>
-                Upravit
+                {t('child.detail.identity.edit')}
               </Button>
             )}
           </div>
@@ -84,43 +86,43 @@ export default function ChildIdentityTab({
 
       {addressDialogFor && (
         <ChildFormModal
-          title={addressDialogFor === 'addressPermanent' ? 'Adresa trvalého bydliště' : 'Adresa pobytu'}
+          title={addressDialogFor === 'addressPermanent' ? t('child.detail.identity.permanentAddressTitle') : t('child.detail.identity.residenceAddressTitle')}
           onClose={onCloseAddress}
           onSubmit={onSaveAddress}
           submitting={submitting}
           submitError={submitError}
         >
           <div>
-            <label className={labelClass}>Ulice a číslo</label>
+            <label className={labelClass}>{t('child.detail.identity.street')}</label>
             <input className={fieldClass} value={addressForm.street} onChange={(e) => setAddressForm((f) => ({ ...f, street: e.target.value }))} disabled={submitting} autoFocus />
           </div>
           <div>
-            <label className={labelClass}>Město</label>
+            <label className={labelClass}>{t('child.detail.identity.city')}</label>
             <input className={fieldClass} value={addressForm.city} onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>PSČ</label>
+            <label className={labelClass}>{t('child.detail.identity.zip')}</label>
             <input className={fieldClass} value={addressForm.zip} onChange={(e) => setAddressForm((f) => ({ ...f, zip: e.target.value }))} disabled={submitting} />
           </div>
         </ChildFormModal>
       )}
 
       {docsDialogOpen && (
-        <ChildFormModal title="Doklady" onClose={onCloseDocs} onSubmit={onSaveDocs} submitting={submitting} submitError={submitError}>
+        <ChildFormModal title={t('child.detail.identity.docsTitle')} onClose={onCloseDocs} onSubmit={onSaveDocs} submitting={submitting} submitError={submitError}>
           <div>
-            <label className={labelClass}>Číslo OP</label>
+            <label className={labelClass}>{t('child.detail.identity.idCardNumber')}</label>
             <input className={fieldClass} value={docsForm.idCardNumber} onChange={(e) => setDocsForm((f) => ({ ...f, idCardNumber: e.target.value }))} disabled={submitting} autoFocus />
           </div>
           <div>
-            <label className={labelClass}>OP platný do</label>
+            <label className={labelClass}>{t('child.detail.identity.idCardValidUntil')}</label>
             <input type="date" className={fieldClass} value={docsForm.idCardValidUntil} onChange={(e) => setDocsForm((f) => ({ ...f, idCardValidUntil: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Číslo cestovního pasu</label>
+            <label className={labelClass}>{t('child.detail.identity.passportNumber')}</label>
             <input className={fieldClass} value={docsForm.passportNumber} onChange={(e) => setDocsForm((f) => ({ ...f, passportNumber: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Pas platný do</label>
+            <label className={labelClass}>{t('child.detail.identity.passportValidUntil')}</label>
             <input type="date" className={fieldClass} value={docsForm.passportValidUntil} onChange={(e) => setDocsForm((f) => ({ ...f, passportValidUntil: e.target.value }))} disabled={submitting} />
           </div>
         </ChildFormModal>

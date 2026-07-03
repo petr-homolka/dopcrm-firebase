@@ -154,7 +154,8 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Ostrý AI provoz checklist (DPA/DPIA/souhlasy) | Před reálnými daty dětí | `docs/history-claude-md.md` §0 bod 6 | ⬜ |
 | GCP all-in-one (produkce) | **Závazné rozhodnutí do odvolání** | `crm-ai-zapojeni-uvaha` (paměť) | 🟡 (Firebase/Firestore zatím, ne plný Cloud Run/SQL) |
 | V8 Blueprint (~143 tabulek, 10 milníků, RLS+audit+WORM) | **Má vždy přednost** | `crm-v8-blueprint` (paměť) | ⬜ velká budoucí etapa |
-| i18n přes translation_keys | Žádný natvrdo text | V8 blueprint | ⬜ |
+| i18n základ (react-i18next) | Jediný jazyk (cs), `src/locales/cs.json`, texty login/registrace/nav/kalendáře/detailu rodiny+dítěte/timeline vytaženy do klíčů; nové obrazovky POVINNĚ `t()` | `CURRENT_STATE.md` (Krok 2, 2026-07-03) | ✅ |
+| i18n přes translation_keys (celý doménový slovník) | REL_TYPES/CARE_TYPES a další `domainConstants.js` popisky zatím natvrdo česky — samostatná budoucí etapa | V8 blueprint | ⬜ |
 | Editovatelné systémové texty | Kolekce `system_texts`, dvě úrovně (systémové = superadmin, organizační přepisy = org_admin, organizační vyhrává), MD editor, u právně významných textů `updatedBy`/`updatedAt` | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
 | Lokalizace legislativy | Zásada: legislativní logika (sazby, druhy péče, workflow) jako konfigurace per země; MVP čistě CZ | `docs/domain/lokalizace-legislativy.md` | ⬜ |
 

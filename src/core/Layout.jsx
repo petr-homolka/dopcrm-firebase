@@ -11,6 +11,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   Users,
@@ -70,6 +71,7 @@ const navItemClass = ({ isActive }) =>
   );
 
 function SidebarContent({ onNavigate }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentUser: user, role } = useAuthStore();
   const roleLabel = role ? (ROLE_LABELS[role] ?? role.slice(0, 2).toUpperCase()) : '—';
@@ -85,16 +87,16 @@ function SidebarContent({ onNavigate }) {
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 font-bold text-white">
           D
         </span>
-        <span className="truncate font-semibold text-stone-800">Doprovázení</span>
+        <span className="truncate font-semibold text-stone-800">{t('nav.brand')}</span>
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
-        {MVP_NAV.map(({ path, label, icon }) => {
+        {MVP_NAV.map(({ path, labelKey, icon }) => {
           const ItemIcon = ICON_MAP[icon] ?? FileText;
           return (
             <NavLink key={path} to={path} onClick={onNavigate} className={navItemClass}>
               <ItemIcon size={18} strokeWidth={1.75} />
-              {label}
+              {t(labelKey)}
             </NavLink>
           );
         })}
@@ -103,7 +105,7 @@ function SidebarContent({ onNavigate }) {
       <div className="space-y-0.5 border-t border-stone-100 px-3 py-2">
         <NavLink to="/nastaveni" onClick={onNavigate} className={navItemClass}>
           <Settings size={18} strokeWidth={1.75} />
-          Nastavení
+          {t('nav.settings')}
         </NavLink>
       </div>
 
@@ -113,14 +115,14 @@ function SidebarContent({ onNavigate }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-stone-800">
-            {user?.displayName ?? user?.email?.split('@')[0] ?? 'Uživatel'}
+            {user?.displayName ?? user?.email?.split('@')[0] ?? t('nav.defaultUser')}
           </p>
           <p className="text-xs text-stone-400">{roleLabel}</p>
         </div>
         <button
           type="button"
           onClick={handleSignOut}
-          aria-label="Odhlásit se"
+          aria-label={t('nav.signOut')}
           className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
         >
           <LogOut size={18} strokeWidth={1.75} />
@@ -131,6 +133,7 @@ function SidebarContent({ onNavigate }) {
 }
 
 export default function Layout() {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
@@ -141,7 +144,7 @@ export default function Layout() {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="Otevřít navigaci"
+          aria-label={t('nav.openMenu')}
           className="rounded-lg p-1.5 text-stone-600 hover:bg-stone-100"
         >
           <Menu size={22} strokeWidth={1.75} />
@@ -149,7 +152,7 @@ export default function Layout() {
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
           D
         </span>
-        <span className="font-semibold text-stone-800">Doprovázení</span>
+        <span className="font-semibold text-stone-800">{t('nav.brand')}</span>
       </header>
 
       {/* Postranní panel — permanentní na desktopu */}
@@ -165,7 +168,7 @@ export default function Layout() {
             <button
               type="button"
               onClick={closeMobile}
-              aria-label="Zavřít navigaci"
+              aria-label={t('nav.closeMenu')}
               className="absolute right-2 top-2 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
             >
               <X size={18} strokeWidth={1.75} />

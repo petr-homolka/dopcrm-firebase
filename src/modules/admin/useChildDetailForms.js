@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { REL_TYPES } from '../../shared/domainConstants.js';
 import {
   setChildRelatives, updateChildTracked, addPermanentNote,
@@ -17,6 +18,7 @@ import {
 } from './childDetailShared.js';
 
 export function useChildDetailForms({ childId, child, reload }) {
+  const { t } = useTranslation();
   const [relDialogOpen, setRelDialogOpen] = useState(false);
   const [relForm, setRelForm] = useState({ ...emptyRelForm, rel: REL_TYPES[0].key });
   const [socialDialogOpen, setSocialDialogOpen] = useState(false);
@@ -50,7 +52,7 @@ export function useChildDetailForms({ childId, child, reload }) {
         await reload();
       } catch (err) {
         console.error('[ChildDetailPage] Akce selhala:', err);
-        setSubmitError(err.message ?? 'Akce se nezdařila.');
+        setSubmitError(err.message ?? t('child.detail.errors.actionFailed'));
       } finally {
         setSubmitting(false);
       }
@@ -58,7 +60,7 @@ export function useChildDetailForms({ childId, child, reload }) {
   }
 
   const handleAddRelative = withSubmit(async () => {
-    if (!relForm.name.trim()) throw new Error('Zadejte jméno příbuzného.');
+    if (!relForm.name.trim()) throw new Error(t('child.detail.errors.relativeNameRequired'));
     const relType = REL_TYPES.find((r) => r.key === relForm.rel);
     const relatives = [
       ...(child.relatives ?? []),
@@ -70,7 +72,7 @@ export function useChildDetailForms({ childId, child, reload }) {
   });
 
   const handleAddSocial = withSubmit(async () => {
-    if (!socialForm.name.trim()) throw new Error('Zadejte jméno.');
+    if (!socialForm.name.trim()) throw new Error(t('child.detail.errors.nameRequired'));
     const socialSpace = [...(child.socialSpace ?? []), { id: `${Date.now().toString(36)}`, ...socialForm }];
     await setChildSocialSpace(childId, socialSpace);
     setSocialDialogOpen(false);
@@ -79,7 +81,7 @@ export function useChildDetailForms({ childId, child, reload }) {
 
   const handleSaveAddress = withSubmit(async () => {
     const field = addressDialogFor;
-    const label = field === 'addressPermanent' ? 'Adresa trvalého bydliště' : 'Adresa pobytu';
+    const label = field === 'addressPermanent' ? t('child.detail.identity.permanentAddressTitle') : t('child.detail.identity.residenceAddressTitle');
     const oldValue = addressLabel(child[field]) ?? '—';
     const newValue = addressLabel(addressForm) ?? '—';
     await updateChildTracked(childId, { [field]: addressForm },
@@ -91,14 +93,14 @@ export function useChildDetailForms({ childId, child, reload }) {
   const handleSaveSchool = withSubmit(async () => {
     const oldValue = child.school?.nazev || '—';
     await updateChildTracked(childId, { school: schoolForm },
-      oldValue !== schoolForm.nazev ? [{ field: 'Škola', from: oldValue, to: schoolForm.nazev || '—' }] : []);
+      oldValue !== schoolForm.nazev ? [{ field: t('child.detail.school.title'), from: oldValue, to: schoolForm.nazev || '—' }] : []);
     setSchoolDialogOpen(false);
   });
 
   const handleSaveOspod = withSubmit(async () => {
     const oldValue = child.ospod?.nazev || '—';
     await updateChildTracked(childId, { ospod: ospodForm },
-      oldValue !== ospodForm.nazev ? [{ field: 'OSPOD', from: oldValue, to: ospodForm.nazev || '—' }] : []);
+      oldValue !== ospodForm.nazev ? [{ field: t('child.detail.errors.ospodFieldLabel'), from: oldValue, to: ospodForm.nazev || '—' }] : []);
     setOspodDialogOpen(false);
   });
 
@@ -108,12 +110,12 @@ export function useChildDetailForms({ childId, child, reload }) {
     // children/{id}/courtVerdicts (audit nálezu #3), proto se sem nic
     // nemerguje ze starého child.courtCase.
     await updateChildTracked(childId, { courtCase: { ...courtForm } },
-      oldValue !== courtForm.spisZnacka ? [{ field: 'Spisová značka', from: oldValue, to: courtForm.spisZnacka || '—' }] : []);
+      oldValue !== courtForm.spisZnacka ? [{ field: t('child.detail.ospodCourt.caseNumberInputLabel'), from: oldValue, to: courtForm.spisZnacka || '—' }] : []);
     setCourtDialogOpen(false);
   });
 
   const handleAddVerdict = withSubmit(async () => {
-    if (!verdictForm.popis.trim()) throw new Error('Popište rozsudek/usnesení.');
+    if (!verdictForm.popis.trim()) throw new Error(t('child.detail.errors.verdictDescriptionRequired'));
     await addCourtVerdict(childId, { datum: verdictForm.datum, popis: verdictForm.popis.trim() });
     setVerdictDialogOpen(false);
     setVerdictForm(emptyVerdictForm);
@@ -123,20 +125,20 @@ export function useChildDetailForms({ childId, child, reload }) {
     const idCard = docsForm.idCardNumber ? { number: docsForm.idCardNumber, validUntil: docsForm.idCardValidUntil || null } : null;
     const passport = docsForm.passportNumber ? { number: docsForm.passportNumber, validUntil: docsForm.passportValidUntil || null } : null;
     const entries = [];
-    if (!child.idCard && idCard) entries.push({ field: 'Občanský průkaz', from: '—', to: `přidán (${idCard.number})` });
-    if (!child.passport && passport) entries.push({ field: 'Cestovní pas', from: '—', to: `přidán (${passport.number})` });
+    if (!child.idCard && idCard) entries.push({ field: t('child.detail.errors.idCardFieldLabel'), from: '—', to: t('child.detail.errors.docAdded', { number: idCard.number }) });
+    if (!child.passport && passport) entries.push({ field: t('child.detail.errors.passportFieldLabel'), from: '—', to: t('child.detail.errors.docAdded', { number: passport.number }) });
     await updateChildTracked(childId, { idCard, passport }, entries);
     setDocsDialogOpen(false);
   });
 
   const handleAddNote = withSubmit(async () => {
-    if (!noteText.trim()) throw new Error('Zadejte text poznámky.');
+    if (!noteText.trim()) throw new Error(t('child.detail.errors.noteTextRequired'));
     await addPermanentNote(childId, noteText.trim());
     setNoteText('');
   });
 
   const handleAddFosterHist = withSubmit(async () => {
-    if (!fosterHistForm.name.trim()) throw new Error('Zadejte název předchozí rodiny.');
+    if (!fosterHistForm.name.trim()) throw new Error(t('child.detail.errors.previousFamilyNameRequired'));
     await addPreviousFoster(childId, fosterHistForm);
     setFosterHistDialogOpen(false);
     setFosterHistForm(emptyFosterHistForm);

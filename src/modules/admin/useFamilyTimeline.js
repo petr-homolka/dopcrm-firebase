@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   listTimelineEntries, listPinnedTimelineEntries, createTimelineEntry,
   createTimelineCorrection, setTimelinePinned,
@@ -13,6 +14,7 @@ import {
 import { emptyEntryForm } from './timelineShared.js';
 
 export default function useFamilyTimeline(familyId) {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -38,7 +40,7 @@ export default function useFamilyTimeline(familyId) {
       setCursor(page.lastDoc);
       setHasMore(!!page.lastDoc);
     } catch (err) {
-      setLoadError(err.message ?? 'Záznamy se nepodařilo načíst.');
+      setLoadError(err.message ?? t('timeline.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function useFamilyTimeline(familyId) {
       console.error('[useFamilyTimeline] Připnuté záznamy se nepodařilo načíst:', err);
       setPinned([]);
     }
-  }, [familyId, typeFilter, childFilter]);
+  }, [familyId, typeFilter, childFilter, t]);
 
   useEffect(() => { loadFirstPage(); }, [loadFirstPage]);
 
@@ -81,7 +83,7 @@ export default function useFamilyTimeline(familyId) {
         });
       } else {
         await createTimelineEntry(familyId, {
-          type: 'note', title: payload.title.trim() || 'Poznámka', body: payload.body,
+          type: 'note', title: payload.title.trim() || t('timeline.defaultTitle'), body: payload.body,
           subjectRefs, occurredAt: new Date(payload.occurredAt), source: 'web',
         });
       }
@@ -90,7 +92,7 @@ export default function useFamilyTimeline(familyId) {
     } catch (err) {
       setPending((prev) => prev.map((p) => (p.id === localId ? { ...p, _status: 'error', _error: err.message } : p)));
     }
-  }, [familyId, loadFirstPage]);
+  }, [familyId, loadFirstPage, t]);
 
   function submitEntry(payload) {
     const localId = `pending-${Date.now()}`;
@@ -101,7 +103,7 @@ export default function useFamilyTimeline(familyId) {
       _correctingEntry: correctingEntry,
       _payload: payload,
       type: 'note',
-      title: correctingEntry ? `Oprava: ${correctingEntry.title}` : (payload.title.trim() || 'Poznámka'),
+      title: correctingEntry ? t('timeline.correctionTitle', { title: correctingEntry.title }) : (payload.title.trim() || t('timeline.defaultTitle')),
       body: payload.body,
       occurredAt: new Date(payload.occurredAt),
       subjectRefs: payload.childIds.map((id) => ({ kind: 'child', id })),
@@ -129,7 +131,7 @@ export default function useFamilyTimeline(familyId) {
       await setTimelinePinned(familyId, entry.id, !entry.pinned);
       await loadFirstPage();
     } catch (err) {
-      setPinError(err.message ?? 'Připnutí se nezdařilo.');
+      setPinError(err.message ?? t('timeline.errors.pinFailed'));
     }
   }
 

@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -22,6 +23,7 @@ const emptyForm = {
 };
 
 export default function EventFormModal({ families, submitting, submitError, onClose, onSubmit }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(emptyForm);
 
   function update(field, value) {
@@ -35,11 +37,11 @@ export default function EventFormModal({ families, submitting, submitError, onCl
     >
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">Nová událost</h2>
+          <h2 className="text-base font-semibold text-stone-800">{t('calendar.newEvent')}</h2>
           <button
             type="button"
             onClick={() => !submitting && onClose()}
-            aria-label="Zavřít"
+            aria-label={t('calendar.form.close')}
             className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
           >
             <X size={18} strokeWidth={1.75} />
@@ -52,7 +54,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
           )}
 
           <div>
-            <label className={labelClass}>Název</label>
+            <label className={labelClass}>{t('calendar.form.name')}</label>
             <input
               className={fieldClass}
               value={form.title}
@@ -64,7 +66,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
           </div>
 
           <div>
-            <label className={labelClass}>Typ</label>
+            <label className={labelClass}>{t('calendar.form.type')}</label>
             <select
               className={fieldClass}
               value={form.type}
@@ -79,7 +81,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Datum</label>
+              <label className={labelClass}>{t('calendar.form.date')}</label>
               <input
                 type="date"
                 className={fieldClass}
@@ -90,7 +92,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
               />
             </div>
             <div>
-              <label className={labelClass}>Čas</label>
+              <label className={labelClass}>{t('calendar.form.time')}</label>
               <input
                 type="time"
                 className={fieldClass}
@@ -109,18 +111,18 @@ export default function EventFormModal({ families, submitting, submitError, onCl
               disabled={submitting}
               className="h-4 w-4 rounded border-stone-300 text-primary-600 focus:ring-2 focus:ring-primary-600"
             />
-            Celodenní událost
+            {t('calendar.form.allDay')}
           </label>
 
           <div>
-            <label className={labelClass}>Rodina (volitelné)</label>
+            <label className={labelClass}>{t('calendar.form.family')}</label>
             <select
               className={fieldClass}
               value={form.fosterFamilyId}
               onChange={(e) => update('fosterFamilyId', e.target.value)}
               disabled={submitting}
             >
-              <option value="">— bez vazby na rodinu —</option>
+              <option value="">{t('calendar.form.noFamily')}</option>
               {families.map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
@@ -128,7 +130,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
           </div>
 
           <div>
-            <label className={labelClass}>Místo</label>
+            <label className={labelClass}>{t('calendar.form.location')}</label>
             <input
               className={fieldClass}
               value={form.location}
@@ -138,7 +140,7 @@ export default function EventFormModal({ families, submitting, submitError, onCl
           </div>
 
           <div>
-            <label className={labelClass}>Poznámka</label>
+            <label className={labelClass}>{t('calendar.form.note')}</label>
             <textarea
               className={fieldClass}
               rows={2}
@@ -150,10 +152,10 @@ export default function EventFormModal({ families, submitting, submitError, onCl
 
           <div className="mt-1 flex justify-end gap-2.5">
             <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
-              Zrušit
+              {t('calendar.form.cancel')}
             </Button>
             <Button type="submit" variant="primary" disabled={submitting}>
-              Založit
+              {t('calendar.form.submit')}
             </Button>
           </div>
         </form>

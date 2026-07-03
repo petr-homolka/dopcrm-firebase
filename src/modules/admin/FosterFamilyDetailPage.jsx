@@ -18,6 +18,7 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2, MapPin, Phone, Mail } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -35,18 +36,19 @@ import FosterFamilySocialTab from './FosterFamilySocialTab.jsx';
 import FosterFamilyChildrenTab from './FosterFamilyChildrenTab.jsx';
 import FosterFamilyModals from './FosterFamilyModals.jsx';
 
-const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
+const STATUS_LABEL_KEYS = { active: 'family.detail.status.active', paused: 'family.detail.status.paused', exited: 'family.detail.status.exited' };
 const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
 
 const TABS = [
-  { value: 'osa', label: () => 'Osa' },
-  { value: 'pestouni', label: (n) => `Pěstouni (${n})` },
-  { value: 'respit', label: () => 'Respit a SPVPP' },
-  { value: 'social', label: () => 'Sociální prostor' },
-  { value: 'deti', label: (_n, c) => `Svěřené děti (${c})` },
+  { value: 'osa', label: (t) => t('family.detail.tabs.osa') },
+  { value: 'pestouni', label: (t, n) => t('family.detail.tabs.pestouni', { count: n }) },
+  { value: 'respit', label: (t) => t('family.detail.tabs.respit') },
+  { value: 'social', label: (t) => t('family.detail.tabs.social') },
+  { value: 'deti', label: (t, _n, c) => t('family.detail.tabs.deti', { count: c }) },
 ];
 
 export default function FosterFamilyDetailPage() {
+  const { t } = useTranslation();
   const { familyId } = useParams();
   const navigate = useNavigate();
   const state = useFosterFamilyDetail(familyId);
@@ -72,19 +74,19 @@ export default function FosterFamilyDetailPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          aria-label="Zpět"
+          aria-label={t('common.back')}
           className="mt-0.5 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
         >
           <ArrowLeft size={20} strokeWidth={1.75} />
         </button>
         <h1 className="min-w-0 flex-1 break-words text-lg font-semibold text-stone-800 sm:text-xl">
-          {loading ? 'Načítám…' : (family?.name ?? 'Rodina')}
+          {loading ? t('common.loading') : (family?.name ?? t('family.detail.fallbackName'))}
         </h1>
         {family && (
           <div className="mt-0.5 flex gap-2">
             <Badge tone="neutral">{careLabel(family.careType)}</Badge>
             <Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>
-              {STATUS_LABELS[family.status] ?? family.status}
+              {family.status ? t(STATUS_LABEL_KEYS[family.status] ?? family.status) : family.status}
             </Badge>
           </div>
         )}
@@ -103,7 +105,7 @@ export default function FosterFamilyDetailPage() {
       {!loading && !error && family && (
         <>
           <Card className="mb-5 flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Kontakt</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t('family.detail.contactSection')}</p>
             {family.address && (
               <div className="flex items-center gap-2 text-stone-500">
                 <MapPin size={16} strokeWidth={1.75} className="shrink-0" />
@@ -124,26 +126,26 @@ export default function FosterFamilyDetailPage() {
             )}
             {family.note && (
               <>
-                <p className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">Poznámka</p>
+                <p className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">{t('family.detail.noteSection')}</p>
                 <p className="text-sm text-stone-700">{family.note}</p>
               </>
             )}
           </Card>
 
           <div className="mb-5 flex gap-1 overflow-x-auto border-b border-stone-100">
-            {TABS.map((t) => (
+            {TABS.map((tabDef) => (
               <button
-                key={t.value}
+                key={tabDef.value}
                 type="button"
-                onClick={() => setTab(t.value)}
+                onClick={() => setTab(tabDef.value)}
                 className={cn(
                   'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition',
-                  tab === t.value
+                  tab === tabDef.value
                     ? 'border-primary-600 text-primary-700'
                     : 'border-transparent text-stone-500 hover:text-stone-700'
                 )}
               >
-                {t.label(fosters.length, children.length)}
+                {tabDef.label(t, fosters.length, children.length)}
               </button>
             ))}
           </div>

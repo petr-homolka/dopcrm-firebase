@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Baby, ChevronRight } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -19,20 +20,23 @@ function formatBirthDate(value) {
 }
 
 export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOpenChild, canManage = true }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">Svěřené děti ({childrenList.length})</h2>
+        <h2 className="text-base font-semibold text-stone-800">
+          {t('family.detail.children.title', { count: childrenList.length })}
+        </h2>
         {canManage && (
           <Button size="sm" variant="secondary" onClick={onAddChild}>
             <Baby size={16} strokeWidth={1.75} />
-            Přidat dítě
+            {t('family.detail.children.addChild')}
           </Button>
         )}
       </div>
 
       {childrenList.length === 0 && (
-        <p className="py-4 text-sm text-stone-500">Této rodině zatím nejsou přiřazené žádné děti.</p>
+        <p className="py-4 text-sm text-stone-500">{t('family.detail.children.empty')}</p>
       )}
 
       <div className="flex flex-col divide-y divide-stone-100">
@@ -48,10 +52,10 @@ export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOp
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold text-stone-800">
-                {`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim() || '(bez jména)'}
+                {`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim() || t('family.detail.children.noName')}
               </p>
               <p className="truncate text-sm text-stone-500">
-                {[child.rc && `RČ ${child.rc}`, `narození ${formatBirthDate(child.birthDate)}`]
+                {[child.rc && t('family.detail.children.rcPrefix', { rc: child.rc }), t('family.detail.children.birthDate', { date: formatBirthDate(child.birthDate) })]
                   .filter(Boolean)
                   .join(' · ')}
               </p>

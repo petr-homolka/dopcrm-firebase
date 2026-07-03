@@ -11,6 +11,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 
 import { doc, getDoc } from 'firebase/firestore';
@@ -20,20 +21,17 @@ import { useAuthStore } from '../../store/authStore.js';
 import Button from '../../components/ui/Button.jsx';
 import Card from '../../components/ui/Card.jsx';
 
-// ── Mapování Firebase chybových kódů na čitelné zprávy ─────────
+// ── Mapování Firebase chybových kódů na klíče překladu ─────────
 
-function mapFirebaseError(code) {
-  const map = {
-    'auth/user-not-found': 'Účet s tímto e-mailem neexistuje.',
-    'auth/wrong-password': 'Nesprávné heslo.',
-    'auth/invalid-email': 'Neplatný formát e-mailu.',
-    'auth/user-disabled': 'Tento účet byl deaktivován. Kontaktujte správce.',
-    'auth/too-many-requests': 'Příliš mnoho pokusů. Zkuste to za chvíli.',
-    'auth/network-request-failed': 'Síťová chyba. Zkontrolujte připojení.',
-    'auth/invalid-credential': 'Nesprávný e-mail nebo heslo.',
-  };
-  return map[code] ?? 'Přihlášení se nezdařilo. Zkuste to znovu.';
-}
+const ERROR_KEY_MAP = {
+  'auth/user-not-found': 'userNotFound',
+  'auth/wrong-password': 'wrongPassword',
+  'auth/invalid-email': 'invalidEmail',
+  'auth/user-disabled': 'userDisabled',
+  'auth/too-many-requests': 'tooManyRequests',
+  'auth/network-request-failed': 'networkFailed',
+  'auth/invalid-credential': 'invalidCredential',
+};
 
 const fieldBaseClass =
   'w-full rounded-xl bg-stone-100 py-2.5 pl-10 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
@@ -41,6 +39,7 @@ const emailFieldClass = `${fieldBaseClass} pr-4`;
 const passwordFieldClass = `${fieldBaseClass} pr-10`;
 
 export default function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser: authUser, role: authRole, loading: authLoading } = useAuthStore();
@@ -73,18 +72,18 @@ export default function Login() {
     let ok = true;
 
     if (!email.trim()) {
-      errs.email = 'E-mail je povinný.';
+      errs.email = t('auth.login.errors.emailRequired');
       ok = false;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = 'Zadejte platný e-mail.';
+      errs.email = t('auth.login.errors.emailInvalid');
       ok = false;
     }
 
     if (!password) {
-      errs.password = 'Heslo je povinné.';
+      errs.password = t('auth.login.errors.passwordRequired');
       ok = false;
     } else if (password.length < 6) {
-      errs.password = 'Heslo musí mít alespoň 6 znaků.';
+      errs.password = t('auth.login.errors.passwordTooShort');
       ok = false;
     }
 
@@ -108,7 +107,7 @@ export default function Login() {
       const role = profileSnap.exists() ? profileSnap.data().role : null;
       navigate(explicitFrom ?? dashboardPathForRole(role), { replace: true });
     } catch (err) {
-      setError(mapFirebaseError(err.code));
+      setError(t(`auth.login.errors.${ERROR_KEY_MAP[err.code] ?? 'generic'}`));
     } finally {
       setLoading(false);
     }
@@ -134,9 +133,9 @@ export default function Login() {
             <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-semibold text-white">
               D
             </span>
-            <h1 className="text-center text-lg font-semibold text-stone-800">Přihlaste se</h1>
+            <h1 className="text-center text-lg font-semibold text-stone-800">{t('auth.login.title')}</h1>
             <p className="mt-1 text-center text-sm text-stone-500">
-              Doprovázení.com — podpora pěstounských rodin
+              {t('auth.login.subtitle')}
             </p>
           </div>
 
@@ -153,7 +152,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <div>
               <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-stone-700">
-                E-mail
+                {t('auth.login.emailLabel')}
               </label>
               <div className="relative">
                 <Mail
@@ -168,7 +167,7 @@ export default function Login() {
                   autoFocus
                   value={email}
                   onChange={handleEmailChange}
-                  placeholder="vas@email.cz"
+                  placeholder={t('auth.login.emailPlaceholder')}
                   disabled={loading}
                   className={emailFieldClass}
                 />
@@ -178,7 +177,7 @@ export default function Login() {
 
             <div>
               <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-stone-700">
-                Heslo
+                {t('auth.login.passwordLabel')}
               </label>
               <div className="relative">
                 <Lock
@@ -199,7 +198,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  aria-label={showPass ? 'Skrýt heslo' : 'Zobrazit heslo'}
+                  aria-label={showPass ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   tabIndex={-1}
                   disabled={loading}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-50"
@@ -216,17 +215,17 @@ export default function Login() {
 
             <Button type="submit" variant="primary" size="lg" disabled={loading} className="mt-1 w-full">
               {loading && <Loader2 size={18} strokeWidth={2} className="animate-spin" />}
-              {loading ? 'Přihlašuji…' : 'Přihlásit se'}
+              {loading ? t('auth.login.submitting') : t('auth.login.submit')}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-stone-500">
-            Zapomenuté heslo? Kontaktujte správce organizace.
+            {t('auth.login.forgotPassword')}
           </p>
           <p className="mt-2 text-center text-sm text-stone-700">
-            Nemáte organizaci v systému?{' '}
+            {t('auth.login.noOrgPrompt')}{' '}
             <a href="/registrace" className="font-semibold text-primary-600 hover:text-primary-700">
-              Založte si ji zdarma
+              {t('auth.login.noOrgCta')}
             </a>
           </p>
         </Card>

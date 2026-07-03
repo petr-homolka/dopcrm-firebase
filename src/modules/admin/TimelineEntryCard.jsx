@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Pin, AlertCircle } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
@@ -14,6 +15,7 @@ import { TIMELINE_TYPE_META, toDate, formatTime } from './timelineShared.js';
 const CORRECTABLE_TYPES = ['visit', 'note', 'audio_note'];
 
 export default function TimelineEntryCard({ entry, childrenById, correctedBy, onTogglePin, onCorrect, onRetry, onDiscard, canManage = true }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -48,7 +50,7 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
             <button
               type="button"
               onClick={() => onTogglePin(entry)}
-              aria-label={entry.pinned ? 'Odepnout' : 'Připnout'}
+              aria-label={entry.pinned ? t('timeline.unpin') : t('timeline.pin')}
               className="rounded p-1 text-stone-400 hover:bg-stone-100"
             >
               <Pin size={14} strokeWidth={1.75} className={entry.pinned ? 'fill-primary-600 text-primary-600' : undefined} />
@@ -59,7 +61,7 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Další možnosti"
+                aria-label={t('timeline.moreOptions')}
                 className="rounded p-1 text-stone-400 hover:bg-stone-100"
               >
                 <MoreHorizontal size={16} strokeWidth={1.75} />
@@ -71,7 +73,7 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
                     onClick={() => { setMenuOpen(false); onCorrect(entry); }}
                     className="w-full px-3 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-50"
                   >
-                    Napsat opravu
+                    {t('timeline.writeCorrection')}
                   </button>
                 </div>
               )}
@@ -86,12 +88,12 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
           className={cn('mt-1 whitespace-pre-wrap text-sm text-stone-600', bodyLong && !expanded && 'line-clamp-3 cursor-pointer')}
         >
           {bodyShown}
-          {bodyLong && !expanded && <span className="ml-1 font-medium text-primary-700">zobrazit více</span>}
+          {bodyLong && !expanded && <span className="ml-1 font-medium text-primary-700">{t('timeline.showMore')}</span>}
         </p>
       )}
 
       {correctedBy && (
-        <p className="mt-1 text-xs italic text-stone-400">opraveno novějším záznamem</p>
+        <p className="mt-1 text-xs italic text-stone-400">{t('timeline.correctedNote')}</p>
       )}
 
       {entry.subjectRefs?.length > 0 && (
@@ -107,12 +109,12 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
       {isError && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <AlertCircle size={14} strokeWidth={1.75} className="shrink-0 text-red-600" />
-          <span className="text-xs text-red-700">Nepodařilo se uložit.</span>
+          <span className="text-xs text-red-700">{t('timeline.saveFailed')}</span>
           <button type="button" onClick={() => onRetry(entry.id)} className="text-xs font-medium text-primary-700 hover:underline">
-            Zkusit znovu
+            {t('timeline.retry')}
           </button>
           <button type="button" onClick={() => onDiscard(entry.id)} className="text-xs font-medium text-stone-500 hover:underline">
-            Zahodit
+            {t('timeline.discard')}
           </button>
         </div>
       )}

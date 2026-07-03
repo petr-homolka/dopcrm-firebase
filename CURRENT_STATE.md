@@ -1,5 +1,47 @@
 # CURRENT_STATE
-**Verze:** 1.6.0 (Krok 0+1 — Inventář rozšířen, slug organizace, 2026-07-03)
+**Verze:** 1.7.0 (Krok 0+1+2 — Inventář, slug organizace, i18n základ, 2026-07-03)
+
+## 2026-07-03 — Krok 2: i18n základ (react-i18next)
+
+**Zadání:** zavést react-i18next s jediným jazykem (cs), vytáhnout texty existujících obrazovek
+do klíčů, žádný jazykový přepínač zatím. Rozsah: login, registrace, navigace, kalendář, detail
+rodiny/dítěte, timeline.
+
+- `src/i18n.js` — inicializace, `src/locales/cs.json` bundlovaný staticky (žádný
+  i18next-http-backend, zbytečné pro jediný jazyk), `lng`/`fallbackLng: 'cs'`. Import jako
+  side-effect v `main.jsx` PŘED renderem `<App>`.
+- Konvence: `const { t } = useTranslation()` v komponentě/hooku, klíče `modul.podmodul.klic`
+  (`auth.login.*`, `auth.register.*`, `nav.*`, `calendar.*`, `family.detail.*`, `child.detail.*`,
+  `timeline.*`), sdílené ubikvitní řetězce v `common.*` (back/loading/save/saving/cancel/close).
+  Datové konstanty MIMO komponenty (`MVP_NAV` v router.jsx, `TIMELINE_FILTERS` v
+  timelineShared.js) nesou `labelKey` misto `label` — `t()` volá až konzument v render, protože
+  konstanta samotná není komponenta/hook a nemůže si `useTranslation()` zavolat sama; podobně
+  `formatDayHeading(date, t)` bere `t` jako parametr (plain funkce, ne hook).
+- **Rozsah vytažení:** login/registrace/nav/kalendář vlastnoručně; detail rodiny (kontejner +
+  Osa/timeline) vlastnoručně; zbylé taby detailu rodiny (Pěstouni/Respit/Sociální
+  prostor/Svěřené děti + `useFosterFamilyDetail.js`) a celý detail dítěte (7 tabů +
+  `useChildDetailForms.js`) přes 2 paralelní subagenty (mechanická extrakce, stejná
+  konvence) — výsledné JSON fragmenty ručně sloučeny do `cs.json`, `ChildFormModal.jsx`
+  (sdílený modál obou) udělán zvlášť aby nedošlo ke konfliktu.
+- **Vědomě MIMO rozsah:** popisky odvozené z `domainConstants.js` (REL_TYPES, CARE_TYPES,
+  `careLabel()`, `odmenaStatusLabel()`, `relGroups()` apod.) — samostatný budoucí úkol „i18n přes
+  translation_keys" (V8 blueprint, `docs/INVENTAR.md` sekce 10). Jde o datový slovník, ne
+  obrazovkový text.
+- Pravidlo pro nové obrazovky (POVINNĚ `t()`) zapsáno do `CLAUDE.md` → Stack.
+- **Poučení (past incident v této session, oprava hned při psaní):** regex na odstranění
+  diakritiky psaný jako `/[̀-ͯ]/` se v editačním pipeline dvakrát proměnil na doslovné
+  kombinující Unicode znaky v character-class (vizuálně nerozeznatelné od správného zápisu, jiný
+  byte obsah) — v `slugUtils.js` i v `CURRENT_STATE.md` samotném. Oprava: `new
+  RegExp('[\\u0300-\\u036f]', 'g')` (string, ne regex literál) je bezpečná forma zápisu.
+
+**Ověřeno živě v Preview** (`demo.ko.jih.1`): login → dashboard → Rodina Kučerová (Osa, Pěstouni,
+Respit a SPVPP se všemi interpolacemi `{{count}}`/částky, Sociální prostor, Svěřené děti) → karta
+dítěte Eliška (7 tabů: Identita/Škola/OSPOD a soud/Biologická rodina/Sociální prostor/Poznámky/
+Historie) → Kalendář (agenda + formulář nové události). Žádný chybějící klíč, žádná chyba v
+konzoli nesouvisející se změnou. `npm run build`/`npm run lint` čisté po každém dílčím kroku i po
+finálním sloučení. Nezávislý skript zkontroloval všech 319 klíčů v `cs.json` proti všem `t()`
+voláním v `src/` — 0 chybějících (2 falešně nahlášené byly správná i18next pluralizace
+`_one/_few/_other`, 2 dynamické klíče v Login/RegisterPage ověřeny ručně).
 
 ## 2026-07-03 — Krok 1: Slug organizace
 
@@ -180,80 +222,6 @@ vzdělávání s certifikáty, respit, sociální prostor — vyžaduje nastudov
 a respit z vanilla prototypu) a Dítěte (doklady, historie adres/škol/OSPOD, soud, biologická
 rodina s historií, sociální prostor).
 
----
-
-## 2026-07-02 — Datový model dotažen dle vanilla prototypu + plný proklik hierarchie
-
-**Zpětná vazba:** nové schéma (v1.2.x) nemělo RČ jako primární identifikátor osob (existuje v
-`app.js` odjakživa), REL_TYPES/CARE_TYPES, ani hierarchickou viditelnost dotaženou do UI —
-SuperAdmin/OrgAdmin viděli jen zaměstnance, ne rodiny/děti. Detail viz paměť
-`crm-port-prototyp-pred-novym-schematem.md` a `crm-hierarchicka-viditelnost.md`.
-
-**Schéma (rozšířeno, `src/services/orgService.js` + `src/shared/domainConstants.js`):**
-- `organizations` — `ico`, `address`, `contactEmail`, `contactPhone`
-- `users` (zaměstnanci) — `rc`
-- `foster_families` — `careType` ('long'|'temp'|'kin'), `fosters[]` (osoby: name/rc/phone/email)
-- `children` — `rc`, `relatives[]` ({name, rc, rel: REL_TYPES key, legal, note}), `careType`
-- `REL_TYPES` (22 typů vztahů s `legal` flagem) a `CARE_TYPES` — konstanty v kódu, port z `app.js`
-
-**Plný proklik hierarchie (nové/upravené soubory v `src/modules/admin/`):**
-- `FosterFamiliesPanel.jsx` — sdílený seznam rodin organizace, použitý v `OrganizationDetailPage`
-  (superadmin), `OrgAdminDashboard` (org_admin), `KlicovaOsobaDashboard` (KO, záložka „Celá
-  organizace", `canCreate=false`)
-- `FosterFamilyDetailPage.jsx` — obohaceno o `fosters[]` (pěstouni s RČ) + klikací děti
-- `ChildDetailPage.jsx` (nové, route `/admin/terenni/:familyId/deti/:childId`) — identita dítěte
-  (RČ, datum narození) + `relatives[]` s typem vztahu a právním statusem
-- `OrganizationDetailPage`/`OrgAdminDashboard` — MUI Tabs (Pěstounské rodiny / Zaměstnanci) místo
-  jen seznamu zaměstnanců — řeší i „prázdný" layout
-- Router: `/admin/terenni/:familyId` a `/admin/terenni/:familyId/deti/:childId` rozšířeny o
-  `superadmin` v `RequireOrgRole` (dřív jen klicova_osoba/org_admin)
-
-**Seed data (`scripts/dev-seed.mjs`)** aktualizován na bohatá data odpovídající prototypu
-(sdílená bio matka napříč dvěma rodinami jako v `app.js` seed Terezy/Nely, nevlastní otec,
-polorodí sourozenci, příbuzenská péče u babičky) — `npm run seed` znovu spuštěno.
-
-**Známý bug (2026-07-02, neověřeno vyřešeno):** proklik na řádek organizace v SuperAdmin dashboardu
-nefungoval hned po prvním nasazení — pravděpodobná příčina: Service Worker v prohlížeči servíroval
-starou verzi JS (viz PWA cache poznámka u bílé obrazovky výše). Doporučeno „Clear site data" v
-DevTools. Nepotvrzeno uživatelem, zda to bug vyřešilo.
-
----
-
-
-## 2026-07-02 — UI/UX vylepšení, emoji pryč, testovací data (mimo web bundle)
-
-**Zpětná vazba uživatele:** (1) dashboardy jsou "formálně správně, ale z lidského pohledu se na
-to nedá koukat" — přepracovat UI/UX; (2) žádné emoji ikony nikde (platí odjakživa i pro vanilla
-prototyp); (3) systém nesmí být nikdy úplně prázdný pro vývoj/nastavování, ale **testovací data
-nesmí a nebudou v ostrém provozu**.
-
-**1) UI/UX:** nová sdílená `src/modules/admin/EmptyState.jsx` (ikona v kolečku + nadpis + popisek
-+ CTA) nahrazuje fádní "prázdnou tabulku" v `SuperAdminDashboard.jsx` (0 organizací) i
-`KlicovaOsobaDashboard.jsx` (0 přidělených rodin) — KPI karty se zobrazí až když jsou reálná data,
-jinak jeden jasný "hero" empty-state. Design tokeny (barvy/stíny/radius) ověřeny proti vanilla
-prototypu (`style.css`) — MUI theme (`core/theme.js`, `bento.*`) už na ně byl navržen konzistentně.
-
-**2) Emoji:** jediný nález v celém React/mobil kódu byl `⚠` v `src/core/ErrorBoundary.jsx` (a
-neškodná `⚠️` v komentáři `orgService.js`, neviditelná v UI). Nahrazeno inline lineart SVG (Feather
-styl, bez závislosti na @mui/icons-material — boundary musí přežít i chybu v MUI stromu).
-
-**3) Testovací data — `scripts/dev-seed.mjs` (⚠️ DŮLEŽITÉ POUČENÍ):**
-Původní implementace žila v `src/services/devSeedService.js` a byla volaná dynamickým `import()`
-z UI zabaleného v `{import.meta.env.DEV && ...}` v `SuperAdminDashboard.jsx`. **Po ověření přímo v
-`dist/` se ukázalo, že Vite/Rollup dynamický import i tak zabalí do samostatného chunku v
-produkčním buildu** — i když se tlačítko nikdy nevykreslí, KÓD (a jeho texty) v nasazeném bundlu
-FYZICKY BYL. To nesplňovalo výslovné zadání "v ostrém provozu tam být nesmí a nebudou" — přesunuto
-do **`scripts/dev-seed.mjs`**, samostatného Node skriptu MIMO `src/` (appka ho nikdy neimportuje →
-nemůže se dostat do `vite build` grafu → ověřeno `grep` přes `dist/`, 0 výskytů).
-- `npm run seed` — smaže stará testovací data a založí 2 demo organizace (org_admin + klíčové
-  osoby + přiřazené pěstounské rodiny s dětmi); idempotentní (lze spouštět opakovaně).
-- `npm run seed:wipe` — jen smaže (organizace/uživatelé kromě vlastního účtu/rodiny/děti).
-- Vyžaduje `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` v `.env.local` (gitignored, stejně jako
-  `VITE_FIREBASE_*`) — skript se pod tímto účtem přihlásí, firestore.rules pak zápis povolí.
-- Omezení: Firebase Auth účty demo zaměstnanců nejde z klienta smazat (jen Firestore dokumenty) —
-  proto idempotence přes rozpoznání existujícího e-mailu (přihlásí se místo založení).
-- **Poučení pro V8/budoucí práci:** cokoli, co "nesmí být v produkci", patří MIMO `src/` (samostatný
-  skript/nástroj), NE za `import.meta.env.DEV` uvnitř appky — dynamický import bundler
-  nespolehlivě odstraní, i když se cesta k němu za běhu nikdy nevykoná.
+*(Starší záznamy — datový model dle vanilla prototypu, UI/UX úklid — přesunuty do docs/history.md.)*
 
 ---

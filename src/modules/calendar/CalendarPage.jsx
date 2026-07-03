@@ -9,6 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarPlus, Loader2 } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -43,6 +44,7 @@ function groupByDay(events) {
 }
 
 export default function CalendarPage() {
+  const { t } = useTranslation();
   const { organizationId } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,18 +70,18 @@ export default function CalendarPage() {
       setFamilies(familiesData);
     } catch (err) {
       console.error('[CalendarPage] Načtení selhalo:', err);
-      setError(err.message ?? 'Data se nepodařilo načíst.');
+      setError(err.message ?? t('calendar.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, t]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate(form) {
     setSubmitError('');
     if (!form.title.trim() || !form.date) {
-      setSubmitError('Vyplňte název a datum.');
+      setSubmitError(t('calendar.form.missingFields'));
       return;
     }
     setSubmitting(true);
@@ -103,7 +105,7 @@ export default function CalendarPage() {
       await load();
     } catch (err) {
       console.error('[CalendarPage] Založení události selhalo:', err);
-      setSubmitError(err.message ?? 'Založení se nezdařilo.');
+      setSubmitError(err.message ?? t('calendar.form.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -115,12 +117,12 @@ export default function CalendarPage() {
     <div>
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-stone-800">Kalendář</h1>
-          <p className="text-sm text-stone-500">Nadcházející události — příštích {AGENDA_DAYS} dní.</p>
+          <h1 className="text-xl font-semibold text-stone-800">{t('calendar.title')}</h1>
+          <p className="text-sm text-stone-500">{t('calendar.subtitle', { days: AGENDA_DAYS })}</p>
         </div>
         <Button variant="primary" onClick={() => setDialogOpen(true)}>
           <CalendarPlus size={16} strokeWidth={1.75} />
-          Nová událost
+          {t('calendar.newEvent')}
         </Button>
       </div>
 
@@ -134,7 +136,7 @@ export default function CalendarPage() {
 
       {!loading && !error && days.length === 0 && (
         <Card className="py-10 text-center text-sm text-stone-500">
-          Žádné události v příštích {AGENDA_DAYS} dnech.
+          {t('calendar.empty', { days: AGENDA_DAYS })}
         </Card>
       )}
 

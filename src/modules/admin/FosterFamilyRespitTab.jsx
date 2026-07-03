@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
@@ -45,24 +46,25 @@ export default function FosterFamilyRespitTab({
   onAddRespit,
   canManage = true,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label="Vykázaný respit"
-          value={`${vykazano} / ${limit} dní`}
-          sub="legislativa/finance"
+          label={t('family.detail.respit.stats.reportedLabel')}
+          value={t('family.detail.respit.stats.reportedValue', { vykazano, limit })}
+          sub={t('family.detail.respit.stats.reportedSub')}
           tone={vykazano > limit ? 'error' : 'primary'}
         />
         <StatCard
-          label="Reálný odpočinek"
-          value={`${realny} dní`}
-          sub="všechny děti současně mimo domov"
+          label={t('family.detail.respit.stats.realLabel')}
+          value={t('family.detail.respit.stats.realValue', { realny })}
+          sub={t('family.detail.respit.stats.realSub')}
           tone={realny < vykazano ? 'warning' : 'success'}
         />
         <StatCard
-          label="Odměna pěstouna"
-          value={eligible ? 'Nárok' : 'Bez nároku'}
+          label={t('family.detail.respit.stats.rewardLabel')}
+          value={eligible ? t('family.detail.respit.stats.eligible') : t('family.detail.respit.stats.notEligible')}
           sub={odmenaStatus}
           tone={eligible ? 'success' : 'neutral'}
         />
@@ -70,16 +72,14 @@ export default function FosterFamilyRespitTab({
 
       <Card>
         <p className="mb-4 text-sm text-stone-500">
-          Respit = odlehčení pěstouna, počítá se na dohodu/rodinu (ne na dítě). Zákonné minimum
-          14 dní/rok (§47a zákona 359/1999 Sb.), nadstandard přes individuální plán ochrany
-          dítěte (IPOD). Pravidlo: i hodina hlídání se počítá jako celý den.
+          {t('family.detail.respit.legalNote')}
         </p>
 
         {canManage && (
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-stone-700">
-                Nadstandard IPOD (dní)
+                {t('family.detail.respit.nadstandardLabel')}
               </label>
               <input
                 type="number"
@@ -89,32 +89,32 @@ export default function FosterFamilyRespitTab({
               />
             </div>
             <Button variant="secondary" size="sm" onClick={onSaveNadstandard} className="mt-6">
-              Uložit
+              {t('common.save')}
             </Button>
             <div className="flex-1" />
             <Button variant="primary" size="sm" onClick={onAddRespit} className="mt-6">
               <Sparkles size={16} strokeWidth={1.75} />
-              Zaznamenat čerpání respitu
+              {t('family.detail.respit.recordUsage')}
             </Button>
           </div>
         )}
 
         <div className="flex flex-col divide-y divide-stone-100">
           {respitEvents.length === 0 && (
-            <p className="py-3 text-sm text-stone-500">Zatím žádné čerpání respitu.</p>
+            <p className="py-3 text-sm text-stone-500">{t('family.detail.respit.empty')}</p>
           )}
           {respitEvents.map((ev) => {
             const days = respitEventDays(ev);
             return (
               <div key={ev.id} className="py-2.5">
                 <p className="text-sm font-medium text-stone-800">
-                  {respitTypeLabel(ev.typ)} — {days} {days === 1 ? 'den' : 'dny'}
+                  {respitTypeLabel(ev.typ)} — {t('family.detail.respit.daysCount', { count: days })}
                 </p>
                 <p className="text-sm text-stone-500">
                   {[
                     ev.from === ev.to ? ev.from : `${ev.from} – ${ev.to}`,
-                    ev.childIds?.length ? `${ev.childIds.length} dětí` : null,
-                    ev.kc ? `${ev.kc} Kč` : null,
+                    ev.childIds?.length ? t('family.detail.respit.childrenCount', { count: ev.childIds.length }) : null,
+                    ev.kc ? t('family.detail.respit.amountKc', { amount: ev.kc }) : null,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -128,10 +128,10 @@ export default function FosterFamilyRespitTab({
 
       <Card>
         <h2 className="mb-4 text-base font-semibold text-stone-800">
-          SPVPP — finanční peněženka dítěte
+          {t('family.detail.respit.spvppTitle')}
         </h2>
         {childrenList.length === 0 && (
-          <p className="text-sm text-stone-500">Rodina zatím nemá svěřené dítě.</p>
+          <p className="text-sm text-stone-500">{t('family.detail.respit.spvppEmpty')}</p>
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {childrenList.map((child) => {
@@ -143,10 +143,13 @@ export default function FosterFamilyRespitTab({
                   {child.firstName} {child.lastName}
                 </p>
                 <p className="text-sm text-stone-500">
-                  Vyčerpáno {wallet.vycerpano.toLocaleString('cs-CZ')} / {wallet.rozpocet.toLocaleString('cs-CZ')} Kč
+                  {t('family.detail.respit.spvppSpent', {
+                    spent: wallet.vycerpano.toLocaleString('cs-CZ'),
+                    total: wallet.rozpocet.toLocaleString('cs-CZ'),
+                  })}
                 </p>
                 <p className={`text-sm font-semibold ${zustatek < 0 ? 'text-red-700' : 'text-green-700'}`}>
-                  Zůstatek: {zustatek.toLocaleString('cs-CZ')} Kč
+                  {t('family.detail.respit.spvppBalance', { balance: zustatek.toLocaleString('cs-CZ') })}
                 </p>
               </div>
             );

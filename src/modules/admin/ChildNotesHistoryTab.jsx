@@ -6,17 +6,19 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import { fieldClass } from './childDetailShared.js';
 
 export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, setNoteText, onAddNote, submitting, submitError, canManage = true }) {
+  const { t } = useTranslation();
   return (
     <Card>
-      <h2 className="mb-1 text-base font-semibold text-stone-800">Trvalé poznámky</h2>
+      <h2 className="mb-1 text-base font-semibold text-stone-800">{t('child.detail.notesHistory.notesTitle')}</h2>
       <p className="mb-3 text-sm text-stone-500">
-        Zápisy zůstávají navždy v evidenci beze změny nebo smazání — důkazní hodnota pro OSPOD/soud.
+        {t('child.detail.notesHistory.notesDescription')}
       </p>
 
       {canManage && (
@@ -24,20 +26,20 @@ export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, 
           <textarea
             className={fieldClass}
             rows={2}
-            placeholder="Nová poznámka…"
+            placeholder={t('child.detail.notesHistory.notePlaceholder')}
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             disabled={submitting}
           />
           <Button variant="primary" onClick={onAddNote} disabled={submitting} className="self-end">
-            Zapsat
+            {t('child.detail.notesHistory.submitNote')}
           </Button>
         </div>
       )}
 
       {submitError && <div className="mb-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{submitError}</div>}
 
-      {notes.length === 0 && <p className="text-sm text-stone-500">Žádné poznámky.</p>}
+      {notes.length === 0 && <p className="text-sm text-stone-500">{t('child.detail.notesHistory.noNotes')}</p>}
       <ul>
         {notes.map((n) => (
           <li key={n.id} className="border-t border-stone-100 py-2.5 first:border-t-0">
@@ -52,14 +54,15 @@ export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, 
 }
 
 export function ChildHistoryTab({ history, hasMore, onLoadMore }) {
+  const { t } = useTranslation();
   return (
     <Card>
-      <h2 className="mb-1 text-base font-semibold text-stone-800">Historie změn</h2>
+      <h2 className="mb-1 text-base font-semibold text-stone-800">{t('child.detail.notesHistory.historyTitle')}</h2>
       <p className="mb-3 text-sm text-stone-500">
-        „Nic se nepřepisuje&quot; — každá změna adresy, školy, OSPOD nebo soudního spisu zůstává dohledatelná.
+        {t('child.detail.notesHistory.historyDescription')}
       </p>
 
-      {history.length === 0 && <p className="text-sm text-stone-500">Zatím žádné zaznamenané změny.</p>}
+      {history.length === 0 && <p className="text-sm text-stone-500">{t('child.detail.notesHistory.noHistory')}</p>}
       <ul>
         {history.map((h) => (
           <li key={h.id} className="border-t border-stone-100 py-2.5 first:border-t-0">

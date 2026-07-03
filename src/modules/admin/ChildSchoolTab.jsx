@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import ChildFormModal from './ChildFormModal.jsx';
@@ -21,13 +22,14 @@ export default function ChildSchoolTab({
   submitError,
   canManage = true,
 }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">Škola</h2>
+        <h2 className="text-base font-semibold text-stone-800">{t('child.detail.school.title')}</h2>
         {canManage && (
           <Button variant="secondary" size="sm" onClick={onOpen}>
-            {child.school ? 'Upravit' : 'Doplnit'}
+            {child.school ? t('child.detail.school.edit') : t('child.detail.school.add')}
           </Button>
         )}
       </div>
@@ -39,37 +41,37 @@ export default function ChildSchoolTab({
           <p className="text-sm text-stone-500">
             {[child.school.telefon, child.school.email].filter(Boolean).join(' · ')}
           </p>
-          <p className="text-sm text-stone-800">Třídní učitel: {child.school.tridniUcitel || '—'}</p>
-          <p className="text-sm text-stone-800">Ročník: {child.school.rocnik || '—'}</p>
+          <p className="text-sm text-stone-800">{t('child.detail.school.classTeacher')} {child.school.tridniUcitel || '—'}</p>
+          <p className="text-sm text-stone-800">{t('child.detail.school.grade')} {child.school.rocnik || '—'}</p>
         </div>
       ) : (
-        <p className="text-sm text-stone-500">Zatím nevyplněno.</p>
+        <p className="text-sm text-stone-500">{t('child.detail.school.empty')}</p>
       )}
 
       {schoolDialogOpen && (
-        <ChildFormModal title="Škola" onClose={onClose} onSubmit={onSave} submitting={submitting} submitError={submitError}>
+        <ChildFormModal title={t('child.detail.school.title')} onClose={onClose} onSubmit={onSave} submitting={submitting} submitError={submitError}>
           <div>
-            <label className={labelClass}>Název školy</label>
+            <label className={labelClass}>{t('child.detail.school.nameLabel')}</label>
             <input className={fieldClass} value={schoolForm.nazev} onChange={(e) => setSchoolForm((f) => ({ ...f, nazev: e.target.value }))} required disabled={submitting} autoFocus />
           </div>
           <div>
-            <label className={labelClass}>Adresa</label>
+            <label className={labelClass}>{t('child.detail.school.addressLabel')}</label>
             <input className={fieldClass} value={schoolForm.adresa} onChange={(e) => setSchoolForm((f) => ({ ...f, adresa: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Telefon</label>
+            <label className={labelClass}>{t('child.detail.school.phoneLabel')}</label>
             <input className={fieldClass} value={schoolForm.telefon} onChange={(e) => setSchoolForm((f) => ({ ...f, telefon: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>E-mail</label>
+            <label className={labelClass}>{t('child.detail.school.emailLabel')}</label>
             <input className={fieldClass} value={schoolForm.email} onChange={(e) => setSchoolForm((f) => ({ ...f, email: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Třídní učitel</label>
+            <label className={labelClass}>{t('child.detail.school.classTeacherLabel')}</label>
             <input className={fieldClass} value={schoolForm.tridniUcitel} onChange={(e) => setSchoolForm((f) => ({ ...f, tridniUcitel: e.target.value }))} disabled={submitting} />
           </div>
           <div>
-            <label className={labelClass}>Ročník</label>
+            <label className={labelClass}>{t('child.detail.school.gradeLabel')}</label>
             <input className={fieldClass} value={schoolForm.rocnik} onChange={(e) => setSchoolForm((f) => ({ ...f, rocnik: e.target.value }))} disabled={submitting} />
           </div>
         </ChildFormModal>
