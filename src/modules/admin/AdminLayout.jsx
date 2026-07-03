@@ -38,7 +38,7 @@ export default function AdminLayout({ title }) {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 font-bold text-white">
             D
           </span>
-          <span className="mr-1 font-semibold text-stone-800">Doprovázení CRM</span>
+          <span className="mr-1 font-semibold text-stone-800">Doprovázení.com</span>
           {title && <span className="hidden text-sm text-stone-400 sm:block">/ {title}</span>}
           <div className="flex-1" />
           <Badge tone="neutral" className="mr-1">

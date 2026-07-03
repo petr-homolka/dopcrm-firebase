@@ -22,10 +22,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
-      // Branding dle DESIGN.md ("Přítomnost", primary-600 #1A6B64)
+      // Branding dle DESIGN.md (primary-600 #1A6B64), název sjednocen na Doprovázení.com
       manifest: {
-        name: 'Přítomnost',
-        short_name: 'Přítomnost',
+        name: 'Doprovázení.com',
+        short_name: 'Doprovázení',
         description: 'CRM pro doprovázení pěstounských rodin',
         theme_color: '#1A6B64',
         background_color: '#ffffff',

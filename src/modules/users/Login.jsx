@@ -136,7 +136,7 @@ export default function Login() {
             </span>
             <h1 className="text-center text-lg font-semibold text-stone-800">Přihlaste se</h1>
             <p className="mt-1 text-center text-sm text-stone-500">
-              Doprovázení CRM — podpora pěstounských rodin
+              Doprovázení.com — podpora pěstounských rodin
             </p>
           </div>
 

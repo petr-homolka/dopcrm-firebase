@@ -1,4 +1,4 @@
-# DESIGN.md — Přítomnost
+# DESIGN.md — Doprovázení.com
 ## Design systém pro CRM doprovázejících organizací pěstounské péče
 
 > **Instrukce pro Claude Code:** Tento dokument je závazný. Před implementací JAKÉHOKOLIV UI si jej přečti celý. Při pochybnostech platí sekce „Zakázané vzory". Pokud existuje složka `design-refs/`, prohlédni si screenshoty před psaním kódu. Nikdy nevracej Modernize/Bootstrap vzory — provádíme úplný přechod na soft design.
@@ -7,7 +7,7 @@
 
 ## 1. Vize a charakter
 
-Přítomnost je nástroj pro **klíčové osoby v terénu** — lidi, kteří jezdí za pěstounskými rodinami, zapisují, fotí, nahrávají a pak generují zprávy pro OSPOD a soudy. Aplikace musí působit:
+Doprovázení.com je nástroj pro **klíčové osoby v terénu** — lidi, kteří jezdí za pěstounskými rodinami, zapisují, fotí, nahrávají a pak generují zprávy pro OSPOD a soudy. Aplikace musí působit:
 
 - **Lidsky a klidně** — pracujeme s citlivými rodinnými tématy, ne s fakturami. Žádný korporátní dashboard.
 - **Lehce** — hodně vzduchu, měkké tvary, jemné barvy. Inspirace: Amie.so (playful minimalismus).

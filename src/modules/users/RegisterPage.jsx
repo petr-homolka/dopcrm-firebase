@@ -101,7 +101,7 @@ export default function RegisterPage() {
             </span>
             <h1 className="text-center text-lg font-semibold text-stone-800">Založit organizaci</h1>
             <p className="text-center text-sm text-stone-500">
-              Doprovázení CRM — registrace nové doprovázející organizace
+              Doprovázení.com — registrace nové doprovázející organizace
             </p>
           </div>
 

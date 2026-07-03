@@ -1,4 +1,4 @@
-# CLAUDE.md — Přítomnost (Doprovázení CRM)
+# CLAUDE.md — Doprovázení.com
 
 CRM/SaaS pro doprovázející organizace pěstounské péče v ČR. Klíčové osoby (max 25–30 pěstounů,
 každý max 8 dětí, většinou 1) pracují primárně v terénu na mobilu. Mobile-first PWA + desktop.
