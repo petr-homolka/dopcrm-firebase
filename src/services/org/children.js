@@ -6,7 +6,7 @@
 
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { meta, createMeta, genId, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
+import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
 import { getFoster } from './fosterFamilies.js';
 
 /**
@@ -65,7 +65,7 @@ export async function createChild({ fosterFamilyId, firstName, lastName, rc = ''
     addressResidence: null,   // { street, city, zip } — adresa pobytu (může se lišit)
     school: null,         // { nazev, adresa, telefon, email, tridniUcitel, rocnik }
     ospod: null,          // { nazev, osoba }
-    courtCase: null,      // { spisZnacka, soudNazev, soudAdresa, kontaktniOsoba, rozsudky:[] }
+    courtCase: null,      // { spisZnacka, soudNazev, soudAdresa, kontaktniOsoba } — rozsudky viz children/{id}/courtVerdicts
     socialSpace: [],      // osoby v okolí dítěte bez biologické vazby — stejný tvar jako relatives
     spvpp: { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 },
     ...createMeta(),
@@ -150,14 +150,22 @@ export async function addPreviousFoster(childId, entry) {
   return ref.id;
 }
 
-/** Rozsudky/usnesení v rámci soudního spisu dítěte — append-only. */
+// ── Rozsudky/usnesení soudního spisu dítěte — append-only subkolekce ─
+// `courtCase` na dokumentu drží jen identitu spisu (spisZnačka/soud/kontakt);
+// samotné rozsudky rostou v čase, proto vlastní podkolekce (viz firestore.rules).
+
+export async function listCourtVerdicts(childId) {
+  const snap = await getDocs(
+    query(collection(db, 'children', childId, 'courtVerdicts'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function addCourtVerdict(childId, entry) {
-  const child = await getChild(childId);
-  if (!child) throw new Error('Dítě nenalezeno.');
-  const courtCase = child.courtCase ?? { spisZnacka: '', soudNazev: '', soudAdresa: '', kontaktniOsoba: '', rozsudky: [] };
-  courtCase.rozsudky = [...(courtCase.rozsudky ?? []), { id: genId('v'), ...entry }];
-  await updateDoc(doc(db, 'children', childId), { courtCase, ...meta() });
-  return courtCase;
+  const ref = await addDoc(collection(db, 'children', childId, 'courtVerdicts'), {
+    ...entry, ...createMeta(),
+  });
+  return ref.id;
 }
 
 /** Sociální prostor dítěte (osoby v okolí bez biologické vazby) — stejný tvar jako relatives[]. */

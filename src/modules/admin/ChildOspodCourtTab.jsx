@@ -13,6 +13,7 @@ import { fieldClass, labelClass } from './childDetailShared.js';
 
 export default function ChildOspodCourtTab({
   child,
+  courtVerdicts,
   ospodDialogOpen,
   ospodForm,
   setOspodForm,
@@ -34,7 +35,7 @@ export default function ChildOspodCourtTab({
   submitting,
   submitError,
 }) {
-  const rozsudky = child.courtCase?.rozsudky ?? [];
+  const rozsudky = courtVerdicts ?? [];
 
   return (
     <div className="flex flex-col gap-4">

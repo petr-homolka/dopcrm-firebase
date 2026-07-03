@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, history, notes, previousFosters, forms }) {
+export default function ChildDetailTabs({ tab, child, history, notes, previousFosters, courtVerdicts, forms }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -67,6 +67,7 @@ export default function ChildDetailTabs({ tab, child, history, notes, previousFo
     return (
       <ChildOspodCourtTab
         child={child}
+        courtVerdicts={courtVerdicts}
         ospodDialogOpen={forms.ospodDialogOpen}
         ospodForm={forms.ospodForm}
         setOspodForm={forms.setOspodForm}

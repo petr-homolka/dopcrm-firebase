@@ -104,8 +104,10 @@ export function useChildDetailForms({ childId, child, reload }) {
 
   const handleSaveCourt = withSubmit(async () => {
     const oldValue = child.courtCase?.spisZnacka || '—';
-    const merged = { ...(child.courtCase ?? { rozsudky: [] }), ...courtForm };
-    await updateChildTracked(childId, { courtCase: merged },
+    // courtCase drží jen identitu spisu — rozsudky žijí v podkolekci
+    // children/{id}/courtVerdicts (audit nálezu #3), proto se sem nic
+    // nemerguje ze starého child.courtCase.
+    await updateChildTracked(childId, { courtCase: { ...courtForm } },
       oldValue !== courtForm.spisZnacka ? [{ field: 'Spisová značka', from: oldValue, to: courtForm.spisZnacka || '—' }] : []);
     setCourtDialogOpen(false);
   });

@@ -25,7 +25,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
-import { getChild, listChildHistory, listPermanentNotes, listPreviousFosters } from '../../services/orgService.js';
+import { getChild, listChildHistory, listPermanentNotes, listPreviousFosters, listCourtVerdicts } from '../../services/orgService.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
 import ChildDetailTabs from './ChildDetailTabs.jsx';
@@ -50,20 +50,23 @@ export default function ChildDetailPage() {
   const [history, setHistory] = useState([]);
   const [notes, setNotes] = useState([]);
   const [previousFosters, setPreviousFosters] = useState([]);
+  const [courtVerdicts, setCourtVerdicts] = useState([]);
   const [tab, setTab] = useState('identita');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, hist, permanentNotes, prevFosters] = await Promise.all([
-        getChild(childId), listChildHistory(childId), listPermanentNotes(childId), listPreviousFosters(childId),
+      const [data, hist, permanentNotes, prevFosters, verdicts] = await Promise.all([
+        getChild(childId), listChildHistory(childId), listPermanentNotes(childId),
+        listPreviousFosters(childId), listCourtVerdicts(childId),
       ]);
       if (!data) throw new Error('Dítě nenalezeno.');
       setChild(data);
       setHistory(hist);
       setNotes(permanentNotes);
       setPreviousFosters(prevFosters);
+      setCourtVerdicts(verdicts);
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
       setError(err.message ?? 'Data se nepodařilo načíst.');
@@ -127,6 +130,7 @@ export default function ChildDetailPage() {
             history={history}
             notes={notes}
             previousFosters={previousFosters}
+            courtVerdicts={courtVerdicts}
             forms={forms}
           />
         </>

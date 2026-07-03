@@ -265,6 +265,20 @@ service cloud.firestore {
               && parentChildPrevFosters().assignedTo == request.auth.uid);
         allow update, delete: if false;
       }
+
+      // Rozsudky/usnesení soudního spisu dítěte — append-only (audit nálezu #3,
+      // 2026-07-03: dřív pole courtCase.rozsudky[] na dokumentu, teď podkolekce).
+      match /courtVerdicts/{verdictId} {
+        function parentChildVerdicts() {
+          return get(/databases/$(database)/documents/children/$(childId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentChildVerdicts().organizationId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(parentChildVerdicts().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentChildVerdicts().organizationId)
+              && parentChildVerdicts().assignedTo == request.auth.uid);
+        allow update, delete: if false;
+      }
     }
 
     // ════════════════════════════════════════════════════════
