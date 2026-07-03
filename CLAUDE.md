@@ -89,6 +89,10 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
   služba v `src/services/`, ideálně v batch zápisu se změnou, která je vyvolala.
 - Seznamové obrazovky čtou jen hlavní dokumenty; podkolekce až v detailu, stránkované po 20.
 - Záznam týkající se více osob (dítě + pěstoun) se ukládá JEDNOU s polem `subjectRefs`.
+  Výjimka: v podkolekci vázané na jednu konkrétní nadřazenou entitu (např.
+  `foster_families/{id}/timeline`) se ref na TUTO entitu do `subjectRefs` nedává —
+  příslušnost už plyne z cesty dokumentu. Prázdné `subjectRefs` tam znamená „týká se
+  celé nadřazené entity", ne chybějící data (viz `docs/domain/timeline.md` §1).
 
 ## Pravidla souborů a médií
 - Soubory VŽDY Firebase Storage se security rules zděděnými z rodiny; NIKDY externí
