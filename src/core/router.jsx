@@ -70,7 +70,6 @@ const FamilyDetailPage = lazy(() => import('../modules/families/FamilyDetailPage
 const ChildrenPage     = lazy(() => import('../modules/children/ChildrenPage'));
 const ChildDetailPage  = lazy(() => import('../modules/children/ChildDetailPage'));
 const ContactsPage     = lazy(() => import('../modules/companies/ContactsPage'));
-const DocumentsPage    = lazy(() => import('../modules/documents/DocumentsPage'));
 const CalendarPage     = lazy(() => import('../modules/calendar/CalendarPage'));
 const UsersPage        = lazy(() => import('../modules/users/UsersPage'));
 const SettingsPage     = lazy(() => import('../modules/users/SettingsPage'));
@@ -104,10 +103,10 @@ export const MVP_NAV = [
   { path: '/deti',       label: 'Děti',        icon: 'child' },
   { path: '/kontakty',   label: 'Kontakty',    icon: 'building' },
   { path: '/kalendar',   label: 'Kalendář',    icon: 'calendar' },
-  { path: '/dokumenty',  label: 'Dokumenty',   icon: 'file' },
   { path: '/vzdelavani', label: 'Vzdělávání',  icon: 'book' },
 ];
 
+// Dokumenty vypnuty (audit #5, docs/INVENTAR.md §11) — viz legacy-modules/README.md.
 // Non-MVP položky (zakomentováno):
 // { path: '/reporty-manazerske', label: 'Manažerské reporty', icon: 'chart' },
 // { path: '/workflow',           label: 'Workflow Engine',     icon: 'flow' },
@@ -226,7 +225,6 @@ const router = createBrowserRouter([
       { path: '/deti',            element: <Suspense fallback={<Loading />}><ChildrenPage /></Suspense> },
       { path: '/deti/:id',        element: <Suspense fallback={<Loading />}><ChildDetailPage /></Suspense> },
       { path: '/kontakty',        element: <Suspense fallback={<Loading />}><ContactsPage /></Suspense> },
-      { path: '/dokumenty',       element: <Suspense fallback={<Loading />}><DocumentsPage /></Suspense> },
       { path: '/kalendar',        element: <Suspense fallback={<Loading />}><CalendarPage /></Suspense> },
       { path: '/vzdelavani',      element: <Suspense fallback={<Loading />}><FamiliesPage /></Suspense> },
       { path: '/hub/:typ/:id',    element: <Suspense fallback={<Loading />}><HubPage /></Suspense> },

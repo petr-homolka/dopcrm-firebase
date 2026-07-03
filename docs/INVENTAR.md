@@ -159,7 +159,7 @@ Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory
 | `previousFosters[]` roste v čase, ale byl pole v dokumentu | `children.previousFosters` | totéž | ✅ Přesunuto do `children/{id}/previousFosters` (migrace `scripts/migrate-previous-fosters.mjs`) |
 | `courtCase.rozsudky[]` rostlo v čase uvnitř vnořeného pole | `children.courtCase.rozsudky` | totéž | ✅ `courtCase` teď jen identita spisu; rozsudky v `children/{id}/courtVerdicts` (migrace `scripts/migrate-court-verdicts.mjs`) |
 | Vzdělávání (`courses[]`) rostlo v čase, vnořené 2 úrovně v poli | `foster_families.fosters[].courses[]` | totéž | ✅ Podkolekce `foster_families/{id}/fosterCourses` s polem `personId` (migrace `scripts/migrate-foster-courses.mjs`) |
-| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů | ⬜ Vědomě NEŘEŠENO teď — viz `docs/history.md`/konverzace 2026-07-03 pro inventuru modulů na Sekci A a odhad rozsahu převodu; rozhoduje se zvlášť, ne v rámci tohoto auditu |
+| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů | 🟡 ČÁSTEČNĚ ŘEŠENO 2026-07-03: Kalendář přepojen na Sekci B (`organizations/{orgId}/events`, viz níže), Dokumenty vypnuty do `/legacy-modules` (nahradí je `docs/domain/dokumentova-pipeline.md` implementace + AI generování). Zbytek (`Přehled`, `Pěstouni`, `Děti`, `Kontakty`, `Vzdělávání`, `Hub`, `Uživatelé`, `Nastavení` na `/pestouni` atd.) zůstává na Sekci A, viz inventura níže. |
 
 **Střední závažnost — OPRAVENO:**
 
@@ -177,29 +177,41 @@ Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory
 | `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek (rodina, sourozenci), riziko nízké. |
 | Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje — hlídat při jeho stavbě. |
 
-### Sekce A — inventura pro budoucí rozhodnutí o migraci (nález #5, neřešeno)
+### Sekce A — inventura a průběžný stav převodu (nález #5)
 
-Skutečně live závislé na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
+**Kalendář — PŘEVEDENO 2026-07-03:** nová podkolekce `organizations/{orgId}/events`
+(`src/services/org/events.js`), `CalendarPage.jsx` přepsán z 8řádkového stubu na agenda pohled
+(příštích 30 dní) nad touto podkolekcí. Vazby: `assignedTo` (KO/zaměstnanec), `fosterFamilyId`
+(volitelné), `subjectRefs` (CLAUDE.md pravidlo pro víceosobní záznamy — rodina + přítomné děti).
+`scripts/seed-calendar-events.mjs` (čerstvý seed, Sekce A žádná kalendářní data neměla — jen
+chatový `timeline`). Ověřeno živě: čtení i zápis nové události fungují bez chyby.
+
+**Dokumenty — VYPNUTO 2026-07-03:** stub přesunut do `legacy-modules/documents/`, odebrán
+z `MVP_NAV` i routeru. Nahradí ho nová implementace dle `docs/domain/dokumentova-pipeline.md`
+(ingest, komprese, Firebase Storage) + AI generování — ne návrat k tomuto stubu.
+
+**Reporty — nikdy neexistovaly jako kód** (žádná stránka/route na Sekci A ani jinde) — nebylo
+co vypínat. `docs/INVENTAR.md` sekce 7 je už eviduje jako ⬜ nezačato.
+
+Zbývá na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
 - `src/services/auth.js` — legacy auth jádro (role/caps z `user_roles/{uid}`, ne z nového `users/{uid}`).
 - `src/services/dataService.js` — čte `tenants/{tenantId}/data_objects` přes `currentTenantId()`.
-- `src/services/db.js` — plný CRUD nad stejným legacy stromem (`data_objects`, `timeline`, `documents`, `institutions`, `card_templates`).
-- `src/core/router.jsx` (`AuthContext`/`useAuth`/`RequireAuth`) — hlídá celý strom `/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /dokumenty, /kalendar, /vzdelavani, /hub/:typ/:id, /uzivatele, /nastaveni`.
+- `src/services/db.js` — plný CRUD nad stejným legacy stromem (`data_objects`, `timeline`, `institutions`, `card_templates`).
+- `src/core/router.jsx` (`AuthContext`/`useAuth`/`RequireAuth`) — hlídá zbylý strom `/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /vzdelavani, /hub/:typ/:id, /uzivatele, /nastaveni` (`/dokumenty` odebráno, `/kalendar` už na Sekci B).
 - `src/core/Layout.jsx` — sidebar shell těchto routes, čte `currentUser()/currentRole()` a volá `signOut()` z `services/auth.js`.
-- `src/modules/families/DashboardPage.jsx` (route `/prehled`) — jediná stránka s reálnou logikou nad Sekcí A (`fetchFamilies`/`fetchChildren`). **Aktuálně živě rozbitá** pro každého uživatele nového B2B modelu (potvrzeno v konzoli: `currentTenantId() je null`, protože noví uživatelé nemají `user_roles/{uid}`) — zachraňuje ji jen to, že `IndexRedirect` nové uživatele na `/prehled` vůbec nepouští.
+- `src/modules/families/DashboardPage.jsx` (route `/prehled`) — ✅ OPRAVENO 2026-07-03, viz níže.
 
 Jen stub bez logiky (8–11 řádků, žádná Sekce A závislost, jen zavěšené do routy/Layoutu):
 `FamiliesPage`, `FamilyDetailPage`, `ChildrenPage` (modul `children/`, ne `admin/`), `ContactsPage`,
-`DocumentsPage`, `CalendarPage`, `HubPage` (modul `families/`), `UsersPage`, `SettingsPage`.
+`HubPage` (modul `families/`), `UsersPage`, `SettingsPage`. (`DocumentsPage` vypnuta, `CalendarPage`
+už není stub — viz výše.)
 
-**Co by obnášel převod na Sekci B:**
-1. `DashboardPage.jsx` přepsat na `org/*.js` služby scoped přes `organizationId` z `useAuthStore` (stejný vzor jako `KlicovaOsobaDashboard.jsx`).
-2. `RequireAuth`/`Layout.jsx` přepojit z `services/auth.js` na `useAuthStore`/`orgAuth.js` — sjednotit s guardem, který už `/admin/*` používá, a rozhodnout, jestli `Layout.jsx` (druhý, nezávislý sidebar) vůbec ještě dává smysl vedle `AdminLayout.jsx`.
-3. 9 stub stránek buď dostavět rovnou nad Sekcí B, nebo smazat/přesměrovat tam, kde už existuje ekvivalent pod `/admin/*` (např. `/pestouni` ~ `/admin/terenni`, `/deti` ~ dětská karta pod `/admin/terenni/.../deti/:id`).
-4. Po vyprázdnění referencí zrušit `dataService.js`, `db.js`, `services/auth.js` a „SEKCE A" v `firestore.rules` (`user_roles`, `tenants/{tenantId}/data_objects`, `global_templates`).
+**Co ještě zbývá k úplnému převodu na Sekci B:**
+1. `RequireAuth`/`Layout.jsx` přepojit z `services/auth.js` na `useAuthStore`/`orgAuth.js` — sjednotit s guardem, který už `/admin/*` používá, a rozhodnout, jestli `Layout.jsx` (druhý, nezávislý sidebar) vůbec ještě dává smysl vedle `AdminLayout.jsx`.
+2. 7 zbylých stub stránek buď dostavět rovnou nad Sekcí B, nebo smazat/přesměrovat tam, kde už existuje ekvivalent pod `/admin/*` (např. `/pestouni` ~ `/admin/terenni`, `/deti` ~ dětská karta pod `/admin/terenni/.../deti/:id`).
+3. Po vyprázdnění referencí zrušit `dataService.js`, `db.js`, `services/auth.js` a „SEKCE A" v `firestore.rules` (`user_roles`, `tenants/{tenantId}/data_objects`, `global_templates`).
 
-Rozhodnutí, zda a v jakém pořadí to udělat, čeká na uživatele — viz konverzace 2026-07-03.
-| `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek, ale nikde neověřeno vůči limitu ~20 z pravidla. |
-| Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje (`docs/INVENTAR.md` sekce 7, ⬜) — hlídat při jeho stavbě. |
+Rozhodnutí, zda a v jakém pořadí to udělat, čeká na uživatele.
 
 **Pozitivní zjištění (správně použitý vzor, žádná akce):** `children/{id}/history` (append-only
 podkolekce), `foster_families/{id}/respitEvents` (podkolekce, ne pole) a `reassignFoster`
