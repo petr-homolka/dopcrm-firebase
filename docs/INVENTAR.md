@@ -204,15 +204,23 @@ subjectRefs+type, pinned — všechny + `occurredAt` desc).
 5. ✅ Pin/unpin funguje; 4. pokus vrátí „Lze připnout maximálně 3 záznamy — nejprve jeden
    odepněte."
 6. ✅ Prázdná rodina ukazuje empty state s funkčním tlačítkem „Přidat poznámku".
-7. 🟡 Oprávnění: přiřazená KO (`demo.ko.jih.1`) čte i zapisuje ✅; org_admin stejné organizace
-   (`demo.admin.jih`) čte i zapisuje ✅; org_admin JINÉ organizace (`demo.admin.sever`) —
-   zápis odmítnut `permission-denied` ✅. Superadmin (negativní případ) neověřen živě — chybí
-   bezpečně dostupné credentials (stejné omezení jako u redirect-smyčky výše); pokryto kódovou
-   zárukou (`canWriteTimeline()` superadmina vůbec nekontroluje).
+7. ✅ Oprávnění, plně ověřeno živě po doplnění `scripts/seed-permission-test-accounts.mjs`
+   (2 nové demo role, konsent uživatele): přiřazená KO (`demo.ko.jih.1`) čte i zapisuje;
+   org_admin stejné organizace (`demo.admin.jih`) čte i zapisuje; org_admin JINÉ organizace
+   (`demo.admin.sever`) — zápis odmítnut `permission-denied`; **superadmin**
+   (`demo.superadmin@doprovazeni.dev`) — čte (má plný přístup jako všude jinde v appce), ale
+   zápis odmítnut `permission-denied` (přesně dle zadání „nepracuje s klientskými daty");
+   **vedouci_pobocky** (`demo.vedouci.jih@doprovazeni.dev`, org Jih, bez přiřazené rodiny) —
+   čte (sameOrg), zápis odmítnut `permission-denied` (`canWriteTimeline()` širší `isManagement()`
+   záměrně nepoužívá, jen `isOrgAdmin`/přiřazenou KO).
 8. 🟡 Chybový stav (Zkusit znovu/Zahodit, text zachovaný) ověřen kódovým review a reálným
-   `permission-denied` selháním na service vrstvě (cross-org zápis); nereprodukováno přes
-   samotný optimistický UI formulář živě — chybí demo účet s rolí, která by měla ČTENÍ,
-   ale ne ZÁPIS (vedouci_pobocky/teamleader/asistent_ko nejsou v `dev-seed.mjs`).
+   `permission-denied` selháním na service vrstvě (superadmin i vedouci_pobocky). Menší mezera:
+   nereprodukováno přes samotný vykreslený formulář „+ Záznam" — `vedouci_pobocky` nemá v
+   routeru (`RequireOrgRole`) povolený přístup na `/admin/terenni/:familyId` vůbec (přesměruje na
+   `/prehled`), takže se ke kartě rodiny v UI nedostane, i když by na ni měla mít podle
+   Firestore rules čtecí právo. Nesouvisí s timeline modulem — jde o obecnou mezeru v routingu
+   pro roli `vedouci_pobocky`/`teamleader` (žádný dashboard pro ně zatím není zapojen), mimo
+   rozsah tohoto úkolu.
 
 **Vedlejší nález a oprava při ověřování:** první nasazení `firestore.indexes.json` (Krok Timeline
 specka) opomnělo index `pinned + occurredAt` — `listPinnedTimelineEntries` spadl na
