@@ -25,7 +25,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
-import { getChild, listChildHistory, listPermanentNotes } from '../../services/orgService.js';
+import { getChild, listChildHistory, listPermanentNotes, listPreviousFosters } from '../../services/orgService.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
 import ChildDetailTabs from './ChildDetailTabs.jsx';
@@ -49,19 +49,21 @@ export default function ChildDetailPage() {
   const [child, setChild] = useState(null);
   const [history, setHistory] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [previousFosters, setPreviousFosters] = useState([]);
   const [tab, setTab] = useState('identita');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, hist, permanentNotes] = await Promise.all([
-        getChild(childId), listChildHistory(childId), listPermanentNotes(childId),
+      const [data, hist, permanentNotes, prevFosters] = await Promise.all([
+        getChild(childId), listChildHistory(childId), listPermanentNotes(childId), listPreviousFosters(childId),
       ]);
       if (!data) throw new Error('Dítě nenalezeno.');
       setChild(data);
       setHistory(hist);
       setNotes(permanentNotes);
+      setPreviousFosters(prevFosters);
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
       setError(err.message ?? 'Data se nepodařilo načíst.');
@@ -119,7 +121,14 @@ export default function ChildDetailPage() {
             ))}
           </div>
 
-          <ChildDetailTabs tab={tab} child={child} history={history} notes={notes} forms={forms} />
+          <ChildDetailTabs
+            tab={tab}
+            child={child}
+            history={history}
+            notes={notes}
+            previousFosters={previousFosters}
+            forms={forms}
+          />
         </>
       )}
     </div>

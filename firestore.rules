@@ -251,6 +251,20 @@ service cloud.firestore {
               && parentChildNotes().assignedTo == request.auth.uid);
         allow update, delete: if false;
       }
+
+      // Předchozí pěstounské rodiny dítěte — append-only historie umístění
+      // (audit nálezu #2, 2026-07-03: dřív pole na dokumentu, teď podkolekce).
+      match /previousFosters/{entryId} {
+        function parentChildPrevFosters() {
+          return get(/databases/$(database)/documents/children/$(childId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentChildPrevFosters().organizationId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(parentChildPrevFosters().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentChildPrevFosters().organizationId)
+              && parentChildPrevFosters().assignedTo == request.auth.uid);
+        allow update, delete: if false;
+      }
     }
 
     // ════════════════════════════════════════════════════════

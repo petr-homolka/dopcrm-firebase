@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, history, notes, forms }) {
+export default function ChildDetailTabs({ tab, child, history, notes, previousFosters, forms }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -95,6 +95,7 @@ export default function ChildDetailTabs({ tab, child, history, notes, forms }) {
     return (
       <ChildFamilyTab
         child={child}
+        previousFosters={previousFosters}
         relGroupsData={relGroups()}
         relDialogOpen={forms.relDialogOpen}
         relForm={forms.relForm}

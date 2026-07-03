@@ -66,7 +66,6 @@ export async function createChild({ fosterFamilyId, firstName, lastName, rc = ''
     school: null,         // { nazev, adresa, telefon, email, tridniUcitel, rocnik }
     ospod: null,          // { nazev, osoba }
     courtCase: null,      // { spisZnacka, soudNazev, soudAdresa, kontaktniOsoba, rozsudky:[] }
-    previousFosters: [],  // append-only — { name, from, to, note }
     socialSpace: [],      // osoby v okolí dítěte bez biologické vazby — stejný tvar jako relatives
     spvpp: { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 },
     ...createMeta(),
@@ -134,13 +133,21 @@ export async function addPermanentNote(childId, text) {
   return ref.id;
 }
 
-/** Předchozí pěstounské rodiny dítěte — append-only historie umístění. */
+// ── Předchozí pěstounské rodiny dítěte — append-only subkolekce ─
+// Historie umístění, nikdy se needituje ani nemaže (viz firestore.rules).
+
+export async function listPreviousFosters(childId) {
+  const snap = await getDocs(
+    query(collection(db, 'children', childId, 'previousFosters'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function addPreviousFoster(childId, entry) {
-  const child = await getChild(childId);
-  if (!child) throw new Error('Dítě nenalezeno.');
-  const previousFosters = [...(child.previousFosters ?? []), { id: genId('pf'), ...entry }];
-  await updateDoc(doc(db, 'children', childId), { previousFosters, ...meta() });
-  return previousFosters;
+  const ref = await addDoc(collection(db, 'children', childId, 'previousFosters'), {
+    ...entry, ...createMeta(),
+  });
+  return ref.id;
 }
 
 /** Rozsudky/usnesení v rámci soudního spisu dítěte — append-only. */

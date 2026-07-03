@@ -16,6 +16,7 @@ import { fieldClass, labelClass, legalBadgeTone } from './childDetailShared.js';
 
 export default function ChildFamilyTab({
   child,
+  previousFosters,
   relGroupsData,
   relDialogOpen,
   relForm,
@@ -33,7 +34,6 @@ export default function ChildFamilyTab({
   submitError,
 }) {
   const relatives = child.relatives ?? [];
-  const previousFosters = child.previousFosters ?? [];
 
   return (
     <div className="flex flex-col gap-4">
