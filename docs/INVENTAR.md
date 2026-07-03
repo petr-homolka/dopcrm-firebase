@@ -145,36 +145,59 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | V8 Blueprint (~143 tabulek, 10 milníků, RLS+audit+WORM) | **Má vždy přednost** | `crm-v8-blueprint` (paměť) | ⬜ velká budoucí etapa |
 | i18n přes translation_keys | Žádný natvrdo text | V8 blueprint | ⬜ |
 
-## 11. Audit datového modelu (2026-07-03)
+## 11. Audit datového modelu (2026-07-03, opraveno 2026-07-03)
 
 Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory: `firestore.rules`,
 `src/services/org/*.js`, `src/services/{auth,dataService,registrationService}.js`,
-`scripts/dev-seed.mjs`. Nic z tohoto auditu nebylo opraveno, jen zaznamenáno — viz jednotlivé
-nálezy níže pro návrh opravy.
+`scripts/dev-seed.mjs`.
 
-**Vysoká závažnost:**
+**Vysoká závažnost — OPRAVENO:**
 
-| Nález | Kde | Porušuje | Návrh opravy |
+| Nález | Kde | Porušuje | Oprava |
 |---|---|---|---|
-| `permanentNotes[]` roste v čase, ale je pole v dokumentu | `children.permanentNotes` (`org/children.js`, `addPermanentNote`) | „historie... VŽDY podkolekce, nikdy pole" | Přesunout do `children/{id}/permanentNotes` (stejný vzor jako už existující `children/{id}/history`) |
-| `previousFosters[]` roste v čase, ale je pole v dokumentu | `children.previousFosters` (`addPreviousFoster`) | totéž | Přesunout do `children/{id}/previousFosters` |
-| `courtCase.rozsudky[]` roste v čase uvnitř vnořeného pole | `children.courtCase.rozsudky` (`addCourtVerdict`) | totéž | `courtCase` nechat jen jako identitu/aktuální stav (spisZnačka, soud, kontakt); rozsudky do `children/{id}/courtVerdicts` |
-| Vzdělávání (`courses[]`) roste v čase, vnořené 2 úrovně v poli | `foster_families.fosters[].courses[]` (`addFosterCourse`) | totéž (vzdělávání je v pravidle výslovně jmenováno jako příklad „co roste") | Vlastní podkolekce, např. `foster_families/{id}/fosterCourses` s polem `personId` odkazujícím na konkrétního pěstouna |
-| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů (rodina, dítě) — `tenants/{id}/data_objects`+`user_roles` (legacy MVP_NAV moduly) vs. `organizations/users/foster_families/children` (nové dashboardy) | Naplánovat migraci legacy modulů (Kalendář, Dokumenty, Reporty, Kontakty) na Sekci B, nebo je explicitně označit k zániku — dnes běží trvale vedle sebe bez cesty k synchronizaci |
+| `permanentNotes[]` roste v čase, ale byl pole v dokumentu | `children.permanentNotes` | „historie... VŽDY podkolekce, nikdy pole" | ✅ Přesunuto do `children/{id}/permanentNotes` (append-only, `listPermanentNotes`/`addPermanentNote`, migrace `scripts/migrate-permanent-notes.mjs`) |
+| `previousFosters[]` roste v čase, ale byl pole v dokumentu | `children.previousFosters` | totéž | ✅ Přesunuto do `children/{id}/previousFosters` (migrace `scripts/migrate-previous-fosters.mjs`) |
+| `courtCase.rozsudky[]` rostlo v čase uvnitř vnořeného pole | `children.courtCase.rozsudky` | totéž | ✅ `courtCase` teď jen identita spisu; rozsudky v `children/{id}/courtVerdicts` (migrace `scripts/migrate-court-verdicts.mjs`) |
+| Vzdělávání (`courses[]`) rostlo v čase, vnořené 2 úrovně v poli | `foster_families.fosters[].courses[]` | totéž | ✅ Podkolekce `foster_families/{id}/fosterCourses` s polem `personId` (migrace `scripts/migrate-foster-courses.mjs`) |
+| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů | ⬜ Vědomě NEŘEŠENO teď — viz `docs/history.md`/konverzace 2026-07-03 pro inventuru modulů na Sekci A a odhad rozsahu převodu; rozhoduje se zvlášť, ne v rámci tohoto auditu |
 
-**Střední závažnost:**
+**Střední závažnost — OPRAVENO:**
 
-| Nález | Kde | Porušuje | Návrh opravy |
+| Nález | Kde | Porušuje | Oprava |
 |---|---|---|---|
-| Zápis respitu a odečet SPVPP peněženky nejsou atomické | `addRespitEvent` → `chargeSpvpp` (`org/respit.js`) — `addDoc` + samostatný `Promise.all` mimo transakci | „denormalizovaná pole aktualizovat ideálně v batch zápisu se změnou, která je vyvolala" | Obalit zápis respitové události a odečet(y) SPVPP do jedné `runTransaction` (vzor už existuje v `reassignFoster`) |
-| Chybí stránkování na všech list dotazech | `listFostersByOrg/AssignedTo`, `listChildrenByOrg/ByFamily`, `listUsersByOrg`, a i detailové `listChildHistory`, `listRespitEvents` — nikde není `limit()` | „seznamové obrazovky... podkolekce až v detailu, stránkované po 20" | Doplnit `limit(20)` + `startAfter` kurzor aspoň na `listChildHistory`/`listRespitEvents`; u organizačních seznamů zvážit dle očekávaného objemu |
+| Zápis respitu a odečet SPVPP peněženky nebyly atomické | `addRespitEvent` → `chargeSpvpp` | „denormalizovaná pole aktualizovat ideálně v batch zápisu" | ✅ Jedna `runTransaction` (vzor `reassignFoster`), ověřeno živě (4000 Kč rozpočítáno atomicky na 2 děti) |
+| Chybělo stránkování na všech list dotazech | Všechny `listX` funkce v `org/*.js` | „seznamové obrazovky... podkolekce až v detailu, stránkované po 20" | ✅ Top-level `limit(50)`, podkolekce `limit(20)` + cursor (`{items, lastDoc}`), UI má „Načíst další" na všech 6 stránkovaných místech |
 
-**Nízká závažnost / poznámky (spíš zdokumentovaná výjimka než chyba):**
+**Nízká závažnost / poznámky — ODLOŽENO VĚDOMĚ (rozhodnutí 2026-07-03):**
 
 | Nález | Kde | Poznámka |
 |---|---|---|
-| `children.assignedTo` duplikuje vztah „kdo má koho" z `foster_families.assignedTo` | `org/children.js`, `org/fosterFamilies.js` | Zdůvodněno a transakčně udržováno (`reassignFoster`), ale křehké — jakýkoli budoucí zápis dítěte mimo `createChild`/`reassignFoster` může pole rozjet. Zvážit Cloud Function invariant nebo to jasně vynutit jako jediné dva povolené zápisové body. |
-| Chybí denormalizované počítadlo pro kapacitu KO | `assertFamilyCapacity` (`org/fosterFamilies.js`) dělá plný COUNT dotaz při každém create/reassign | Není porušení pravidla (to řeší JAK counter aktualizovat, ne JESTLI musí existovat), ale při větším objemu dat = zbytečné plné čtení. Kandidát na denormalizovaný counter ve V8. |
+| `children.assignedTo` duplikuje vztah „kdo má koho" z `foster_families.assignedTo` | `org/children.js`, `org/fosterFamilies.js` | Zdůvodněno a transakčně udržováno (`reassignFoster`), ale křehké — jakýkoli budoucí zápis dítěte mimo `createChild`/`reassignFoster` může pole rozjet. Zvážit Cloud Function invariant ve V8. |
+| Chybí denormalizované počítadlo pro kapacitu KO | `assertFamilyCapacity` (`org/fosterFamilies.js`) dělá plný COUNT dotaz při každém create/reassign | Není porušení pravidla, jen budoucí škálovací dluh. Kandidát na denormalizovaný counter ve V8. |
+| `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek (rodina, sourozenci), riziko nízké. |
+| Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje — hlídat při jeho stavbě. |
+
+### Sekce A — inventura pro budoucí rozhodnutí o migraci (nález #5, neřešeno)
+
+Skutečně live závislé na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
+- `src/services/auth.js` — legacy auth jádro (role/caps z `user_roles/{uid}`, ne z nového `users/{uid}`).
+- `src/services/dataService.js` — čte `tenants/{tenantId}/data_objects` přes `currentTenantId()`.
+- `src/services/db.js` — plný CRUD nad stejným legacy stromem (`data_objects`, `timeline`, `documents`, `institutions`, `card_templates`).
+- `src/core/router.jsx` (`AuthContext`/`useAuth`/`RequireAuth`) — hlídá celý strom `/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /dokumenty, /kalendar, /vzdelavani, /hub/:typ/:id, /uzivatele, /nastaveni`.
+- `src/core/Layout.jsx` — sidebar shell těchto routes, čte `currentUser()/currentRole()` a volá `signOut()` z `services/auth.js`.
+- `src/modules/families/DashboardPage.jsx` (route `/prehled`) — jediná stránka s reálnou logikou nad Sekcí A (`fetchFamilies`/`fetchChildren`). **Aktuálně živě rozbitá** pro každého uživatele nového B2B modelu (potvrzeno v konzoli: `currentTenantId() je null`, protože noví uživatelé nemají `user_roles/{uid}`) — zachraňuje ji jen to, že `IndexRedirect` nové uživatele na `/prehled` vůbec nepouští.
+
+Jen stub bez logiky (8–11 řádků, žádná Sekce A závislost, jen zavěšené do routy/Layoutu):
+`FamiliesPage`, `FamilyDetailPage`, `ChildrenPage` (modul `children/`, ne `admin/`), `ContactsPage`,
+`DocumentsPage`, `CalendarPage`, `HubPage` (modul `families/`), `UsersPage`, `SettingsPage`.
+
+**Co by obnášel převod na Sekci B:**
+1. `DashboardPage.jsx` přepsat na `org/*.js` služby scoped přes `organizationId` z `useAuthStore` (stejný vzor jako `KlicovaOsobaDashboard.jsx`).
+2. `RequireAuth`/`Layout.jsx` přepojit z `services/auth.js` na `useAuthStore`/`orgAuth.js` — sjednotit s guardem, který už `/admin/*` používá, a rozhodnout, jestli `Layout.jsx` (druhý, nezávislý sidebar) vůbec ještě dává smysl vedle `AdminLayout.jsx`.
+3. 9 stub stránek buď dostavět rovnou nad Sekcí B, nebo smazat/přesměrovat tam, kde už existuje ekvivalent pod `/admin/*` (např. `/pestouni` ~ `/admin/terenni`, `/deti` ~ dětská karta pod `/admin/terenni/.../deti/:id`).
+4. Po vyprázdnění referencí zrušit `dataService.js`, `db.js`, `services/auth.js` a „SEKCE A" v `firestore.rules` (`user_roles`, `tenants/{tenantId}/data_objects`, `global_templates`).
+
+Rozhodnutí, zda a v jakém pořadí to udělat, čeká na uživatele — viz konverzace 2026-07-03.
 | `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek, ale nikde neověřeno vůči limitu ~20 z pravidla. |
 | Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje (`docs/INVENTAR.md` sekce 7, ⬜) — hlídat při jeho stavbě. |
 
