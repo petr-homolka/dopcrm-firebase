@@ -16,50 +16,17 @@
  *   - Monetizace / FUP
  */
 
-import React, { lazy, Suspense, useState, useEffect, useRef, createContext, useContext } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { initAuth, currentUser } from '../services/auth.js';
 import { useAuthStore } from '../store/authStore.js';
 import { dashboardPathForRole } from '../services/orgAuth.js';
 
-// ── Auth context ──────────────────────────────────────────────
-// Sdílí stav přihlášení napříč stromem komponent.
-// Hodnota: null = nepřihlášen, { user, role } = přihlášen.
-
-const AuthContext = createContext(undefined);
-
-// Hook žije vedle AuthProvider záměrně, přesun by rozbil stávající strukturu kontextu.
-// eslint-disable-next-line react-refresh/only-export-components
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (ctx === undefined) throw new Error('useAuth musí být uvnitř <AuthProvider>');
-  return ctx;
-}
-
-/**
- * AuthProvider — obaluje celý strom, volá initAuth() jednou při mountu.
- * `loading=true` dokud Firebase nepotvrdí stav session (zabrání bliknutí redirectu).
- */
-export function AuthProvider({ children }) {
-  const [authState, setAuthState] = useState(() => ({
-    loading: true,
-    session: currentUser() ? { user: currentUser() } : null,
-  }));
-  const unsubRef = useRef(null);
-
-  useEffect(() => {
-    unsubRef.current = initAuth((session) => {
-      setAuthState({ loading: false, session });
-    });
-    return () => unsubRef.current?.();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={authState}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+// Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
+// ODSTRANĚNO 2026-07-03 — způsobovalo redirect smyčku po přihlášení, protože
+// existovaly DVA nezávislé mechanismy rozhodující o přesměrování z /login
+// (tento kontext + Login.jsx's useAuthStore efekt). Ochrana rout je teď VÝHRADNĚ
+// přes useAuthStore (Zustand) — jediný zdroj pravdy. Původní kód (pro referenci)
+// je v legacy-modules/router-auth-context.jsx.
 
 // ── Lazy-loaded MVP stránky ───────────────────────────────────
 const LoginPage        = lazy(() => import('../modules/users/Login.jsx'));
@@ -131,11 +98,11 @@ function Loading() {
 // Nepřihlášený → /login, přihlášený → <Layout> s <Outlet>.
 
 function RequireAuth() {
-  const { loading, session } = useAuth();
+  const { loading, currentUser } = useAuthStore();
   const location = useLocation();
 
   if (loading) return <Loading />;
-  if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!currentUser) return <Navigate to="/login" state={{ from: location }} replace />;
 
   return (
     <Suspense fallback={<Loading />}>
@@ -177,15 +144,15 @@ function RequireOrgRole({ allowed }) {
 }
 
 // ── Login route ───────────────────────────────────────────────
-// Pokud je uživatel přihlášen, přesměruje na dashboard.
+// Čeká jen na vyřešení session (spinner) a vždy vykreslí <LoginPage>.
+// Rozhodnutí "už jsem přihlášený, přesměruj mě pryč" dělá VÝHRADNĚ
+// Login.jsx samo (vlastní useEffect nad useAuthStore) — kdyby o tom
+// rozhodovaly obě místa najednou, vznikala by redirect smyčka (opraveno
+// 2026-07-03, viz komentář nahoře u odstraněného AuthContextu).
 
 function LoginRoute() {
-  const { loading, session } = useAuth();
-  const location = useLocation();
-  const from = location.state?.from?.pathname ?? '/prehled';
-
+  const { loading } = useAuthStore();
   if (loading) return <Loading />;
-  if (session) return <Navigate to={from} replace />;
 
   return (
     <Suspense fallback={<Loading />}>
@@ -199,9 +166,9 @@ function LoginRoute() {
 // dashboard, takže sem nepatří; nepřihlášený vidí formulář.
 
 function RegisterRoute() {
-  const { loading, session } = useAuth();
+  const { loading, currentUser, role } = useAuthStore();
   if (loading) return <Loading />;
-  if (session) return <Navigate to="/prehled" replace />;
+  if (currentUser) return <Navigate to={role ? dashboardPathForRole(role) : '/prehled'} replace />;
   return (
     <Suspense fallback={<Loading />}>
       <RegisterPage />
@@ -289,9 +256,5 @@ const router = createBrowserRouter([
 ]);
 
 export default function AppRouter() {
-  return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
-  );
+  return <RouterProvider router={router} />;
 }

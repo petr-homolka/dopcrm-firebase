@@ -1,8 +1,12 @@
 /**
  * Layout.jsx — shell pro starší generické moduly (MVP_NAV: Kalendář,
- * Dokumenty, Kontakty…), které běží vedle nového B2B SaaS schématu
- * (viz AdminLayout.jsx). Sidebar max 240px dle DESIGN.md §5.2, mobil =
- * off-canvas panel místo permanentního drawer.
+ * Kontakty…), které běží vedle nového B2B SaaS schématu (viz AdminLayout.jsx).
+ * Sidebar max 240px dle DESIGN.md §5.2, mobil = off-canvas panel místo
+ * permanentního drawer.
+ *
+ * Identita/role/odhlášení čte z `useAuthStore` (Sekce B) — dřív z legacy
+ * `services/auth.js` (`user_roles/{uid}`), což po odstranění `AuthProvider`
+ * (audit nálezu #5, oprava redirect smyčky 2026-07-03) přestalo fungovat.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -21,7 +25,8 @@ import {
   X,
 } from 'lucide-react';
 
-import { signOut, currentUser, currentRole } from '../services/auth.js';
+import { signOut } from '../services/orgAuth.js';
+import { useAuthStore } from '../store/authStore.js';
 import { MVP_NAV } from './router.jsx';
 import { cn } from '../components/ui/cn.js';
 
@@ -37,12 +42,12 @@ const ICON_MAP = {
 
 const ROLE_LABELS = {
   superadmin: 'SA',
-  vedeni: 'VE',
-  ko: 'KO',
-  asistent: 'AS',
-  pestoun: 'PE',
-  dite: 'DI',
-  externista: 'EX',
+  org_admin: 'OA',
+  vedouci_pobocky: 'VP',
+  teamleader: 'TL',
+  klicova_osoba: 'KO',
+  asistent_ko: 'AS',
+  zamestnanec: 'ZA',
 };
 
 function initials(user) {
@@ -66,10 +71,8 @@ const navItemClass = ({ isActive }) =>
 
 function SidebarContent({ onNavigate }) {
   const navigate = useNavigate();
-  const user = currentUser();
-  const role = currentRole();
-  const roleKey = role?.role ?? 'ko';
-  const roleLabel = ROLE_LABELS[roleKey] ?? roleKey.slice(0, 2).toUpperCase();
+  const { currentUser: user, role } = useAuthStore();
+  const roleLabel = role ? (ROLE_LABELS[role] ?? role.slice(0, 2).toUpperCase()) : '—';
 
   const handleSignOut = useCallback(async () => {
     await signOut();
