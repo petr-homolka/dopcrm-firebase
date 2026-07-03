@@ -144,6 +144,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
+| Oddělené DEV/PROD Firebase prostředí | `.firebaserc` default = `doprovazeni-dev`, `prod` alias = ostrý projekt | `CLAUDE.md` §Firebase prostředí | ✅ zavedeno 2026-07-03 — dev osazen vlastním seedem (`npm run seed` + permission/kalendář skripty), bootstrap superadmin `dev-admin@doprovazeni.dev` |
 | Zálohy/šifrování/Disaster Recovery | `.enc`/WORM/restore-system.sh | `crm-spec-z-brainstormu.md` | ⬜ |
 | Ostrý AI provoz checklist (DPA/DPIA/souhlasy) | Před reálnými daty dětí | `docs/history-claude-md.md` §0 bod 6 | ⬜ |
 | GCP all-in-one (produkce) | **Závazné rozhodnutí do odvolání** | `crm-ai-zapojeni-uvaha` (paměť) | 🟡 (Firebase/Firestore zatím, ne plný Cloud Run/SQL) |

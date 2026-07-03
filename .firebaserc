@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "opportune-cairn-500111-b-b2bea"
+    "default": "doprovazeni-dev",
+    "prod": "opportune-cairn-500111-b-b2bea"
   }
 }

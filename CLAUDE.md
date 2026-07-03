@@ -53,16 +53,31 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
 - RČ = primární identifikátor osob (děti, příbuzní); jméno jen fallback.
 - Citlivá data dětí: žádné údaje do logů, AI promptů posílat jen nezbytné minimum.
 
+## Firebase prostředí — DEV vs PROD (2026-07-03)
+- **`.firebaserc` default = `doprovazeni-dev`** (samostatný Firebase projekt, prázdný od
+  reálných dat). Bez `-P`/`--project` flagu VŽDY cílíš sem — `npm run dev`, `npm run seed`,
+  `firebase deploy --only firestore:rules` i všechny migrační skripty (`.env.local` ukazuje
+  na dev projekt).
+- **Produkce = alias `prod`** (`opportune-cairn-500111-b-b2bea`, reálná data organizací).
+  Credentials jsou v `.env.production.local` (gitignored, nikdy se automaticky nenačítá).
+  Zásah do prod vyžaduje VŽDY explicitní `-P prod`/`--project opportune-cairn-500111-b-b2bea`
+  NEBO dočasné přepnutí `.env.local` na produkční hodnoty — nikdy omylem.
+- Dev projekt má vlastní seed (`npm run seed`, `scripts/seed-permission-test-accounts.mjs`,
+  `scripts/seed-calendar-events.mjs`) a vlastního bootstrap superadmina
+  (`dev-admin@doprovazeni.dev`, heslo v `.env.local`) — nezávislé na produkčním superadminovi.
+
 ## Pracovní postup
 - Po každé ucelené změně aktualizuj **CURRENT_STATE.md** (datum, co, proč, ověření).
   CURRENT_STATE.md drž pod 300 řádků — starší záznamy přesouvej do `docs/history.md`.
 - Tento soubor (CLAUDE.md) NEROSTE — je to pravidlo, ne deník. Historie patří do docs/.
 - Před commitem: `npm run build` musí projít čistě; `npm run lint` bez chyb.
-- Firestore rules měň jen s výslovným souhlasem uživatele a vždy nasaď
-  (`firebase deploy --only firestore:rules`).
-- ⛔ Destruktivní operace nad daty (`seed:wipe`, `seed`, hromadné mazání, migrační skripty
-  bez `--dry-run`) a jakýkoli `firebase deploy` VŽDY vyžadují výslovný souhlas uživatele
-  v dané session — bez výjimky, i pro úklid testovacích dat, který sis sám způsobil.
+- Firestore rules/indexy/seed/migrace proti **DEV** projektu (výchozí bez `-P` flagu) jsou
+  běžnou součástí práce — nasazuj/spouštěj je jako kdykoli jindy, bez zvláštního souhlasu
+  pro každý jednotlivý příkaz.
+- ⛔ Cokoli cílené na **PROD** (`-P prod` / `.env.production.local` hodnoty) — destruktivní
+  operace nad daty (`seed:wipe`, `seed`, hromadné mazání, migrační skripty bez `--dry-run`)
+  i jakýkoli `firebase deploy` — VŽDY vyžaduje výslovný souhlas uživatele v dané session,
+  bez výjimky, i pro úklid testovacích dat, který sis sám způsobil.
 - Komunikuj česky. Žádná emoji v UI (ikony = lucide-react).
 
 ## Pravidla velikosti (tvrdá, bez výjimek)
