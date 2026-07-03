@@ -3,7 +3,7 @@
  * a SPVPP (finanční peněženka dítěte na respit/pobyty).
  */
 
-import { collection, doc, getDocs, addDoc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, updateDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
 import { getChild } from './children.js';
@@ -23,16 +23,33 @@ export async function listRespitEvents(familyId) {
  * rozpočítá se ROVNÝM DÍLEM mezi uvedené děti a odečte z jejich SPVPP peněženky
  * (položkové rozúčtování dle konkrétního dokladu řeší UI voláním `chargeSpvpp`
  * přímo s jiným podílem).
+ *
+ * Zápis respitové události a odečet SPVPP peněženek dotčených dětí běží v JEDNÉ
+ * transakci (audit nálezu #6, 2026-07-03: dřív šlo o `addDoc` + samostatný
+ * `Promise.all(chargeSpvpp)` mimo transakci — chyba uprostřed mohla nechat
+ * peněženky a respitovou událost v nekonzistentním stavu). Vzor viz
+ * `reassignFoster` ve `fosterFamilies.js`.
  */
 export async function addRespitEvent(familyId, { childIds = [], from, to, typ = 'tabor_pobyt', kc = 0, doklad = '' }) {
-  const ref = await addDoc(collection(db, 'foster_families', familyId, 'respitEvents'), {
-    childIds, from, to: to || from, typ, kc, doklad, ...createMeta(),
+  const eventRef = doc(collection(db, 'foster_families', familyId, 'respitEvents'));
+  const each = kc > 0 && childIds.length ? kc / childIds.length : 0;
+
+  await runTransaction(db, async (tx) => {
+    // Firestore transakce vyžaduje všechna čtení PŘED jakýmkoli zápisem.
+    const childRefs = childIds.map((childId) => doc(db, 'children', childId));
+    const childSnaps = each > 0 ? await Promise.all(childRefs.map((ref) => tx.get(ref))) : [];
+
+    tx.set(eventRef, { childIds, from, to: to || from, typ, kc, doklad, ...createMeta() });
+
+    childSnaps.forEach((snap, i) => {
+      if (!snap.exists()) return;
+      const wallet = snap.data().spvpp ?? { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 };
+      wallet.vycerpano = Math.round((wallet.vycerpano || 0) + each);
+      tx.update(childRefs[i], { spvpp: wallet, ...meta() });
+    });
   });
-  if (kc > 0 && childIds.length) {
-    const each = kc / childIds.length;
-    await Promise.all(childIds.map((childId) => chargeSpvpp(childId, each)));
-  }
-  return ref.id;
+
+  return eventRef.id;
 }
 
 /** Nadstandard nad zákonných 14 dní (§47a) — řešeno individuálním plánem ochrany dítěte (IPOD). */
