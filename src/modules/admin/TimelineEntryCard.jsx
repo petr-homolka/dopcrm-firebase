@@ -13,7 +13,7 @@ import { TIMELINE_TYPE_META, toDate, formatTime } from './timelineShared.js';
 
 const CORRECTABLE_TYPES = ['visit', 'note', 'audio_note'];
 
-export default function TimelineEntryCard({ entry, childrenById, correctedBy, onTogglePin, onCorrect, onRetry, onDiscard }) {
+export default function TimelineEntryCard({ entry, childrenById, correctedBy, onTogglePin, onCorrect, onRetry, onDiscard, canManage = true }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -22,7 +22,7 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
   const isSystem = entry.type === 'system';
   const isError = entry._status === 'error';
   const isSaving = entry._status === 'saving';
-  const canCorrect = !isSystem && !entry._pending && CORRECTABLE_TYPES.includes(entry.type);
+  const canCorrect = canManage && !isSystem && !entry._pending && CORRECTABLE_TYPES.includes(entry.type);
 
   const body = entry.body ?? '';
   const bodyLong = body.length > 180;
@@ -44,7 +44,7 @@ export default function TimelineEntryCard({ entry, childrenById, correctedBy, on
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <span className="text-xs text-stone-400">{formatTime(toDate(entry.occurredAt))}</span>
-          {!isSystem && !entry._pending && (
+          {canManage && !isSystem && !entry._pending && (
             <button
               type="button"
               onClick={() => onTogglePin(entry)}

@@ -32,11 +32,21 @@ export async function listFostersByOrg(organizationId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-/** Rodiny přidělené konkrétní klíčové osobě (mobil i web terénní dashboard). */
-export async function listFostersAssignedTo(uid) {
-  const snap = await getDocs(
-    query(collection(db, 'foster_families'), where('assignedTo', '==', uid), limit(TOP_LEVEL_PAGE_SIZE))
-  );
+/**
+ * Rodiny přidělené konkrétní klíčové osobě (mobil i web terénní dashboard).
+ * `organizationId` je NUTNÝ, pokud `uid` není volající sám (TeamDashboard —
+ * vedouci_pobocky/teamleader se dívá na rodiny SVÝCH podřízených KO) — jinak
+ * Firestore odmítne celý "list" dotaz, protože rovnostní filtr (`assignedTo`)
+ * neodpovídá poli, které pravidlo v tomto případě skutečně ověřuje
+ * (`sameOrg(organizationId)`, ne `assignedTo == request.auth.uid`) — viz
+ * [[crm-firestore-list-query-rule-pole]]. Když KO čte SVOJE vlastní rodiny
+ * (`assignedTo == request.auth.uid`), `organizationId` filtr nepotřebuje.
+ */
+export async function listFostersAssignedTo(uid, organizationId = null) {
+  const constraints = [where('assignedTo', '==', uid)];
+  if (organizationId) constraints.push(where('organizationId', '==', organizationId));
+  constraints.push(limit(TOP_LEVEL_PAGE_SIZE));
+  const snap = await getDocs(query(collection(db, 'foster_families'), ...constraints));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 

@@ -27,6 +27,7 @@ export default function ChildIdentityTab({
   onSaveDocs,
   submitting,
   submitError,
+  canManage = true,
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -48,9 +49,11 @@ export default function ChildIdentityTab({
           <p className="text-sm text-stone-800">
             Cestovní pas: {child.passport ? `${child.passport.number}${child.passport.validUntil ? ` (platný do ${child.passport.validUntil})` : ''}` : 'nevydán'}
           </p>
-          <Button variant="secondary" size="sm" className="mt-1 self-start" onClick={onOpenDocs}>
-            {child.idCard || child.passport ? 'Upravit doklady' : 'Doplnit doklady'}
-          </Button>
+          {canManage && (
+            <Button variant="secondary" size="sm" className="mt-1 self-start" onClick={onOpenDocs}>
+              {child.idCard || child.passport ? 'Upravit doklady' : 'Doplnit doklady'}
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -60,17 +63,21 @@ export default function ChildIdentityTab({
           <div>
             <p className="text-sm font-semibold text-stone-800">Trvalé bydliště</p>
             <p className="text-sm text-stone-500">{addressLabel(child.addressPermanent) ?? 'Nevyplněno'}</p>
-            <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressPermanent', child.addressPermanent)}>
-              Upravit
-            </Button>
+            {canManage && (
+              <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressPermanent', child.addressPermanent)}>
+                Upravit
+              </Button>
+            )}
           </div>
           <div className="h-px bg-stone-100" />
           <div>
             <p className="text-sm font-semibold text-stone-800">Adresa pobytu (pokud jiná)</p>
             <p className="text-sm text-stone-500">{addressLabel(child.addressResidence) ?? 'Stejná jako trvalé bydliště'}</p>
-            <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressResidence', child.addressResidence)}>
-              Upravit
-            </Button>
+            {canManage && (
+              <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressResidence', child.addressResidence)}>
+                Upravit
+              </Button>
+            )}
           </div>
         </div>
       </Card>

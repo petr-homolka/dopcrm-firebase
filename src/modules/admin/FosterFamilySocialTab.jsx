@@ -28,7 +28,7 @@ function AddLink({ onClick, children }) {
   );
 }
 
-export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddChild, onAddParent }) {
+export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddChild, onAddParent, canManage = true }) {
   const biologicalChildren = socialForm.biologicalChildren ?? [];
   const parents = socialForm.parents ?? [];
 
@@ -46,14 +46,14 @@ export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddC
       ) : (
         <div className="mb-5 mt-1">
           <p className="mb-1.5 text-sm text-stone-500">Nevyplněno.</p>
-          <AddLink onClick={onAddPartner}>Doplnit partnera</AddLink>
+          {canManage && <AddLink onClick={onAddPartner}>Doplnit partnera</AddLink>}
         </div>
       )}
 
       <div className="mb-5 border-t border-stone-100 pt-4">
         <div className="flex items-center justify-between">
           <SectionLabel>Biologické děti (mimo pěstounskou péči)</SectionLabel>
-          <AddLink onClick={onAddChild}>Přidat</AddLink>
+          {canManage && <AddLink onClick={onAddChild}>Přidat</AddLink>}
         </div>
         <div className="mt-2 flex flex-col divide-y divide-stone-100">
           {biologicalChildren.length === 0 && (
@@ -73,7 +73,7 @@ export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddC
       <div className="border-t border-stone-100 pt-4">
         <div className="flex items-center justify-between">
           <SectionLabel>Rodiče pěstouna</SectionLabel>
-          <AddLink onClick={onAddParent}>Přidat</AddLink>
+          {canManage && <AddLink onClick={onAddParent}>Přidat</AddLink>}
         </div>
         <div className="mt-2 flex flex-col divide-y divide-stone-100">
           {parents.length === 0 && <p className="py-1.5 text-sm text-stone-500">Žádní.</p>}

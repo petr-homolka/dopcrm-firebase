@@ -24,6 +24,8 @@ import Card from '../../components/ui/Card.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel, CARE_TYPES, odmenaStatusLabel } from '../../shared/domainConstants.js';
+import { useAuthStore } from '../../store/authStore.js';
+import { isReadOnlyManager } from '../../services/orgAuth.js';
 
 import useFosterFamilyDetail from './useFosterFamilyDetail.js';
 import FosterFamilyTimelineTab from './FosterFamilyTimelineTab.jsx';
@@ -61,6 +63,8 @@ export default function FosterFamilyDetailPage() {
 
   const requiredHours = family ? CARE_TYPES[family.careType]?.requiredHours ?? 24 : 24;
   const fosters = family?.fosters ?? [];
+  const { role } = useAuthStore();
+  const canManage = !isReadOnlyManager(role);
 
   return (
     <div>
@@ -145,7 +149,7 @@ export default function FosterFamilyDetailPage() {
           </div>
 
           {tab === 'osa' && (
-            <FosterFamilyTimelineTab familyId={familyId} childrenList={children} />
+            <FosterFamilyTimelineTab familyId={familyId} childrenList={children} canManage={canManage} />
           )}
 
           {tab === 'pestouni' && (
@@ -157,6 +161,7 @@ export default function FosterFamilyDetailPage() {
               requiredHours={requiredHours}
               onAddFoster={() => setFosterDialogOpen(true)}
               onAddCourse={(fosterId) => setCourseDialogFor(fosterId)}
+              canManage={canManage}
             />
           )}
 
@@ -175,6 +180,7 @@ export default function FosterFamilyDetailPage() {
               onLoadMoreRespit={loadMoreRespit}
               childrenList={children}
               onAddRespit={() => setRespitDialogOpen(true)}
+              canManage={canManage}
             />
           )}
 
@@ -184,6 +190,7 @@ export default function FosterFamilyDetailPage() {
               onAddPartner={() => openSocialDialog('partner', { name: '', rc: '', phone: '', relationship: '' })}
               onAddChild={() => openSocialDialog('child', { name: '', rc: '', birthDate: '' })}
               onAddParent={() => openSocialDialog('parent', { name: '', rc: '', phone: '' })}
+              canManage={canManage}
             />
           )}
 
@@ -192,6 +199,7 @@ export default function FosterFamilyDetailPage() {
               childrenList={children}
               onAddChild={() => setChildDialogOpen(true)}
               onOpenChild={(childId) => navigate(`/admin/terenni/${familyId}/deti/${childId}`)}
+              canManage={canManage}
             />
           )}
         </>

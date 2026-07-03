@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore, forms }) {
+export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore, forms, canManage = true }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -43,6 +43,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onSaveDocs={forms.handleSaveDocs}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }
@@ -59,6 +60,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onSave={forms.handleSaveSchool}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }
@@ -90,6 +92,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onAddVerdict={forms.handleAddVerdict}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }
@@ -117,6 +120,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onAddFosterHist={forms.handleAddFosterHist}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }
@@ -133,6 +137,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onAdd={forms.handleAddSocial}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }
@@ -148,6 +153,7 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onAddNote={forms.handleAddNote}
         submitting={submitting}
         submitError={submitError}
+        canManage={canManage}
       />
     );
   }

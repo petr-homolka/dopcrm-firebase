@@ -27,9 +27,21 @@ export async function signOut() {
 /** Cílová cesta po přihlášení podle role — hlavní dashboard dané role. */
 export function dashboardPathForRole(role) {
   switch (role) {
-    case 'superadmin':    return '/admin/superadmin';
-    case 'org_admin':     return '/admin/organizace';
-    case 'klicova_osoba': return '/admin/terenni';
-    default:              return '/prehled';
+    case 'superadmin':      return '/admin/superadmin';
+    case 'org_admin':       return '/admin/organizace';
+    case 'klicova_osoba':   return '/admin/terenni';
+    case 'vedouci_pobocky':
+    case 'teamleader':      return '/admin/tym';
+    default:                return '/prehled';
   }
+}
+
+/**
+ * Role, které smí jen ČÍST karty rodin/dětí (nikdy zápis/editace) — UI
+ * skrývá zápisové akce, firestore.rules to navíc vynucují (rozhodnutí
+ * 2026-07-03, docs/INVENTAR.md). `vedouci_pobocky`/`teamleader` vidí tým
+ * (TeamDashboard) a mohou prokliknout do detailu, ale jen ke čtení.
+ */
+export function isReadOnlyManager(role) {
+  return role === 'vedouci_pobocky' || role === 'teamleader';
 }

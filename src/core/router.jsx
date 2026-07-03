@@ -48,6 +48,7 @@ const AdminLayout            = lazy(() => import('../modules/admin/AdminLayout.j
 const SuperAdminDashboard    = lazy(() => import('../modules/admin/SuperAdminDashboard.jsx'));
 const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashboard.jsx'));
 const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
+const TeamDashboard          = lazy(() => import('../modules/admin/TeamDashboard.jsx'));
 const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
 const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
 const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
@@ -240,16 +241,27 @@ const router = createBrowserRouter([
       },
       {
         // Detail rodiny/dítěte — sdílená cílová stránka hierarchického prokliku
-        // ze všech tří rolí (superadmin z OrganizationDetailPage, org_admin z
-        // FosterFamiliesPanel, klicova_osoba z vlastního dashboardu). Čtení
-        // řeší firestore.rules (sameOrg pro read), tady jen povolení routy.
-        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin']} />,
+        // ze všech rolí (superadmin z OrganizationDetailPage, org_admin z
+        // FosterFamiliesPanel, klicova_osoba z vlastního dashboardu, vedouci_pobocky/
+        // teamleader z TeamDashboard — poslední dva jen ke čtení, viz
+        // isReadOnlyManager() v orgAuth.js). Čtení řeší firestore.rules (sameOrg),
+        // tady jen povolení routy.
+        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin', 'vedouci_pobocky', 'teamleader']} />,
         children: [
           { path: '/admin/terenni/:familyId',            element: <Suspense fallback={<Loading />}><FosterFamilyDetailPage /></Suspense> },
           { path: '/admin/terenni/:familyId/deti/:childId', element: <Suspense fallback={<Loading />}><AdminChildDetailPage /></Suspense> },
         ],
       },
     ],
+  },
+  {
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Tým" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['vedouci_pobocky', 'teamleader']} />,
+      children: [
+        { path: '/admin/tym', element: <Suspense fallback={<Loading />}><TeamDashboard /></Suspense> },
+      ],
+    }],
   },
 
   { path: '*', element: <Navigate to="/prehled" replace /> },

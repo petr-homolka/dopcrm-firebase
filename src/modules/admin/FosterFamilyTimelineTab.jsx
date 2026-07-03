@@ -17,7 +17,7 @@ import TimelineEntryCard from './TimelineEntryCard.jsx';
 import TimelineEntryForm from './TimelineEntryForm.jsx';
 import { TIMELINE_FILTERS, groupByDay, formatDayHeading } from './timelineShared.js';
 
-export default function FosterFamilyTimelineTab({ familyId, childrenList }) {
+export default function FosterFamilyTimelineTab({ familyId, childrenList, canManage = true }) {
   const {
     entries, pinned, pending, loading, hasMore, loadMore,
     typeFilter, setTypeFilter, childFilter, setChildFilter,
@@ -65,10 +65,12 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList }) {
             </button>
           ))}
         </div>
-        <Button variant="primary" size="sm" onClick={openAdd}>
-          <Plus size={16} strokeWidth={1.75} />
-          Záznam
-        </Button>
+        {canManage && (
+          <Button variant="primary" size="sm" onClick={openAdd}>
+            <Plus size={16} strokeWidth={1.75} />
+            Záznam
+          </Button>
+        )}
       </div>
 
       {pinError && <div className="rounded-xl bg-red-50 px-3.5 py-2 text-sm text-red-700">{pinError}</div>}
@@ -91,6 +93,7 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList }) {
                 onCorrect={openCorrection}
                 onRetry={retryPending}
                 onDiscard={discardPending}
+                canManage={canManage}
               />
             ))}
           </div>
@@ -101,10 +104,12 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList }) {
 
       {!loading && dayGroups.length === 0 && (
         <Card className="py-8 text-center text-sm text-stone-500">
-          Zatím žádné záznamy. Začněte první poznámkou.
-          <div className="mt-3">
-            <Button variant="secondary" size="sm" onClick={openAdd}>Přidat poznámku</Button>
-          </div>
+          Zatím žádné záznamy.{canManage && ' Začněte první poznámkou.'}
+          {canManage && (
+            <div className="mt-3">
+              <Button variant="secondary" size="sm" onClick={openAdd}>Přidat poznámku</Button>
+            </div>
+          )}
         </Card>
       )}
 
@@ -124,6 +129,7 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList }) {
                 onCorrect={openCorrection}
                 onRetry={retryPending}
                 onDiscard={discardPending}
+                canManage={canManage}
               />
             ))}
           </div>

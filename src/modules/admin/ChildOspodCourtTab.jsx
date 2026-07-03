@@ -37,6 +37,7 @@ export default function ChildOspodCourtTab({
   onAddVerdict,
   submitting,
   submitError,
+  canManage = true,
 }) {
   const rozsudky = courtVerdicts ?? [];
 
@@ -45,9 +46,11 @@ export default function ChildOspodCourtTab({
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-800">Příslušnost OSPOD</h2>
-          <Button variant="secondary" size="sm" onClick={onOpenOspod}>
-            {child.ospod ? 'Upravit' : 'Doplnit'}
-          </Button>
+          {canManage && (
+            <Button variant="secondary" size="sm" onClick={onOpenOspod}>
+              {child.ospod ? 'Upravit' : 'Doplnit'}
+            </Button>
+          )}
         </div>
         {child.ospod ? (
           <p className="text-sm text-stone-800">{child.ospod.nazev} — kontaktní osoba: {child.ospod.osoba || '—'}</p>
@@ -59,9 +62,11 @@ export default function ChildOspodCourtTab({
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-800">Soud</h2>
-          <Button variant="secondary" size="sm" onClick={onOpenCourt}>
-            {child.courtCase ? 'Upravit' : 'Doplnit'}
-          </Button>
+          {canManage && (
+            <Button variant="secondary" size="sm" onClick={onOpenCourt}>
+              {child.courtCase ? 'Upravit' : 'Doplnit'}
+            </Button>
+          )}
         </div>
         {child.courtCase ? (
           <div className="mb-4 flex flex-col gap-0.5">
@@ -76,10 +81,12 @@ export default function ChildOspodCourtTab({
 
         <div className="mb-1 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-stone-800">Rozsudky a usnesení</h3>
-          <Button variant="ghost" size="sm" onClick={onOpenVerdict}>
-            <Plus size={16} strokeWidth={1.75} />
-            Přidat
-          </Button>
+          {canManage && (
+            <Button variant="ghost" size="sm" onClick={onOpenVerdict}>
+              <Plus size={16} strokeWidth={1.75} />
+              Přidat
+            </Button>
+          )}
         </div>
         {rozsudky.length === 0 && <p className="py-1 text-sm text-stone-500">Žádné záznamy.</p>}
         <ul>

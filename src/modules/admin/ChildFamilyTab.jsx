@@ -36,6 +36,7 @@ export default function ChildFamilyTab({
   onAddFosterHist,
   submitting,
   submitError,
+  canManage = true,
 }) {
   const relatives = child.relatives ?? [];
   const fosters = family?.fosters ?? [];
@@ -76,10 +77,12 @@ export default function ChildFamilyTab({
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-800">Biologická rodina ({relatives.length})</h2>
-          <Button variant="secondary" size="sm" onClick={onOpenRel}>
-            <UserPlus size={16} strokeWidth={1.75} />
-            Přidat příbuzného
-          </Button>
+          {canManage && (
+            <Button variant="secondary" size="sm" onClick={onOpenRel}>
+              <UserPlus size={16} strokeWidth={1.75} />
+              Přidat příbuzného
+            </Button>
+          )}
         </div>
 
         {relatives.length === 0 && <p className="py-2 text-sm text-stone-500">Zatím žádní evidovaní příbuzní.</p>}
@@ -107,10 +110,12 @@ export default function ChildFamilyTab({
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-800">Předchozí pěstounské rodiny ({previousFosters.length})</h2>
-          <Button variant="ghost" size="sm" onClick={onOpenFosterHist}>
-            <Plus size={16} strokeWidth={1.75} />
-            Přidat
-          </Button>
+          {canManage && (
+            <Button variant="ghost" size="sm" onClick={onOpenFosterHist}>
+              <Plus size={16} strokeWidth={1.75} />
+              Přidat
+            </Button>
+          )}
         </div>
 
         {previousFosters.length === 0 && <p className="py-2 text-sm text-stone-500">Žádné předchozí umístění v evidenci.</p>}

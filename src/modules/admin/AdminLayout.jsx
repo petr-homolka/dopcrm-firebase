@@ -19,6 +19,8 @@ import Badge from '../../components/ui/Badge.jsx';
 const ROLE_LABELS = {
   superadmin: 'SaaS Superadmin',
   org_admin: 'Org. Admin',
+  vedouci_pobocky: 'Vedoucí pobočky',
+  teamleader: 'Teamleader',
   klicova_osoba: 'Klíčová osoba',
 };
 

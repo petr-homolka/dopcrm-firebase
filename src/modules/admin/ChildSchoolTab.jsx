@@ -19,14 +19,17 @@ export default function ChildSchoolTab({
   onSave,
   submitting,
   submitError,
+  canManage = true,
 }) {
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-base font-semibold text-stone-800">Škola</h2>
-        <Button variant="secondary" size="sm" onClick={onOpen}>
-          {child.school ? 'Upravit' : 'Doplnit'}
-        </Button>
+        {canManage && (
+          <Button variant="secondary" size="sm" onClick={onOpen}>
+            {child.school ? 'Upravit' : 'Doplnit'}
+          </Button>
+        )}
       </div>
 
       {child.school ? (

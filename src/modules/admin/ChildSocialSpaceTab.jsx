@@ -21,6 +21,7 @@ export default function ChildSocialSpaceTab({
   onAdd,
   submitting,
   submitError,
+  canManage = true,
 }) {
   const socialSpace = child.socialSpace ?? [];
 
@@ -28,10 +29,12 @@ export default function ChildSocialSpaceTab({
     <Card>
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-base font-semibold text-stone-800">Sociální prostor ({socialSpace.length})</h2>
-        <Button variant="secondary" size="sm" onClick={onOpen}>
-          <UserPlus size={16} strokeWidth={1.75} />
-          Přidat osobu
-        </Button>
+        {canManage && (
+          <Button variant="secondary" size="sm" onClick={onOpen}>
+            <UserPlus size={16} strokeWidth={1.75} />
+            Přidat osobu
+          </Button>
+        )}
       </div>
       <p className="mb-1 text-sm text-stone-500">
         Osoby v okolí dítěte bez biologické vazby — kmotři, blízcí rodinní přátelé, širší okolí.

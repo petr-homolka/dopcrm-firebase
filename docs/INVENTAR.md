@@ -17,7 +17,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Self-service registrace organizace | Veřejná `/registrace`, žádné zakládání superadminem | `docs/history.md` (Fáze 1) | ✅ |
 | Hierarchie zaměstnanců | `org_admin → vedouci_pobocky → teamleader → klicova_osoba → asistent_ko`, `nadrizeny` | `docs/history.md` (Fáze 1) | ✅ |
 | Limit 25 rodin / klíčová osoba | `assertFamilyCapacity` | `docs/history.md` (Fáze 1) | ✅ |
-| Role/scope/práva (6 rolí, capability matice) | superadmin/vedení/KO/asistentka/pěstoun/dítě, scope all/own/self | `docs/history-claude-md.md` §5 | 🟡 (React má jen 3 role zatím: superadmin/org_admin/klicova_osoba) |
+| Role/scope/práva (6 rolí, capability matice) | superadmin/vedení/KO/asistentka/pěstoun/dítě, scope all/own/self | `docs/history-claude-md.md` §5 | 🟡 (React má 5 rolí s vlastním dashboardem: superadmin/org_admin/vedouci_pobocky/teamleader/klicova_osoba — `asistent_ko`/`zamestnanec` zatím žádný) |
 | Firestore security rules multi-tenant | Čtení/zápis dle role a `assignedTo` | `docs/history.md` | ✅ (částečně — postupně rozšiřováno) |
 | CI/CD GitHub Actions → Firebase Hosting | Push do `main` = build+deploy | `docs/history.md` | ✅ |
 
@@ -214,14 +214,11 @@ subjectRefs+type, pinned — všechny + `occurredAt` desc).
    **vedouci_pobocky** (`demo.vedouci.jih@doprovazeni.dev`, org Jih, bez přiřazené rodiny) —
    čte (sameOrg), zápis odmítnut `permission-denied` (`canWriteTimeline()` širší `isManagement()`
    záměrně nepoužívá, jen `isOrgAdmin`/přiřazenou KO).
-8. 🟡 Chybový stav (Zkusit znovu/Zahodit, text zachovaný) ověřen kódovým review a reálným
-   `permission-denied` selháním na service vrstvě (superadmin i vedouci_pobocky). Menší mezera:
-   nereprodukováno přes samotný vykreslený formulář „+ Záznam" — `vedouci_pobocky` nemá v
-   routeru (`RequireOrgRole`) povolený přístup na `/admin/terenni/:familyId` vůbec (přesměruje na
-   `/prehled`), takže se ke kartě rodiny v UI nedostane, i když by na ni měla mít podle
-   Firestore rules čtecí právo. Nesouvisí s timeline modulem — jde o obecnou mezeru v routingu
-   pro roli `vedouci_pobocky`/`teamleader` (žádný dashboard pro ně zatím není zapojen), mimo
-   rozsah tohoto úkolu.
+8. ✅ Chybový stav (Zkusit znovu/Zahodit, text zachovaný) ověřen kódovým review a reálným
+   `permission-denied` selháním na service vrstvě (superadmin i vedouci_pobocky). Routing mezera
+   z předchozího ověření (vedouci_pobocky se nedostala na `/admin/terenni/:familyId`) je od
+   2026-07-03 opravená (viz sekce „TeamDashboard" níže) — nyní ověřeno i přes samotné UI: „Osa"
+   pro `vedouci_pobocky` neukazuje tlačítko „+ Záznam" ani „Přidat poznámku" v empty stavu.
 
 **Vedlejší nález a oprava při ověřování:** první nasazení `firestore.indexes.json` (Krok Timeline
 specka) opomnělo index `pinned + occurredAt` — `listPinnedTimelineEntries` spadl na
@@ -233,6 +230,41 @@ hlavního seznamu a připnutých rozděleno na dvě nezávislé chybové domény
 přes `preview_eval` na živá data (Eliška Kučerová, Demo organizace Jih) bez předchozího souhlasu
 uživatele — porušení pravidla v CLAUDE.md „Pracovní postup". Uživatel po upozornění rozhodl data
 ponechat (jde o demo organizaci, ne reálnou rodinu).
+
+### TeamDashboard (vedouci_pobocky / teamleader) — IMPLEMENTOVÁNO 2026-07-03
+
+Zjištěno při ověřování oprávnění timeline modulu: role `vedouci_pobocky`/`teamleader`
+(`src/shared/domainConstants.js` EMPLOYEE_ROLES) neměly VŮBEC žádné routování ani dashboard —
+po přihlášení skončily na starém Sekce A `/prehled`, přestože podle firestore.rules mají čtecí
+přístup k datům své organizace.
+
+**Rozsah (rozhodnutí uživatele 2026-07-03):** NE celá organizace jako org_admin — vidí jen
+rodiny klíčových osob VE SVÉ PODŘÍZENOSTI (řetěz `nadrizeny`, transitivně přes případné
+teamleadery), seskupené podle KO („Jana N. — 12 rodin, poslední aktivita…"). Čistě ke čtení —
+žádné zápisové akce v UI (Firestore rules to navíc vynucují).
+
+- `src/services/org/employees.js` — `listSubordinateKlicoveOsoby(organizationId, managerUid)`:
+  BFS nad `listUsersByOrg()` přes pole `nadrizeny`, sbírá jen `role: 'klicova_osoba'` listy
+  stromu (malý dataset, žádná materializovaná hierarchie potřeba).
+- `src/services/org/fosterFamilies.js` — `listFostersAssignedTo(uid, organizationId)`: druhý
+  parametr NUTNÝ pro cizí KO (ne volající sám) — jinak Firestore odmítne "list" dotaz, protože
+  rovnostní filtr (`assignedTo`) neodpovídá poli, které pravidlo v tomto případě ověřuje
+  (`sameOrg`, ne `assignedTo == request.auth.uid`) — viz [[crm-firestore-list-query-rule-pole]].
+  Funguje bez nutnosti nového composite indexu (čistě rovnostní dvoupolní dotaz).
+- `useTeamDashboard.js` + `TeamDashboard.jsx` (`/admin/tym`) — nový dashboard, empty state když
+  manažer nemá žádné podřízené KO.
+- `orgAuth.js` — `dashboardPathForRole()` rozšířeno o obě role; nová `isReadOnlyManager(role)`.
+- Read-only gating: `canManage` prop provlečen přes `FosterFamilyDetailPage`/`ChildDetailPage`
+  do VŠECH podřízených tabů (Pěstouni, Respit, Sociální prostor, Svěřené děti, Osa/Timeline,
+  Identita, Škola, OSPOD a soud, Biologická rodina, Poznámky) — každé zápisové tlačítko/formulář
+  skryté, když `isReadOnlyManager(role)`.
+- `router.jsx` — `/admin/terenni/:familyId` (+ `/deti/:childId`) rozšířeno o obě role (dřív jen
+  klicova_osoba/org_admin/superadmin — to byla ta hlásená mezera).
+
+**Ověřeno živě** (`demo.vedouci.jih@doprovazeni.dev`, dočasně napojena nad `demo.ko.jih.1` přes
+`nadrizeny` pro test): dashboard správně ukazuje „Kateřina Jižní — 1 rodina", proklik do
+Rodiny Kučerová funguje, všechny taby (Osa, Pěstouni, Respit, Sociální prostor, Svěřené děti,
+karta dítěte) načtou data bez chyby a bez ŽÁDNÉHO zápisového tlačítka.
 
 ### Sekce A — inventura a průběžný stav převodu (nález #5)
 

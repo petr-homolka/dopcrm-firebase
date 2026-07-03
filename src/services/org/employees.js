@@ -34,6 +34,35 @@ export async function listKlicoveOsobyByOrg(organizationId) {
 }
 
 /**
+ * Klíčové osoby VE SVÉ PODŘÍZENOSTI daného manažera (vedouci_pobocky/
+ * teamleader) — transitivně přes řetěz `nadrizeny`, ne celá organizace
+ * (rozhodnutí 2026-07-03, viz docs/INVENTAR.md). Malý dataset (desítky
+ * zaměstnanců/organizaci) — BFS nad celým seznamem stačí, žádná potřeba
+ * ukládat materializovanou hierarchii.
+ */
+export async function listSubordinateKlicoveOsoby(organizationId, managerUid) {
+  const users = await listUsersByOrg(organizationId);
+  const directReportsOf = new Map();
+  for (const u of users) {
+    if (!u.nadrizeny) continue;
+    if (!directReportsOf.has(u.nadrizeny)) directReportsOf.set(u.nadrizeny, []);
+    directReportsOf.get(u.nadrizeny).push(u);
+  }
+
+  const result = [];
+  const seen = new Set();
+  const queue = [...(directReportsOf.get(managerUid) ?? [])];
+  while (queue.length > 0) {
+    const u = queue.shift();
+    if (seen.has(u.id)) continue;
+    seen.add(u.id);
+    if (u.role === 'klicova_osoba') result.push(u);
+    queue.push(...(directReportsOf.get(u.id) ?? []));
+  }
+  return result;
+}
+
+/**
  * Založí nového zaměstnance (Auth účet + users/{uid} dokument) BEZ odhlášení
  * aktuálního uživatele. Viz vysvětlení sekundární App instance nahoře v souboru.
  *

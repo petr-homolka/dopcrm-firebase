@@ -11,7 +11,7 @@ import Button from '../../components/ui/Button.jsx';
 import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import { fieldClass } from './childDetailShared.js';
 
-export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, setNoteText, onAddNote, submitting, submitError }) {
+export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, setNoteText, onAddNote, submitting, submitError, canManage = true }) {
   return (
     <Card>
       <h2 className="mb-1 text-base font-semibold text-stone-800">Trvalé poznámky</h2>
@@ -19,19 +19,21 @@ export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, 
         Zápisy zůstávají navždy v evidenci beze změny nebo smazání — důkazní hodnota pro OSPOD/soud.
       </p>
 
-      <div className="mb-3 flex gap-2.5">
-        <textarea
-          className={fieldClass}
-          rows={2}
-          placeholder="Nová poznámka…"
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          disabled={submitting}
-        />
-        <Button variant="primary" onClick={onAddNote} disabled={submitting} className="self-end">
-          Zapsat
-        </Button>
-      </div>
+      {canManage && (
+        <div className="mb-3 flex gap-2.5">
+          <textarea
+            className={fieldClass}
+            rows={2}
+            placeholder="Nová poznámka…"
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            disabled={submitting}
+          />
+          <Button variant="primary" onClick={onAddNote} disabled={submitting} className="self-end">
+            Zapsat
+          </Button>
+        </div>
+      )}
 
       {submitError && <div className="mb-3 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{submitError}</div>}
 

@@ -26,6 +26,8 @@ import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
 import { getChild, getFoster } from '../../services/orgService.js';
+import { useAuthStore } from '../../store/authStore.js';
+import { isReadOnlyManager } from '../../services/orgAuth.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
 import { useChildDetailLists } from './useChildDetailLists.js';
@@ -71,6 +73,8 @@ export default function ChildDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   const forms = useChildDetailForms({ childId, child, reload: load });
+  const { role } = useAuthStore();
+  const canManage = !isReadOnlyManager(role);
 
   return (
     <div>
@@ -117,7 +121,7 @@ export default function ChildDetailPage() {
             ))}
           </div>
 
-          <ChildDetailTabs tab={tab} child={child} family={family} lists={lists} onLoadMore={loadMore} forms={forms} />
+          <ChildDetailTabs tab={tab} child={child} family={family} lists={lists} onLoadMore={loadMore} forms={forms} canManage={canManage} />
         </>
       )}
     </div>

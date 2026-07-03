@@ -18,15 +18,17 @@ function formatBirthDate(value) {
   return date.toLocaleDateString('cs-CZ');
 }
 
-export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOpenChild }) {
+export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOpenChild, canManage = true }) {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-stone-800">Svěřené děti ({childrenList.length})</h2>
-        <Button size="sm" variant="secondary" onClick={onAddChild}>
-          <Baby size={16} strokeWidth={1.75} />
-          Přidat dítě
-        </Button>
+        {canManage && (
+          <Button size="sm" variant="secondary" onClick={onAddChild}>
+            <Baby size={16} strokeWidth={1.75} />
+            Přidat dítě
+          </Button>
+        )}
       </div>
 
       {childrenList.length === 0 && (

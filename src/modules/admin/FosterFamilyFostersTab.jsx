@@ -19,15 +19,18 @@ export default function FosterFamilyFostersTab({
   requiredHours,
   onAddFoster,
   onAddCourse,
+  canManage = true,
 }) {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-stone-800">Pěstouni v domácnosti</h2>
-        <Button size="sm" variant="secondary" onClick={onAddFoster}>
-          <UserPlus size={16} strokeWidth={1.75} />
-          Přidat pěstouna
-        </Button>
+        {canManage && (
+          <Button size="sm" variant="secondary" onClick={onAddFoster}>
+            <UserPlus size={16} strokeWidth={1.75} />
+            Přidat pěstouna
+          </Button>
+        )}
       </div>
 
       {fosters.length === 0 && (
@@ -82,15 +85,17 @@ export default function FosterFamilyFostersTab({
                     </ul>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => onAddCourse(foster.id)}
-                    disabled={!foster.id}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    <Plus size={16} strokeWidth={1.75} />
-                    Zapsat kurz
-                  </button>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => onAddCourse(foster.id)}
+                      disabled={!foster.id}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      <Plus size={16} strokeWidth={1.75} />
+                      Zapsat kurz
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
