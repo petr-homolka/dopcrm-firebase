@@ -11,6 +11,8 @@ import {
 import { db } from '../firebase.js';
 import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET, TOP_LEVEL_PAGE_SIZE, SUBCOLLECTION_PAGE_SIZE } from './shared.js';
 import { getFoster } from './fosterFamilies.js';
+import { createSystemTimelineEntry } from './timeline.js';
+import { custodyTypeLabel } from '../../shared/domainConstants.js';
 
 /** Jedna stránka podkolekce seřazená podle `createdAt desc` — sdílený tvar pro history/notes/previousFosters/courtVerdicts. */
 async function fetchSubcollectionPage(path, cursor) {
@@ -116,9 +118,27 @@ export async function setChildRelatives(childId, relatives) {
   await updateDoc(doc(db, 'children', childId), { relatives, ...meta() });
 }
 
-/** Přepíše `custody` (svěření) u dítěte — viz docs/domain/druhy-pece-a-odmeny.md. */
+/**
+ * Přepíše `custody` (svěření) u dítěte a zapíše systémový záznam do timeline
+ * rodiny (docs/domain/druhy-pece-a-odmeny.md, docs/domain/timeline.md §1) —
+ * změna svěření je přesně ten typ události, co timeline musí zachytit.
+ */
 export async function setChildCustody(childId, custody) {
+  const child = await getChild(childId);
+  if (!child) throw new Error('Dítě nenalezeno.');
+
   await updateDoc(doc(db, 'children', childId), { custody, ...meta() });
+
+  const jmeno = `${child.firstName} ${child.lastName}`.trim();
+  const body = custody.caseNumber
+    ? `Dítě ${jmeno} svěřeno do péče (${custodyTypeLabel(custody.type)}), sp. zn. ${custody.caseNumber}${custody.court ? `, ${custody.court}` : ''}.`
+    : `Dítě ${jmeno} — svěření aktualizováno na: ${custodyTypeLabel(custody.type)}.`;
+
+  await createSystemTimelineEntry(child.fosterFamilyId, {
+    title: 'Změna svěření',
+    body,
+    subjectRefs: [{ kind: 'child', id: childId }],
+  });
 }
 
 export async function getChild(childId) {

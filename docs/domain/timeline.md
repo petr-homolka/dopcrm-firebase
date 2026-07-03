@@ -66,6 +66,12 @@ platí pro podkolekci v každé rodině):
 2. `subjectRefs` (CONTAINS) + `occurredAt` (DESC) — filtr jen podle osoby.
 3. `subjectRefs` (CONTAINS) + `type` (ASC) + `occurredAt` (DESC) — kombinovaný filtr
    typ AND osoba (viz §1, §3).
+4. `pinned` (ASC) + `occurredAt` (DESC) — sekce „Připnuto" (§2, §3). Chybělo v prvním
+   nasazení (2026-07-03) — bez něj `listPinnedTimelineEntries` spadne na
+   `failed-precondition` a celé načtení Osy tiše zůstane na prázdném stavu (žádná
+   chyba v UI), protože obě dílčí načtení běžela v jednom `Promise.all`. Opraveno:
+   index doplněn a načítání připnutých/hlavních záznamů rozděleno na dvě nezávislé
+   chybové domény (selhání jednoho nesmí zablokovat druhé).
 
 Přidat do stejného deploy kroku jako rules (`firebase deploy --only firestore:rules,firestore:indexes`).
 

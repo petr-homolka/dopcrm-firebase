@@ -26,6 +26,7 @@ import { cn } from '../../components/ui/cn.js';
 import { careLabel, CARE_TYPES, odmenaStatusLabel } from '../../shared/domainConstants.js';
 
 import useFosterFamilyDetail from './useFosterFamilyDetail.js';
+import FosterFamilyTimelineTab from './FosterFamilyTimelineTab.jsx';
 import FosterFamilyFostersTab from './FosterFamilyFostersTab.jsx';
 import FosterFamilyRespitTab from './FosterFamilyRespitTab.jsx';
 import FosterFamilySocialTab from './FosterFamilySocialTab.jsx';
@@ -36,6 +37,7 @@ const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukon
 const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
 
 const TABS = [
+  { value: 'osa', label: () => 'Osa' },
   { value: 'pestouni', label: (n) => `Pěstouni (${n})` },
   { value: 'respit', label: () => 'Respit a SPVPP' },
   { value: 'social', label: () => 'Sociální prostor' },
@@ -141,6 +143,10 @@ export default function FosterFamilyDetailPage() {
               </button>
             ))}
           </div>
+
+          {tab === 'osa' && (
+            <FosterFamilyTimelineTab familyId={familyId} childrenList={children} />
+          )}
 
           {tab === 'pestouni' && (
             <FosterFamilyFostersTab

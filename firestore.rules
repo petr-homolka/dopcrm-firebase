@@ -228,6 +228,31 @@ service cloud.firestore {
               && parentFamilyCourses().assignedTo == request.auth.uid);
         allow update, delete: if false;
       }
+
+      // Timeline (docs/domain/timeline.md, 2026-07-03) — chronologický deník
+      // rodiny, důkazní hodnota. Immutabilní: create ano, update JEN pole
+      // `pinned` (max 3, hlídá klient — rules počítání nativně nepodporují),
+      // delete nikdy. Zápis/pin: jen přiřazená KO nebo org_admin téže
+      // organizace — superadmin NE (nepracuje s klientskými daty rodin,
+      // jen se systémem). Čtení: superadmin vždy; jinak stejně jako u
+      // foster_families/children — sameOrg (vč. nadřízených a kolegů KO
+      // kvůli přehledu/zastupitelnosti) nebo přímo přiřazená KO.
+      match /timeline/{entryId} {
+        function parentFamilyTimeline() {
+          return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
+        }
+        function canWriteTimeline() {
+          return (isOrgAdmin() && sameOrg(parentFamilyTimeline().organizationId))
+              || (isKlicovaOsoba() && parentFamilyTimeline().assignedTo == request.auth.uid);
+        }
+        allow read: if isSuperadmin()
+                       || sameOrg(parentFamilyTimeline().organizationId)
+                       || parentFamilyTimeline().assignedTo == request.auth.uid;
+        allow create: if canWriteTimeline();
+        allow update: if canWriteTimeline()
+                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pinned', 'updatedAt', 'updatedBy']);
+        allow delete: if false;
+      }
     }
 
     // ── children (děti svěřené do péče) ──────────────────────

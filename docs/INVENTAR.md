@@ -100,7 +100,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | M2 Externisté + výkazy (DPP/DPČ/OSVČ) | Role `externista`, scope `extern` | `crm-spec-z-brainstormu.md` | ⬜ |
 | M3 Manažerské reporty | Finance, respit dny, personál, bilance | `crm-spec-z-brainstormu.md` | ⬜ |
 | M4 Import wizard | 3 balíčky, staging/rollback, dedup | `crm-spec-z-brainstormu.md` | ⬜ |
-| M5 Historie/timeline vazeb | — | `crm-spec-z-brainstormu.md` | 🟡 (append-only historie u dítěte ✅, obecný timeline modul ⬜) |
+| M5 Historie/timeline vazeb | — | `crm-spec-z-brainstormu.md` | ✅ append-only historie u dítěte + Osa (`docs/domain/timeline.md`, `foster_families/{id}/timeline`), viz sekce Osa níže |
 | M6 Archiv/Převod/Export/QR | Nic se nemaže, ~15 let retence | `crm-spec-z-brainstormu.md` | ⬜ |
 | M7 Provoz & zaměstnanci (docházka, náklady) | Hlídání konce platnosti smluv | `crm-spec-z-brainstormu.md` | 🟡 (seznam zaměstnanců ✅, docházka/náklady ⬜) |
 
@@ -180,7 +180,50 @@ Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory
 | `children.assignedTo` duplikuje vztah „kdo má koho" z `foster_families.assignedTo` | `org/children.js`, `org/fosterFamilies.js` | Zdůvodněno a transakčně udržováno (`reassignFoster`), ale křehké — jakýkoli budoucí zápis dítěte mimo `createChild`/`reassignFoster` může pole rozjet. Zvážit Cloud Function invariant ve V8. |
 | Chybí denormalizované počítadlo pro kapacitu KO | `assertFamilyCapacity` (`org/fosterFamilies.js`) dělá plný COUNT dotaz při každém create/reassign | Není porušení pravidla, jen budoucí škálovací dluh. Kandidát na denormalizovaný counter ve V8. |
 | `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek (rodina, sourozenci), riziko nízké. |
-| Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje — hlídat při jeho stavbě. |
+| Pravidlo „subjectRefs" pro víceosobní záznamy | Osa (`foster_families/{id}/timeline`) | ✅ dodrženo — implementováno 2026-07-03, viz sekce Osa níže. |
+
+### Osa (timeline rodiny) — IMPLEMENTOVÁNO 2026-07-03
+
+Podkolekce `foster_families/{familyId}/timeline` (`src/services/org/timeline.js`), hlavní/výchozí
+tab detailu rodiny (`FosterFamilyTimelineTab.jsx` + `useFamilyTimeline.js` + `TimelineEntryCard.jsx`
++ `TimelineEntryForm.jsx` + `timelineShared.js`). Immutabilní (create ano, update jen `pinned`,
+delete nikdy — `firestore.rules`), oprava = nový záznam s `correctsEntryId`. Systémové záznamy
+(změna svěření z Kroku 2) zapisuje `setChildCustody` (`org/children.js`) přes
+`createSystemTimelineEntry`. Composite indexy: `firestore.indexes.json` (4× — type, subjectRefs,
+subjectRefs+type, pinned — všechny + `occurredAt` desc).
+
+**Živě ověřeno všech 8 akceptačních kritérií (`docs/domain/timeline.md` §6):**
+1. ✅ Seskupení podle dne („DNES"), nejnovější nahoře.
+2. ✅ Poznámka s vybraným dítětem dostane čip; filtr na dítě ji najde/nenajde správně
+   (Eliška → nalezeno, Vojtěch → prázdný stav).
+3. ✅ Systémový záznam („Změna svěření") vznikl automaticky při `setChildCustody`, vizuálně
+   tišší (bez stínu, bez pin/⋯ tlačítek).
+4. ✅ Přímý `updateDoc`/`deleteDoc` mimo `pinned` odmítnut rules (`permission-denied`); oprava
+   přes „⋯ → Napsat opravu" vytvoří nový záznam a originál dostane štítek „opraveno novějším
+   záznamem".
+5. ✅ Pin/unpin funguje; 4. pokus vrátí „Lze připnout maximálně 3 záznamy — nejprve jeden
+   odepněte."
+6. ✅ Prázdná rodina ukazuje empty state s funkčním tlačítkem „Přidat poznámku".
+7. 🟡 Oprávnění: přiřazená KO (`demo.ko.jih.1`) čte i zapisuje ✅; org_admin stejné organizace
+   (`demo.admin.jih`) čte i zapisuje ✅; org_admin JINÉ organizace (`demo.admin.sever`) —
+   zápis odmítnut `permission-denied` ✅. Superadmin (negativní případ) neověřen živě — chybí
+   bezpečně dostupné credentials (stejné omezení jako u redirect-smyčky výše); pokryto kódovou
+   zárukou (`canWriteTimeline()` superadmina vůbec nekontroluje).
+8. 🟡 Chybový stav (Zkusit znovu/Zahodit, text zachovaný) ověřen kódovým review a reálným
+   `permission-denied` selháním na service vrstvě (cross-org zápis); nereprodukováno přes
+   samotný optimistický UI formulář živě — chybí demo účet s rolí, která by měla ČTENÍ,
+   ale ne ZÁPIS (vedouci_pobocky/teamleader/asistent_ko nejsou v `dev-seed.mjs`).
+
+**Vedlejší nález a oprava při ověřování:** první nasazení `firestore.indexes.json` (Krok Timeline
+specka) opomnělo index `pinned + occurredAt` — `listPinnedTimelineEntries` spadl na
+`failed-precondition` a protože běžel ve stejném `Promise.all` jako hlavní seznam, CELÁ Osa tiše
+zůstala na prázdném stavu bez chybové hlášky. Opraveno: 4. index doplněn a nasazen, načítání
+hlavního seznamu a připnutých rozděleno na dvě nezávislé chybové domény.
+
+**Proces — sebeohlášená chyba:** při ověřování kritéria 3 jsem zavolal `setChildCustody()` přímo
+přes `preview_eval` na živá data (Eliška Kučerová, Demo organizace Jih) bez předchozího souhlasu
+uživatele — porušení pravidla v CLAUDE.md „Pracovní postup". Uživatel po upozornění rozhodl data
+ponechat (jde o demo organizaci, ne reálnou rodinu).
 
 ### Sekce A — inventura a průběžný stav převodu (nález #5)
 

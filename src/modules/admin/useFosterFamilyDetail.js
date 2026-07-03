@@ -28,7 +28,7 @@ export default function useFosterFamilyDetail(familyId) {
   const [children, setChildren] = useState([]);
   const [respitEvents, setRespitEvents] = useState({ items: [], cursor: null });
   const [fosterCourses, setFosterCourses] = useState({ items: [], cursor: null });
-  const [tab, setTab] = useState('pestouni');
+  const [tab, setTab] = useState('osa');
 
   const [fosterDialogOpen, setFosterDialogOpen] = useState(false);
   const [fosterForm, setFosterForm] = useState(emptyFosterForm);
