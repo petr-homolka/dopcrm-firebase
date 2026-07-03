@@ -145,6 +145,44 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | V8 Blueprint (~143 tabulek, 10 milníků, RLS+audit+WORM) | **Má vždy přednost** | `crm-v8-blueprint` (paměť) | ⬜ velká budoucí etapa |
 | i18n přes translation_keys | Žádný natvrdo text | V8 blueprint | ⬜ |
 
+## 11. Audit datového modelu (2026-07-03)
+
+Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory: `firestore.rules`,
+`src/services/org/*.js`, `src/services/{auth,dataService,registrationService}.js`,
+`scripts/dev-seed.mjs`. Nic z tohoto auditu nebylo opraveno, jen zaznamenáno — viz jednotlivé
+nálezy níže pro návrh opravy.
+
+**Vysoká závažnost:**
+
+| Nález | Kde | Porušuje | Návrh opravy |
+|---|---|---|---|
+| `permanentNotes[]` roste v čase, ale je pole v dokumentu | `children.permanentNotes` (`org/children.js`, `addPermanentNote`) | „historie... VŽDY podkolekce, nikdy pole" | Přesunout do `children/{id}/permanentNotes` (stejný vzor jako už existující `children/{id}/history`) |
+| `previousFosters[]` roste v čase, ale je pole v dokumentu | `children.previousFosters` (`addPreviousFoster`) | totéž | Přesunout do `children/{id}/previousFosters` |
+| `courtCase.rozsudky[]` roste v čase uvnitř vnořeného pole | `children.courtCase.rozsudky` (`addCourtVerdict`) | totéž | `courtCase` nechat jen jako identitu/aktuální stav (spisZnačka, soud, kontakt); rozsudky do `children/{id}/courtVerdicts` |
+| Vzdělávání (`courses[]`) roste v čase, vnořené 2 úrovně v poli | `foster_families.fosters[].courses[]` (`addFosterCourse`) | totéž (vzdělávání je v pravidle výslovně jmenováno jako příklad „co roste") | Vlastní podkolekce, např. `foster_families/{id}/fosterCourses` s polem `personId` odkazujícím na konkrétního pěstouna |
+| Duplicitní datový model (Sekce A vs. B) | `firestore.rules` (obě sekce), `dataService.js`/`auth.js` vs. `org/*.js` | Dvě nezávislé, nesynchronizované reprezentace stejných konceptů (rodina, dítě) — `tenants/{id}/data_objects`+`user_roles` (legacy MVP_NAV moduly) vs. `organizations/users/foster_families/children` (nové dashboardy) | Naplánovat migraci legacy modulů (Kalendář, Dokumenty, Reporty, Kontakty) na Sekci B, nebo je explicitně označit k zániku — dnes běží trvale vedle sebe bez cesty k synchronizaci |
+
+**Střední závažnost:**
+
+| Nález | Kde | Porušuje | Návrh opravy |
+|---|---|---|---|
+| Zápis respitu a odečet SPVPP peněženky nejsou atomické | `addRespitEvent` → `chargeSpvpp` (`org/respit.js`) — `addDoc` + samostatný `Promise.all` mimo transakci | „denormalizovaná pole aktualizovat ideálně v batch zápisu se změnou, která je vyvolala" | Obalit zápis respitové události a odečet(y) SPVPP do jedné `runTransaction` (vzor už existuje v `reassignFoster`) |
+| Chybí stránkování na všech list dotazech | `listFostersByOrg/AssignedTo`, `listChildrenByOrg/ByFamily`, `listUsersByOrg`, a i detailové `listChildHistory`, `listRespitEvents` — nikde není `limit()` | „seznamové obrazovky... podkolekce až v detailu, stránkované po 20" | Doplnit `limit(20)` + `startAfter` kurzor aspoň na `listChildHistory`/`listRespitEvents`; u organizačních seznamů zvážit dle očekávaného objemu |
+
+**Nízká závažnost / poznámky (spíš zdokumentovaná výjimka než chyba):**
+
+| Nález | Kde | Poznámka |
+|---|---|---|
+| `children.assignedTo` duplikuje vztah „kdo má koho" z `foster_families.assignedTo` | `org/children.js`, `org/fosterFamilies.js` | Zdůvodněno a transakčně udržováno (`reassignFoster`), ale křehké — jakýkoli budoucí zápis dítěte mimo `createChild`/`reassignFoster` může pole rozjet. Zvážit Cloud Function invariant nebo to jasně vynutit jako jediné dva povolené zápisové body. |
+| Chybí denormalizované počítadlo pro kapacitu KO | `assertFamilyCapacity` (`org/fosterFamilies.js`) dělá plný COUNT dotaz při každém create/reassign | Není porušení pravidla (to řeší JAK counter aktualizovat, ne JESTLI musí existovat), ale při větším objemu dat = zbytečné plné čtení. Kandidát na denormalizovaný counter ve V8. |
+| `relatives[]`/`socialSpace[]` bez horního limitu v kódu | `children.js` | Realisticky málo položek, ale nikde neověřeno vůči limitu ~20 z pravidla. |
+| Pravidlo „subjectRefs" pro víceosobní záznamy zatím nemá co porušit | — | Timeline/zápisy modul ještě neexistuje (`docs/INVENTAR.md` sekce 7, ⬜) — hlídat při jeho stavbě. |
+
+**Pozitivní zjištění (správně použitý vzor, žádná akce):** `children/{id}/history` (append-only
+podkolekce), `foster_families/{id}/respitEvents` (podkolekce, ne pole) a `reassignFoster`
+(atomická transakce přes rodinu i všechny její děti) přesně odpovídají pravidlům — jsou dobrým
+vzorem pro opravu nálezů výše.
+
 ---
 
 **Poznámka k úplnosti:** tento inventář vychází z `docs/history-claude-md.md`, `docs/history.md`
