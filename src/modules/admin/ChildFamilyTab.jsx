@@ -12,11 +12,12 @@ import Badge from '../../components/ui/Badge.jsx';
 import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import ChildFormModal from './ChildFormModal.jsx';
 import AddRelativeModal from './AddRelativeModal.jsx';
-import { REL_TYPES, relLegalLabel, relLegalColor } from '../../shared/domainConstants.js';
-import { fieldClass, labelClass, legalBadgeTone } from './childDetailShared.js';
+import { REL_TYPES, legalWeightLabel, legalWeightTone } from '../../shared/domainConstants.js';
+import { fieldClass, labelClass } from './childDetailShared.js';
 
 export default function ChildFamilyTab({
   child,
+  family,
   previousFosters,
   hasMorePreviousFosters,
   onLoadMorePreviousFosters,
@@ -37,9 +38,41 @@ export default function ChildFamilyTab({
   submitError,
 }) {
   const relatives = child.relatives ?? [];
+  const fosters = family?.fosters ?? [];
+  const caregiverIds = child.custody?.caregivers ?? [];
 
   return (
     <div className="flex flex-col gap-4">
+      <Card>
+        <h2 className="mb-1 text-base font-semibold text-stone-800">
+          Pěstouni a svěření ({fosters.length})
+        </h2>
+        <p className="mb-2 text-xs text-stone-500">
+          {child.custody
+            ? `${child.custody.type === 'spolecne' ? 'Společné svěření (manželé)' : 'Individuální svěření'}${child.custody.caseNumber ? ` · sp. zn. ${child.custody.caseNumber}` : ''}${child.custody.court ? ` · ${child.custody.court}` : ''}`
+            : 'Svěření zatím nezaznamenáno.'}
+        </p>
+
+        {fosters.length === 0 && <p className="py-2 text-sm text-stone-500">Rodina zatím nemá evidovaného pěstouna.</p>}
+
+        <ul>
+          {fosters.map((p) => {
+            const weight = caregiverIds.includes(p.id) ? 'pecujici' : 'bez_prav';
+            return (
+              <li key={p.id} className="flex items-start justify-between gap-3 border-t border-stone-100 py-2.5 first:border-t-0">
+                <div>
+                  <p className="text-sm font-semibold text-stone-800">{p.name}</p>
+                  <p className="text-xs text-stone-500">{[p.rc && `RČ ${p.rc}`, p.phone, p.email].filter(Boolean).join(' · ')}</p>
+                </div>
+                <Badge tone={legalWeightTone(weight)} className="shrink-0">
+                  {weight === 'pecujici' ? legalWeightLabel(weight) : 'Bez svěření (partner)'}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
       <Card>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-800">Biologická rodina ({relatives.length})</h2>
@@ -62,8 +95,8 @@ export default function ChildFamilyTab({
                     {[relType?.label ?? rel.rel, rel.rc && `RČ ${rel.rc}`, rel.phone, rel.email, rel.note].filter(Boolean).join(' · ')}
                   </p>
                 </div>
-                <Badge tone={legalBadgeTone(relLegalColor(rel.legal))} className="shrink-0">
-                  {relLegalLabel(rel.legal)}
+                <Badge tone={legalWeightTone(relType?.legalWeight)} className="shrink-0">
+                  {legalWeightLabel(relType?.legalWeight)}
                 </Badge>
               </li>
             );

@@ -25,7 +25,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
-import { getChild } from '../../services/orgService.js';
+import { getChild, getFoster } from '../../services/orgService.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
 import { useChildDetailLists } from './useChildDetailLists.js';
@@ -48,6 +48,7 @@ export default function ChildDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [child, setChild] = useState(null);
+  const [family, setFamily] = useState(null);
   const [tab, setTab] = useState('identita');
   const { lists, loadAll: loadLists, loadMore } = useChildDetailLists(childId);
 
@@ -58,6 +59,7 @@ export default function ChildDetailPage() {
       const [data] = await Promise.all([getChild(childId), loadLists()]);
       if (!data) throw new Error('Dítě nenalezeno.');
       setChild(data);
+      setFamily(await getFoster(data.fosterFamilyId));
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
       setError(err.message ?? 'Data se nepodařilo načíst.');
@@ -115,7 +117,7 @@ export default function ChildDetailPage() {
             ))}
           </div>
 
-          <ChildDetailTabs tab={tab} child={child} lists={lists} onLoadMore={loadMore} forms={forms} />
+          <ChildDetailTabs tab={tab} child={child} family={family} lists={lists} onLoadMore={loadMore} forms={forms} />
         </>
       )}
     </div>

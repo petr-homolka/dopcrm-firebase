@@ -18,36 +18,58 @@
  *   'birth' = matka dle §775 (kdo dítě porodila, právně sporné u náhradního mateřství)
  *   'na'    = koncept "práva k dítěti" se nevztahuje (sourozenci, širší rodina)
  */
+/**
+ * `legalWeight` — zjednodušení `legal` na tři úrovně pro vizuální štítek u
+ * osoby v okolí dítěte (viz docs/domain/vztahy-a-osoby.md): `pecujici`
+ * (pěstoun se svěřením — NENÍ položka REL_TYPES, odvozuje se z `custody`,
+ * viz `services/org/children.js`), `bez_prav`, `rodicovska_odpovednost`.
+ */
 export const REL_TYPES = [
-  { key: 'otec_rl',      skupina: 'Otec',  label: 'Otec (v rodném listě)',                    legal: true,  hint: 'Otcem je vždy muž zapsaný v RL (1.–3. domněnka). Má rodičovská práva.' },
-  { key: 'otec_soc',     skupina: 'Otec',  label: 'Otec sociální (v RL, nejspíš nebiologický)', legal: true,  hint: 'Zapsán v RL → má práva. Existuje domněnka, že není biologickým otcem.' },
-  { key: 'biootec_prav', skupina: 'Otec',  label: 'Bio-otec (pravděpodobný)',                 legal: false, hint: 'Domněnka biologického otcovství; dítě v RL otce nemá (nebo zapsaný je sociální). Bez práv, dokud nezapsán soudem.' },
-  { key: 'biootec_domn', skupina: 'Otec',  label: 'Bio-otec (domnělý)',                       legal: false, hint: 'Domněnka, že je biolog. otec, ale dítě MÁ v RL jiného otce. Bez práv. Zápis jen soudem (popření + určení dle DNA).' },
-  { key: 'otec_nezn',    skupina: 'Otec',  label: 'Otec neznámý / nezapsán',                  legal: false, hint: 'V RL otec chybí → dítě v očích systému otce nemá.' },
-  { key: 'otec_popr',    skupina: 'Otec',  label: 'Otcovství popřeno soudem',                 legal: false, hint: 'Otcovství zaniklo rozhodnutím soudu.' },
-  { key: 'otec_nevlastni', skupina: 'Otec', label: 'Otec nevlastní (partner matky)',          legal: false, hint: 'Partner matky žijící s rodinou, není v RL — bez rodičovských práv.' },
+  { key: 'otec_rl',      skupina: 'Otec',  label: 'Otec (v rodném listě)',                    legal: true,  legalWeight: 'rodicovska_odpovednost', hint: 'Otcem je vždy muž zapsaný v RL (1.–3. domněnka). Má rodičovská práva.' },
+  { key: 'otec_soc',     skupina: 'Otec',  label: 'Otec sociální (v RL, nejspíš nebiologický)', legal: true,  legalWeight: 'rodicovska_odpovednost', hint: 'Zapsán v RL → má práva. Existuje domněnka, že není biologickým otcem.' },
+  { key: 'biootec_prav', skupina: 'Otec',  label: 'Bio-otec (pravděpodobný)',                 legal: false, legalWeight: 'bez_prav', hint: 'Domněnka biologického otcovství; dítě v RL otce nemá (nebo zapsaný je sociální). Bez práv, dokud nezapsán soudem.' },
+  { key: 'biootec_domn', skupina: 'Otec',  label: 'Bio-otec (domnělý)',                       legal: false, legalWeight: 'bez_prav', hint: 'Domněnka, že je biolog. otec, ale dítě MÁ v RL jiného otce. Bez práv. Zápis jen soudem (popření + určení dle DNA).' },
+  { key: 'otec_nezn',    skupina: 'Otec',  label: 'Otec neznámý / nezapsán',                  legal: false, legalWeight: 'bez_prav', hint: 'V RL otec chybí → dítě v očích systému otce nemá.' },
+  { key: 'otec_popr',    skupina: 'Otec',  label: 'Otcovství popřeno soudem',                 legal: false, legalWeight: 'bez_prav', hint: 'Otcovství zaniklo rozhodnutím soudu.' },
+  { key: 'otec_nevlastni', skupina: 'Otec', label: 'Otec nevlastní (partner matky)',          legal: false, legalWeight: 'bez_prav', hint: 'Partner matky žijící s rodinou, není v RL — bez rodičovských práv.' },
 
-  { key: 'matka_rl',     skupina: 'Matka', label: 'Matka (v rodném listě)',                   legal: true,    hint: 'Matkou je žena, která dítě porodila (§775). Nelze měnit.' },
-  { key: 'biomatka_mimo',skupina: 'Matka', label: 'Bio-matka (porodila, mimo RL)',            legal: false,   hint: 'Reálně porodila, ale není v RL (odložené dítě, utajený porod). Pracuje se s ní jako s domnělým rodičem.' },
-  { key: 'matka_nevlastni', skupina: 'Matka', label: 'Matka nevlastní (partnerka otce)',      legal: false,   hint: 'Partnerka otce žijící s rodinou, není v RL — bez rodičovských práv.' },
-  { key: 'matka_fikce',  skupina: 'Matka', label: 'Matka určená fikcí / soudem',              legal: true,    hint: 'U neznámé matky určí matku soud (fikce) nebo místo zůstane volné do osvojení.' },
-  { key: 'matka_adopt',  skupina: 'Matka', label: 'Matka adoptivní (osvojitelka)',            legal: true,    hint: 'Doplní prázdné místo v RL osvojením — NE pěstounka.' },
-  { key: 'genet_matka',  skupina: 'Matka', label: 'Genetická matka (dárkyně vajíček)',        legal: false,   hint: 'Náhradní mateřství; právně není matkou, dokud dítě neosvojí.' },
-  { key: 'nahr_matka',   skupina: 'Matka', label: 'Náhradní matka (odnosila a porodila)',     legal: 'birth', hint: 'Porodila → dle §775 je matkou v RL, dokud genetická matka neosvojí (právně sporné).' },
+  { key: 'matka_rl',     skupina: 'Matka', label: 'Matka (v rodném listě)',                   legal: true,    legalWeight: 'rodicovska_odpovednost', hint: 'Matkou je žena, která dítě porodila (§775). Nelze měnit.' },
+  { key: 'biomatka_mimo',skupina: 'Matka', label: 'Bio-matka (porodila, mimo RL)',            legal: false,   legalWeight: 'bez_prav', hint: 'Reálně porodila, ale není v RL (odložené dítě, utajený porod). Pracuje se s ní jako s domnělým rodičem.' },
+  { key: 'matka_nevlastni', skupina: 'Matka', label: 'Matka nevlastní (partnerka otce)',      legal: false,   legalWeight: 'bez_prav', hint: 'Partnerka otce žijící s rodinou, není v RL — bez rodičovských práv.' },
+  { key: 'matka_fikce',  skupina: 'Matka', label: 'Matka určená fikcí / soudem',              legal: true,    legalWeight: 'rodicovska_odpovednost', hint: 'U neznámé matky určí matku soud (fikce) nebo místo zůstane volné do osvojení.' },
+  { key: 'matka_adopt',  skupina: 'Matka', label: 'Matka adoptivní (osvojitelka)',            legal: true,    legalWeight: 'rodicovska_odpovednost', hint: 'Doplní prázdné místo v RL osvojením — NE pěstounka.' },
+  { key: 'genet_matka',  skupina: 'Matka', label: 'Genetická matka (dárkyně vajíček)',        legal: false,   legalWeight: 'bez_prav', hint: 'Náhradní mateřství; právně není matkou, dokud dítě neosvojí.' },
+  { key: 'nahr_matka',   skupina: 'Matka', label: 'Náhradní matka (odnosila a porodila)',     legal: 'birth', legalWeight: 'rodicovska_odpovednost', hint: 'Porodila → dle §775 je matkou v RL, dokud genetická matka neosvojí (právně sporné).' },
 
-  { key: 'osvojitel',    skupina: 'Osvojitel / zástupce', label: 'Osvojitel (adoptivní rodič)',       legal: true,  hint: 'Osvojením vzniká plný rodičovský vztah, mění se RL.' },
-  { key: 'porucnik',     skupina: 'Osvojitel / zástupce', label: 'Poručník',                          legal: 'rep', hint: 'Pečuje a zastupuje, když žádný rodič nemá rodičovskou odpovědnost; není rodič.' },
-  { key: 'opatrovnik',   skupina: 'Osvojitel / zástupce', label: 'Opatrovník (např. kolizní — OSPOD)', legal: 'rep', hint: 'Zastupuje dítě v konkrétní věci / při střetu zájmů.' },
+  { key: 'osvojitel',    skupina: 'Osvojitel / zástupce', label: 'Osvojitel (adoptivní rodič)',       legal: true,  legalWeight: 'rodicovska_odpovednost', hint: 'Osvojením vzniká plný rodičovský vztah, mění se RL.' },
+  { key: 'porucnik',     skupina: 'Osvojitel / zástupce', label: 'Poručník',                          legal: 'rep', legalWeight: 'rodicovska_odpovednost', hint: 'Pečuje a zastupuje, když žádný rodič nemá rodičovskou odpovědnost; není rodič.' },
+  { key: 'opatrovnik',   skupina: 'Osvojitel / zástupce', label: 'Opatrovník (např. kolizní — OSPOD)', legal: 'rep', legalWeight: 'rodicovska_odpovednost', hint: 'Zastupuje dítě v konkrétní věci / při střetu zájmů.' },
 
-  { key: 'sour_vlastni', skupina: 'Sourozenci', label: 'Vlastní sourozenec',   legal: 'na', hint: 'Sdílí oba biologické rodiče.' },
-  { key: 'sour_polo',    skupina: 'Sourozenci', label: 'Polorodý sourozenec',  legal: 'na', hint: 'Jeden společný biologický rodič.' },
-  { key: 'sour_nevl',    skupina: 'Sourozenci', label: 'Nevlastní sourozenec', legal: 'na', hint: 'Žádné biologické pouto.' },
+  { key: 'sour_vlastni', skupina: 'Sourozenci', label: 'Vlastní sourozenec',   legal: 'na', legalWeight: 'bez_prav', hint: 'Sdílí oba biologické rodiče.' },
+  { key: 'sour_polo',    skupina: 'Sourozenci', label: 'Polorodý sourozenec',  legal: 'na', legalWeight: 'bez_prav', hint: 'Jeden společný biologický rodič.' },
+  { key: 'sour_nevl',    skupina: 'Sourozenci', label: 'Nevlastní sourozenec', legal: 'na', legalWeight: 'bez_prav', hint: 'Žádné biologické pouto.' },
 
-  { key: 'prarodic',     skupina: 'Širší rodina', label: 'Prarodič',       legal: 'na', hint: 'Babička nebo dědeček.' },
-  { key: 'teta',         skupina: 'Širší rodina', label: 'Teta',           legal: 'na', hint: 'Sestra jednoho z rodičů.' },
-  { key: 'stryc',        skupina: 'Širší rodina', label: 'Strýc',          legal: 'na', hint: 'Bratr jednoho z rodičů.' },
-  { key: 'jiny',         skupina: 'Širší rodina', label: 'Jiný příbuzný',  legal: 'na', hint: 'Vzdálenější příbuzný nebo blízká osoba dítěte.' },
+  { key: 'prarodic',     skupina: 'Širší rodina', label: 'Prarodič',       legal: 'na', legalWeight: 'bez_prav', hint: 'Babička nebo dědeček.' },
+  { key: 'teta',         skupina: 'Širší rodina', label: 'Teta',           legal: 'na', legalWeight: 'bez_prav', hint: 'Sestra jednoho z rodičů.' },
+  { key: 'stryc',        skupina: 'Širší rodina', label: 'Strýc',          legal: 'na', legalWeight: 'bez_prav', hint: 'Bratr jednoho z rodičů.' },
+  { key: 'jiny',         skupina: 'Širší rodina', label: 'Jiný příbuzný',  legal: 'na', legalWeight: 'bez_prav', hint: 'Vzdálenější příbuzný nebo blízká osoba dítěte.' },
+
+  { key: 'partner_pestouna', skupina: 'Pěstoun', label: 'Partner/manžel pěstouna (bez svěření)', legal: false, legalWeight: 'bez_prav', hint: 'Žije s pěstounem ve společné domácnosti, ale není uveden ve svěření tohoto dítěte (viz custody na kartě rodiny) — nemá k němu žádná práva.' },
 ];
+
+/** Štítek právního postavení pro `legalWeight` (tři úrovně, DESIGN.md barvy). */
+export function legalWeightLabel(weight) {
+  if (weight === 'pecujici') return 'Pečující (svěřeno)';
+  if (weight === 'rodicovska_odpovednost') return 'Rodičovská odpovědnost';
+  return 'Bez práv k dítěti';
+}
+
+/** Badge tone pro `legalWeight` — pěstoun zelená (`family`), rodičovská odpovědnost amber, jinak stone. */
+export function legalWeightTone(weight) {
+  if (weight === 'pecujici') return 'family';
+  if (weight === 'rodicovska_odpovednost') return 'warning';
+  return 'neutral';
+}
 
 export function relLabel(key) {
   return REL_TYPES.find((r) => r.key === key)?.label ?? key;
@@ -202,6 +224,38 @@ export function odmenaEligible(careType, hasAssignedChildren) {
 export function odmenaStatusLabel(careType, hasAssignedChildren) {
   if (odmenaEligible(careType, hasAssignedChildren)) return 'Nárok na odměnu pěstouna';
   return 'Bez nároku — dlouhodobá/příbuzenská péče vyžaduje svěřené dítě';
+}
+
+// ── Právní vazby: svěření, odměna, dohoda (docs/domain/druhy-pece-a-odmeny.md, 2026-07-03) ──
+
+/** Typ svěření dítěte — společnou PP mohou mít jen manželé (§958 odst. 2 NOZ). */
+export const CUSTODY_TYPES = {
+  individualni: 'Individuální (1 pěstoun)',
+  spolecne: 'Společné (manželé)',
+};
+
+export function custodyTypeLabel(key) {
+  return CUSTODY_TYPES[key] ?? key ?? '—';
+}
+
+/** Odměna pěstouna u společné PP (§47j zákona č. 359/1999 Sb.) — MVP jen `single`. */
+export const REMUNERATION_MODES = {
+  single: 'Jedna osoba',
+  split50: 'Rozděleno na polovinu (V-next)',
+};
+
+export function remunerationModeLabel(mode) {
+  return REMUNERATION_MODES[mode] ?? mode ?? '—';
+}
+
+/** Dohoda o výkonu PP — kdo podepisuje (§47b zákona č. 359/1999 Sb.). */
+export const AGREEMENT_SCOPES = {
+  spolecna: 'Společná dohoda (oba manželé)',
+  oddelena: 'Oddělené dohody (rozhodnutí obecního úřadu)',
+};
+
+export function agreementScopeLabel(scope) {
+  return AGREEMENT_SCOPES[scope] ?? scope ?? '—';
 }
 
 // ── Kalendář (Sekce B, audit nálezu #5, 2026-07-03) ──────────────

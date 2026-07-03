@@ -65,6 +65,20 @@ async function assertFamilyCapacity(uid, excludeFamilyId = null) {
   }
 }
 
+/**
+ * Výchozí `agreement`/`remuneration` při založení rodiny — signatáři/příjemce
+ * se doplní hned všemi zakládanými pěstouny (typicky 0–1 při založení, `fosters`
+ * se pak rozroste přes `addFosterPerson`; KO pole podle potřeby přepíše).
+ */
+function defaultAgreement(fosters) {
+  return { scope: 'spolecna', signatories: (fosters ?? []).map((p) => p.id), separationDecision: null };
+}
+
+function defaultRemuneration(fosters) {
+  const ids = (fosters ?? []).map((p) => p.id);
+  return { mode: 'single', recipients: ids.slice(0, 1) };
+}
+
 export async function createFoster({ organizationId, name, address = '', contactPhone = '', contactEmail = '', assignedTo = null, status = 'active', careType = 'long', note = '', fosters = [] }) {
   await assertFamilyCapacity(assignedTo);
   const ref = await addDoc(collection(db, 'foster_families'), {
@@ -81,6 +95,13 @@ export async function createFoster({ organizationId, name, address = '', contact
     // osoby/rodina, stejně jako household.fosters[] ve vanilla prototypu).
     // Každá položka: { name, rc, phone, email, isFoster, periodStart, eduDone, eduRequired }
     fosters,
+    // Dohoda o výkonu PP (§47b zákona č. 359/1999 Sb.) — kdo podepsal, viz
+    // docs/domain/druhy-pece-a-odmeny.md. Výchozí: 'spolecna' se všemi fostery
+    // jako signatáři; 'oddelena' jen po evidovaném rozhodnutí obecního úřadu.
+    agreement: defaultAgreement(fosters),
+    // Odměna pěstouna (§47j) — MVP implementuje jen `mode: 'single'`;
+    // `split50` se umí uložit, ale formulář/logika čekají na V-next.
+    remuneration: defaultRemuneration(fosters),
     ...createMeta(),
   });
   return ref.id;
@@ -93,6 +114,20 @@ export async function updateFoster(familyId, patch) {
 /** Přepíše celé pole `fosters[]` (přidání/úprava/odebrání osoby) — malé pole, čtení-úprava-zápis stačí. */
 export async function setFosterPersons(familyId, fosters) {
   await updateDoc(doc(db, 'foster_families', familyId), { fosters, ...meta() });
+}
+
+/**
+ * Přepíše `agreement` (dohoda o výkonu PP) — `scope: 'oddelena'` bez
+ * `separationDecision` je neplatný stav (viz docs/domain/druhy-pece-a-odmeny.md),
+ * volající (UI/migrace) za to odpovídá.
+ */
+export async function setFamilyAgreement(familyId, agreement) {
+  await updateDoc(doc(db, 'foster_families', familyId), { agreement, ...meta() });
+}
+
+/** Přepíše `remuneration` (odměna pěstouna) — MVP formulář smí nastavovat jen `mode: 'single'`. */
+export async function setFamilyRemuneration(familyId, remuneration) {
+  await updateDoc(doc(db, 'foster_families', familyId), { remuneration, ...meta() });
 }
 
 /**

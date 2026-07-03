@@ -53,7 +53,23 @@ export async function listChildrenByOrg(organizationId) {
  * foster_family (nutné pro firestore.rules, které se na children nedívají
  * přes get() do foster_families kvůli výkonu/ceně čtení).
  */
-export async function createChild({ fosterFamilyId, firstName, lastName, rc = '', birthDate = null, careType = null, status = 'active', note = '', relatives = [] }) {
+/**
+ * Výchozí `custody` při založení dítěte: 2 pěstouni v domácnosti (manželé) →
+ * `spolecne` s oběma jako caregivers, jinak `individualni` s tím jediným.
+ * Konkrétní spisovou značku/soud doplní KO později (`updateChild`).
+ */
+function defaultCustody(fosters) {
+  const ids = (fosters ?? []).map((p) => p.id);
+  return {
+    type: ids.length >= 2 ? 'spolecne' : 'individualni',
+    caregivers: ids.length >= 2 ? ids.slice(0, 2) : ids.slice(0, 1),
+    court: '',
+    caseNumber: '',
+    decidedAt: null,
+  };
+}
+
+export async function createChild({ fosterFamilyId, firstName, lastName, rc = '', birthDate = null, careType = null, status = 'active', note = '', relatives = [], custody = null }) {
   const family = await getFoster(fosterFamilyId);
   if (!family) throw new Error('Rodina nenalezena — nelze přidat dítě.');
 
@@ -68,6 +84,10 @@ export async function createChild({ fosterFamilyId, firstName, lastName, rc = ''
     careType: careType ?? family.careType ?? 'long',
     status, // 'active' | 'transferred' | 'aged_out'
     note,
+    // Vazba dítě↔pěstoun (docs/domain/druhy-pece-a-odmeny.md): 1 nebo 2 osoby
+    // (společná PP jen u manželů, §958 NOZ). `caregivers` odkazuje na id v
+    // rodičovské foster_families.fosters[].
+    custody: custody ?? defaultCustody(family.fosters),
     // Biologičtí/širší rodinní příbuzní — jmenovití, viz shared/domainConstants.js
     // REL_TYPES. Každá položka: { id, name, rc, rel (REL_TYPES key), legal,
     // addressPermanent, addressResidence, phone, email, note }
@@ -94,6 +114,11 @@ export async function updateChild(childId, patch) {
 /** Přepíše celé pole `relatives[]` u dítěte (malé pole, čtení-úprava-zápis stačí). */
 export async function setChildRelatives(childId, relatives) {
   await updateDoc(doc(db, 'children', childId), { relatives, ...meta() });
+}
+
+/** Přepíše `custody` (svěření) u dítěte — viz docs/domain/druhy-pece-a-odmeny.md. */
+export async function setChildCustody(childId, custody) {
+  await updateDoc(doc(db, 'children', childId), { custody, ...meta() });
 }
 
 export async function getChild(childId) {

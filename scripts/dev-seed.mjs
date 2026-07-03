@@ -64,6 +64,11 @@ const firebaseConfig = {
 
 const DEMO_PASSWORD = 'Demo1234!';
 
+/** Stejný tvar id jako `genId('p')` v src/services/org/shared.js — jen bez importu z src/ (skript je mimo build). */
+function genFosterId() {
+  return `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
 // Poznámka: RČ/IČO jsou VYMYŠLENÉ (neplatné kontrolní součty) — jen demo data.
 const DEMO_ORGS = [
   {
@@ -103,7 +108,12 @@ const DEMO_ORGS = [
         children: [
           {
             firstName: 'Nela', lastName: 'Svobodová', rc: '161120/3333', birthDate: '2016-11-20',
-            relatives: [{ name: 'Markéta Marková', rc: '900101/1111', rel: 'biomatka_mimo', legal: 'birth', note: 'sdílí matku s Terezou Novákovou' }],
+            relatives: [
+              { name: 'Markéta Marková', rc: '900101/1111', rel: 'biomatka_mimo', legal: 'birth', note: 'sdílí matku s Terezou Novákovou' },
+              // Demo Kroku 2 (2026-07-03): partner pěstounky bez svěření — viz
+              // docs/domain/vztahy-a-osoby.md, REL_TYPES.partner_pestouna.
+              { name: 'Tomáš Svoboda', rc: '780612/1212', rel: 'partner_pestouna', legal: false, note: 'manžel pěstounky, není součástí svěření' },
+            ],
           },
         ],
       },
@@ -290,6 +300,11 @@ async function seedDemoData(db, app, myUid) {
     }
 
     for (const familyDef of orgDef.families) {
+      // id na každém fosterovi hned od založení — custody/agreement/remuneration
+      // na něj odkazují (docs/domain/druhy-pece-a-odmeny.md, Krok 2, 2026-07-03).
+      const fosters = (familyDef.fosters ?? []).map((p) => ({ id: genFosterId(), ...p }));
+      const fosterIds = fosters.map((p) => p.id);
+
       const familyRef = await addDoc(collection(db, 'foster_families'), {
         organizationId: orgRef.id,
         name: familyDef.name,
@@ -300,12 +315,18 @@ async function seedDemoData(db, app, myUid) {
         status: 'active',
         careType: familyDef.careType ?? 'long',
         note: '',
-        fosters: familyDef.fosters ?? [],
+        fosters,
+        agreement: { scope: 'spolecna', signatories: fosterIds, separationDecision: null },
+        remuneration: { mode: 'single', recipients: fosterIds.slice(0, 1) },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: myUid,
         updatedBy: myUid,
       });
+
+      const custody = fosterIds.length >= 2
+        ? { type: 'spolecne', caregivers: fosterIds.slice(0, 2), court: '', caseNumber: '', decidedAt: null }
+        : { type: 'individualni', caregivers: fosterIds.slice(0, 1), court: '', caseNumber: '', decidedAt: null };
 
       for (const child of familyDef.children) {
         await addDoc(collection(db, 'children'), {
@@ -319,6 +340,7 @@ async function seedDemoData(db, app, myUid) {
           careType: familyDef.careType ?? 'long',
           status: 'active',
           note: '',
+          custody,
           relatives: child.relatives ?? [],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),

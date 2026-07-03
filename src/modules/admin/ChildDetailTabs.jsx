@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, lists, onLoadMore, forms }) {
+export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore, forms }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -98,6 +98,7 @@ export default function ChildDetailTabs({ tab, child, lists, onLoadMore, forms }
     return (
       <ChildFamilyTab
         child={child}
+        family={family}
         previousFosters={lists.previousFosters.items}
         hasMorePreviousFosters={!!lists.previousFosters.cursor}
         onLoadMorePreviousFosters={() => onLoadMore('previousFosters')}

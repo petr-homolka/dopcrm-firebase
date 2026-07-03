@@ -28,9 +28,9 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Druhy péče (PPPD/dlouhodobá/příbuzenská) + odměna | Nárok na odměnu dle typu, i bez dítěte u PPPD | `docs/domain/druhy-pece-a-odmeny.md` | ✅ (`householdCareType`, `odmenaEligible` portováno) |
 | SPVPP (59 400 Kč/rok/dohoda) | Legislativní příspěvek, ne per dítě | `docs/domain/druhy-pece-a-odmeny.md` | 🟡 (React má jen interní peněženku per dítě, ne evidenci per dohoda) |
 | Respit (2 metriky: vykázaný / reálný) | Zákonné minimum §47a, IPOD nadstandard | `docs/domain/druhy-pece-a-odmeny.md` | ✅ |
-| Svěření dítěte (`custody`, 1 nebo 2 osoby) | Jen manželé mohou mít společnou PP (§958 NOZ), spis. zn./soud/datum | `docs/domain/druhy-pece-a-odmeny.md` | ⬜ zdokumentováno 2026-07-03, čeká na Krok 2 (datový model) |
-| Odměna pěstouna u společné PP (`remuneration.mode`) | Výchozí jen 1 osoba, `split50` možný na žádost obou (§47j) | `docs/domain/druhy-pece-a-odmeny.md` | ⬜ zdokumentováno 2026-07-03; MVP implementuje jen `single`, `split50` čeká na V-next |
-| Dohoda o výkonu PP — signatáři (`agreement.scope`) | Manželé podepisují VŽDY společně, oddělené jen po rozhodnutí obecního úřadu (§47b) | `docs/domain/druhy-pece-a-odmeny.md` | ⬜ zdokumentováno 2026-07-03, čeká na Krok 2 |
+| Svěření dítěte (`custody`, 1 nebo 2 osoby) | Jen manželé mohou mít společnou PP (§958 NOZ), spis. zn./soud/datum | `docs/domain/druhy-pece-a-odmeny.md` | ✅ pole na `children`, auto-default při založení, badge na kartě dítěte; sp.zn./soud editovatelné jen přes `updateChild` (bez formuláře zatím) |
+| Odměna pěstouna u společné PP (`remuneration.mode`) | Výchozí jen 1 osoba, `split50` možný na žádost obou (§47j) | `docs/domain/druhy-pece-a-odmeny.md` | 🟡 pole na `foster_families` + výchozí hodnoty existují; MVP implementuje jen `single`, `split50` bez formuláře (čeká na V-next) |
+| Dohoda o výkonu PP — signatáři (`agreement.scope`) | Manželé podepisují VŽDY společně, oddělené jen po rozhodnutí obecního úřadu (§47b) | `docs/domain/druhy-pece-a-odmeny.md` | 🟡 pole na `foster_families` + výchozí hodnoty existují; bez editačního formuláře (`scope: 'oddelena'` zatím jen přes `setFamilyAgreement`) |
 | Vzdělávání pěstounů (24 h / 18 h ročně) | Kurzy s certifikáty, progress | `vzdelavani-pestounu-pravidla` (paměť) | ✅ |
 | Adresy pěstouna (trvalé bydliště/pobyt) | — | `docs/history.md` (Fáze 2) | ✅ |
 | Sociální prostor domácnosti | Partner, biologické děti, rodiče pěstouna | `docs/history.md` (Fáze 2) | ✅ |
@@ -42,7 +42,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
 | Vztahy/rodičovství dle práva ČR | Otec=v RL, matka=kdo porodil, 22 typů vztahů | `docs/domain/vztahy-a-osoby.md` | ✅ REL_TYPES sladěny; 🟡 auto-propojení sourozenců přes RČ zatím neportováno |
-| `legalWeight` — právní síla vazby (3 úrovně, štítek) | pečující (zelená) / bez práv (stone) / rodičovská odpovědnost (amber) | `docs/domain/vztahy-a-osoby.md` | ⬜ zdokumentováno 2026-07-03, čeká na Krok 2 (UI štítky + nová položka `REL_TYPES.partner_pestouna`) |
+| `legalWeight` — právní síla vazby (3 úrovně, štítek) | pečující (zelená) / bez práv (stone) / rodičovská odpovědnost (amber) | `docs/domain/vztahy-a-osoby.md` | ✅ pole na všech `REL_TYPES` + nová položka `partner_pestouna`; badge na kartě dítěte (Biologická rodina i nová sekce Pěstouni a svěření), ověřeno živě |
 | RČ jako primární identifikátor osoby | Ne jméno | `docs/domain/vztahy-a-osoby.md` | ✅ |
 | Doklady dítěte (OP/pas) | — | `docs/history.md` (Fáze 3) | ✅ |
 | Historie adres/škola/OSPOD | Append-only | `docs/history.md` (Fáze 3) | ✅ |
