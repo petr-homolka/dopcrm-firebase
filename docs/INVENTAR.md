@@ -193,12 +193,17 @@ z `MVP_NAV` i routeru. Nahradí ho nová implementace dle `docs/domain/dokumento
 **Reporty — nikdy neexistovaly jako kód** (žádná stránka/route na Sekci A ani jinde) — nebylo
 co vypínat. `docs/INVENTAR.md` sekce 7 je už eviduje jako ⬜ nezačato.
 
-Zbývá na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
-- `src/services/auth.js` — legacy auth jádro (role/caps z `user_roles/{uid}`, ne z nového `users/{uid}`).
-- `src/services/dataService.js` — čte `tenants/{tenantId}/data_objects` přes `currentTenantId()`.
-- `src/services/db.js` — plný CRUD nad stejným legacy stromem (`data_objects`, `timeline`, `institutions`, `card_templates`).
-- `src/core/router.jsx` (`AuthContext`/`useAuth`/`RequireAuth`) — hlídá zbylý strom `/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /vzdelavani, /hub/:typ/:id, /uzivatele, /nastaveni` (`/dokumenty` odebráno, `/kalendar` už na Sekci B).
-- `src/core/Layout.jsx` — sidebar shell těchto routes, čte `currentUser()/currentRole()` a volá `signOut()` z `services/auth.js`.
+✅ OPRAVENO 2026-07-03: `auth.js`, `dataService.js`, `db.js` byly osiřelé (nic je už nevolalo
+po přepojení `DashboardPage`/`Layout.jsx`) a přesunuty do `legacy-modules/services/` (viz
+`legacy-modules/README.md`). `router.jsx` (`RequireAuth`/`LoginRoute`/`RegisterRoute`) a
+`Layout.jsx` teď čtou identitu/roli výhradně přes `useAuthStore` — legacy `AuthContext`
+odstraněn, archivován pro referenci v `legacy-modules/router-auth-context.jsx`. Ochrana rout
+je tak sjednocená na jeden mechanismus napříč `/admin/*` i zbylým Sekce-A stromem
+(`/prehled, /pestouni, /pestouni/:id, /deti, /deti/:id, /kontakty, /vzdelavani, /hub/:typ/:id,
+/uzivatele, /nastaveni`).
+
+Zbývá na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu (jen datová
+vrstva stránek samotných — auth/routing už je sjednocené, viz výše):
 - `src/modules/families/DashboardPage.jsx` (route `/prehled`) — ✅ OPRAVENO 2026-07-03: nečte
   už `dataService.js` (byla živě rozbitá — `currentTenantId() je null` pro každého B2B
   uživatele). Teď scoped přes `useAuthStore`: `klicova_osoba` → `listFostersAssignedTo` +
@@ -206,11 +211,18 @@ Zbývá na legacy `tenants/{tenantId}/data_objects` + `user_roles/{uid}` modelu:
   organizace), `superadmin` → `<Navigate>` na vlastní dashboard (nemá `organizationId`),
   účet bez role v novém schématu → informativní `NoOrganizationCard` místo pádu. Ověřeno
   živě pro `klicova_osoba` i `org_admin` (reálná data, žádná chyba v konzoli).
-  **Vedlejší nález:** při ověřování objeven nesouvisející pre-existující bug — `Login.jsx`
-  a legacy `LoginRoute` (`router.jsx`) mají dva nezávislé redirect mechanismy (`AuthContext`
-  vs. `useAuthStore`), které si mohou konkurovat a způsobit "Maximum update depth exceeded"
-  smyčku po přihlášení. Nahlášeno jako samostatný úkol (task_97b6c7fd), neopraveno v rámci
-  tohoto kroku.
+  **Vedlejší nález, ✅ OPRAVENO 2026-07-03:** při ověřování objeven nesouvisející
+  pre-existující bug — `Login.jsx` a legacy `LoginRoute` (`router.jsx`) měly dva nezávislé
+  redirect mechanismy (`AuthContext` vs. `useAuthStore`), které si mohly konkurovat a
+  způsobit "Maximum update depth exceeded" smyčku po přihlášení. Bylo nahlášeno jako
+  samostatný úkol (task_97b6c7fd) a následně opraveno: `AuthContext`/`AuthProvider`/`useAuth`
+  odstraněny z `router.jsx`, `RequireAuth`/`LoginRoute`/`RegisterRoute` čtou výhradně
+  `useAuthStore`, `LoginRoute` už nemá vlastní redirect-if-authenticated logiku (tu má
+  jen `Login.jsx`). Ověřeno živě: login/logout/redirect z `/login` při aktivní session pro
+  `klicova_osoba` i `org_admin` — bez chyby v konzoli, žádná smyčka. `superadmin` neověřen
+  živě (jediný účet je reálné `SEED_ADMIN`, bez bezpečně dostupného hesla pro testování) —
+  guard kód (`RequireAuth`/`LoginRoute`/`RegisterRoute`) roli nerozlišuje, jen
+  `currentUser`/`loading`, takže je pokrytý stejným mechanismem jako ověřené role.
 
 Jen stub bez logiky (8–11 řádků, žádná Sekce A závislost, jen zavěšené do routy/Layoutu):
 `FamiliesPage`, `FamilyDetailPage`, `ChildrenPage` (modul `children/`, ne `admin/`), `ContactsPage`,
@@ -218,9 +230,15 @@ Jen stub bez logiky (8–11 řádků, žádná Sekce A závislost, jen zavěšen
 už není stub — viz výše.)
 
 **Co ještě zbývá k úplnému převodu na Sekci B:**
-1. `RequireAuth`/`Layout.jsx` přepojit z `services/auth.js` na `useAuthStore`/`orgAuth.js` — sjednotit s guardem, který už `/admin/*` používá, a rozhodnout, jestli `Layout.jsx` (druhý, nezávislý sidebar) vůbec ještě dává smysl vedle `AdminLayout.jsx`.
+1. ✅ HOTOVO 2026-07-03: `RequireAuth`/`LoginRoute`/`RegisterRoute`/`Layout.jsx` přepojeny z
+   `services/auth.js` na `useAuthStore`/`orgAuth.js`, sjednoceno s guardem `/admin/*`. Zbývá
+   jen rozhodnout, jestli `Layout.jsx` (druhý, nezávislý sidebar) vůbec ještě dává smysl
+   vedle `AdminLayout.jsx` — to zůstává otevřené.
 2. 7 zbylých stub stránek buď dostavět rovnou nad Sekcí B, nebo smazat/přesměrovat tam, kde už existuje ekvivalent pod `/admin/*` (např. `/pestouni` ~ `/admin/terenni`, `/deti` ~ dětská karta pod `/admin/terenni/.../deti/:id`).
-3. Po vyprázdnění referencí zrušit `dataService.js`, `db.js`, `services/auth.js` a „SEKCE A" v `firestore.rules` (`user_roles`, `tenants/{tenantId}/data_objects`, `global_templates`).
+3. `dataService.js`, `db.js`, `services/auth.js` jsou už osiřelé a přesunuté do
+   `legacy-modules/services/` (viz výše) — zbývá jen zrušit „SEKCI A" v `firestore.rules`
+   (`user_roles`, `tenants/{tenantId}/data_objects`, `global_templates`) až budou i zbylé
+   stub stránky (bod 2) převedené nebo smazané.
 
 Rozhodnutí, zda a v jakém pořadí to udělat, čeká na uživatele.
 
