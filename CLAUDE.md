@@ -60,6 +60,9 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
 - Před commitem: `npm run build` musí projít čistě; `npm run lint` bez chyb.
 - Firestore rules měň jen s výslovným souhlasem uživatele a vždy nasaď
   (`firebase deploy --only firestore:rules`).
+- ⛔ Destruktivní operace nad daty (`seed:wipe`, `seed`, hromadné mazání, migrační skripty
+  bez `--dry-run`) a jakýkoli `firebase deploy` VŽDY vyžadují výslovný souhlas uživatele
+  v dané session — bez výjimky, i pro úklid testovacích dat, který sis sám způsobil.
 - Komunikuj česky. Žádná emoji v UI (ikony = lucide-react).
 
 ## Pravidla velikosti (tvrdá, bez výjimek)
