@@ -111,6 +111,20 @@ service cloud.firestore {
         allow read:  if isSuperadmin() || sameOrg(orgId);
         allow write: if isSuperadmin() || (isOrgAdmin() && sameOrg(orgId));
       }
+
+      // Kalendářní události (audit nálezu #5, 2026-07-03 — Kalendář přepojen na
+      // Sekci B). Čtení: kdokoli ze stejné organizace (přehled napříč týmem,
+      // stejně jako u foster_families). Zápis: management celé organizace vždy;
+      // klíčová osoba jen u vlastních událostí (assignedTo == její uid).
+      match /events/{eventId} {
+        allow read: if isSuperadmin() || sameOrg(orgId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(orgId))
+          || (isKlicovaOsoba() && sameOrg(orgId) && request.resource.data.assignedTo == request.auth.uid);
+        allow update, delete: if isSuperadmin()
+          || (isManagement() && sameOrg(orgId))
+          || (isKlicovaOsoba() && sameOrg(orgId) && resource.data.assignedTo == request.auth.uid);
+      }
     }
 
     // ── users (zaměstnanci) ───────────────────────────────────

@@ -203,3 +203,18 @@ export function odmenaStatusLabel(careType, hasAssignedChildren) {
   if (odmenaEligible(careType, hasAssignedChildren)) return 'Nárok na odměnu pěstouna';
   return 'Bez nároku — dlouhodobá/příbuzenská péče vyžaduje svěřené dítě';
 }
+
+// ── Kalendář (Sekce B, audit nálezu #5, 2026-07-03) ──────────────
+
+/** Typy kalendářních událostí — port konceptu EVTYPES z vanilla prototypu. */
+export const EVENT_TYPES = {
+  visit: 'Návštěva rodiny',
+  meeting: 'Jednání/schůzka',
+  deadline: 'Termín/lhůta',
+  education: 'Vzdělávání',
+  other: 'Ostatní',
+};
+
+export function eventTypeLabel(key) {
+  return EVENT_TYPES[key] ?? key;
+}

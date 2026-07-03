@@ -18,3 +18,4 @@ export * from './org/employees.js';
 export * from './org/fosterFamilies.js';
 export * from './org/respit.js';
 export * from './org/children.js';
+export * from './org/events.js';
