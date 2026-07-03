@@ -25,7 +25,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
-import { getChild, listChildHistory } from '../../services/orgService.js';
+import { getChild, listChildHistory, listPermanentNotes } from '../../services/orgService.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
 import ChildDetailTabs from './ChildDetailTabs.jsx';
@@ -48,16 +48,20 @@ export default function ChildDetailPage() {
   const [error, setError] = useState('');
   const [child, setChild] = useState(null);
   const [history, setHistory] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [tab, setTab] = useState('identita');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, hist] = await Promise.all([getChild(childId), listChildHistory(childId)]);
+      const [data, hist, permanentNotes] = await Promise.all([
+        getChild(childId), listChildHistory(childId), listPermanentNotes(childId),
+      ]);
       if (!data) throw new Error('Dítě nenalezeno.');
       setChild(data);
       setHistory(hist);
+      setNotes(permanentNotes);
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
       setError(err.message ?? 'Data se nepodařilo načíst.');
@@ -115,7 +119,7 @@ export default function ChildDetailPage() {
             ))}
           </div>
 
-          <ChildDetailTabs tab={tab} child={child} history={history} forms={forms} />
+          <ChildDetailTabs tab={tab} child={child} history={history} notes={notes} forms={forms} />
         </>
       )}
     </div>

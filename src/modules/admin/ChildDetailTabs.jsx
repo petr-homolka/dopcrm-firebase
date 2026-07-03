@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, history, forms }) {
+export default function ChildDetailTabs({ tab, child, history, notes, forms }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -133,7 +133,7 @@ export default function ChildDetailTabs({ tab, child, history, forms }) {
   if (tab === 'poznamky') {
     return (
       <ChildNotesTab
-        child={child}
+        notes={notes}
         noteText={forms.noteText}
         setNoteText={forms.setNoteText}
         onAddNote={forms.handleAddNote}

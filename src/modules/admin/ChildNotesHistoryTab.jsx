@@ -10,9 +10,7 @@ import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { fieldClass } from './childDetailShared.js';
 
-export function ChildNotesTab({ child, noteText, setNoteText, onAddNote, submitting, submitError }) {
-  const notes = [...(child.permanentNotes ?? [])].reverse();
-
+export function ChildNotesTab({ notes, noteText, setNoteText, onAddNote, submitting, submitError }) {
   return (
     <Card>
       <h2 className="mb-1 text-base font-semibold text-stone-800">Trvalé poznámky</h2>
@@ -38,10 +36,10 @@ export function ChildNotesTab({ child, noteText, setNoteText, onAddNote, submitt
 
       {notes.length === 0 && <p className="text-sm text-stone-500">Žádné poznámky.</p>}
       <ul>
-        {notes.map((n, i) => (
-          <li key={i} className="border-t border-stone-100 py-2.5 first:border-t-0">
+        {notes.map((n) => (
+          <li key={n.id} className="border-t border-stone-100 py-2.5 first:border-t-0">
             <p className="text-sm text-stone-800">{n.text}</p>
-            <p className="text-xs text-stone-400">{n.at ? new Date(n.at).toLocaleString('cs-CZ') : ''}</p>
+            <p className="text-xs text-stone-400">{n.createdAt ? n.createdAt.toDate().toLocaleString('cs-CZ') : ''}</p>
           </li>
         ))}
       </ul>

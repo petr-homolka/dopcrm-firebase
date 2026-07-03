@@ -7,7 +7,6 @@
 import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { meta, createMeta, genId, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
-import { useAuthStore } from '../../store/authStore.js';
 import { getFoster } from './fosterFamilies.js';
 
 /**
@@ -67,7 +66,6 @@ export async function createChild({ fosterFamilyId, firstName, lastName, rc = ''
     school: null,         // { nazev, adresa, telefon, email, tridniUcitel, rocnik }
     ospod: null,          // { nazev, osoba }
     courtCase: null,      // { spisZnacka, soudNazev, soudAdresa, kontaktniOsoba, rozsudky:[] }
-    permanentNotes: [],   // append-only — { text, by, at }, nikdy se needituje/nemaže
     previousFosters: [],  // append-only — { name, from, to, note }
     socialSpace: [],      // osoby v okolí dítěte bez biologické vazby — stejný tvar jako relatives
     spvpp: { rok: new Date().getFullYear(), rozpocet: SPVPP_DEFAULT_ROZPOCET, vycerpano: 0 },
@@ -119,14 +117,21 @@ export async function updateChildTracked(childId, patch, historyEntries = []) {
   await Promise.all(historyEntries.map((entry) => addChildHistory(childId, entry)));
 }
 
-/** Trvalé poznámky KO — append-only, nikdy se needituje ani nemaže (citlivý obsah, důkazní hodnota). */
+// ── Trvalé poznámky KO — append-only subkolekce ─────────────────
+// Citlivý obsah, důkazní hodnota — nikdy se needituje ani nemaže (viz firestore.rules).
+
+export async function listPermanentNotes(childId) {
+  const snap = await getDocs(
+    query(collection(db, 'children', childId, 'permanentNotes'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function addPermanentNote(childId, text) {
-  const child = await getChild(childId);
-  if (!child) throw new Error('Dítě nenalezeno.');
-  const uid = useAuthStore.getState().currentUser?.uid ?? 'system';
-  const notes = [...(child.permanentNotes ?? []), { text, by: uid, at: new Date().toISOString() }];
-  await updateDoc(doc(db, 'children', childId), { permanentNotes: notes, ...meta() });
-  return notes;
+  const ref = await addDoc(collection(db, 'children', childId, 'permanentNotes'), {
+    text, ...createMeta(),
+  });
+  return ref.id;
 }
 
 /** Předchozí pěstounské rodiny dítěte — append-only historie umístění. */

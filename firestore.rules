@@ -236,6 +236,21 @@ service cloud.firestore {
               && parentChild().assignedTo == request.auth.uid);
         allow update, delete: if false;
       }
+
+      // Trvalé poznámky KO — append-only, citlivý obsah s důkazní hodnotou
+      // (audit nálezu #1, 2026-07-03: dřív pole na dokumentu, teď podkolekce
+      // stejně jako `history` výše — "roste v čase" = vždy podkolekce).
+      match /permanentNotes/{noteId} {
+        function parentChildNotes() {
+          return get(/databases/$(database)/documents/children/$(childId)).data;
+        }
+        allow read: if isSuperadmin() || sameOrg(parentChildNotes().organizationId);
+        allow create: if isSuperadmin()
+          || (isManagement() && sameOrg(parentChildNotes().organizationId))
+          || (isKlicovaOsoba() && sameOrg(parentChildNotes().organizationId)
+              && parentChildNotes().assignedTo == request.auth.uid);
+        allow update, delete: if false;
+      }
     }
 
     // ════════════════════════════════════════════════════════
