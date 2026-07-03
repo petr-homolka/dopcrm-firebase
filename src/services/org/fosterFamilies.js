@@ -14,14 +14,20 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
   runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { meta, createMeta, genId } from './shared.js';
+import { meta, createMeta, genId, TOP_LEVEL_PAGE_SIZE, SUBCOLLECTION_PAGE_SIZE } from './shared.js';
 
 export async function listFostersByOrg(organizationId) {
   const snap = await getDocs(
-    query(collection(db, 'foster_families'), where('organizationId', '==', organizationId))
+    query(
+      collection(db, 'foster_families'),
+      where('organizationId', '==', organizationId),
+      limit(TOP_LEVEL_PAGE_SIZE)
+    )
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
@@ -29,7 +35,7 @@ export async function listFostersByOrg(organizationId) {
 /** Rodiny přidělené konkrétní klíčové osobě (mobil i web terénní dashboard). */
 export async function listFostersAssignedTo(uid) {
   const snap = await getDocs(
-    query(collection(db, 'foster_families'), where('assignedTo', '==', uid))
+    query(collection(db, 'foster_families'), where('assignedTo', '==', uid), limit(TOP_LEVEL_PAGE_SIZE))
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
@@ -150,12 +156,18 @@ export async function updateFosterPerson(familyId, personId, patch) {
 // místo pole vnořeného v poli `fosters[]` (audit nálezu #4, 2026-07-03).
 // `personId` odkazuje na konkrétní osobu v `fosters[]` rodičovské rodiny.
 
-/** Všechny kurzy rodiny napříč jejími pěstouny — UI si je rozdělí podle `personId`. */
-export async function listFosterCourses(familyId) {
-  const snap = await getDocs(
-    query(collection(db, 'foster_families', familyId, 'fosterCourses'), orderBy('createdAt', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/**
+ * Všechny kurzy rodiny napříč jejími pěstouny — UI si je rozdělí podle
+ * `personId`. Vrací `{ items, lastDoc }` — `lastDoc` slouží jako `cursor` pro
+ * další stránku (`null` = konec), viz audit nálezu #7.
+ */
+export async function listFosterCourses(familyId, cursor = null) {
+  const constraints = [orderBy('createdAt', 'desc'), limit(SUBCOLLECTION_PAGE_SIZE)];
+  if (cursor) constraints.push(startAfter(cursor));
+  const snap = await getDocs(query(collection(db, 'foster_families', familyId, 'fosterCourses'), ...constraints));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const lastDoc = snap.docs.length === SUBCOLLECTION_PAGE_SIZE ? snap.docs[snap.docs.length - 1] : null;
+  return { items, lastDoc };
 }
 
 /**

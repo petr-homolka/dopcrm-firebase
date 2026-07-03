@@ -9,8 +9,17 @@ import { UserPlus, User, Plus, GraduationCap } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
+import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 
-export default function FosterFamilyFostersTab({ fosters, fosterCourses, requiredHours, onAddFoster, onAddCourse }) {
+export default function FosterFamilyFostersTab({
+  fosters,
+  fosterCourses,
+  hasMoreCourses,
+  onLoadMoreCourses,
+  requiredHours,
+  onAddFoster,
+  onAddCourse,
+}) {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
@@ -88,6 +97,11 @@ export default function FosterFamilyFostersTab({ fosters, fosterCourses, require
           );
         })}
       </div>
+      {hasMoreCourses && (
+        <div className="mt-2 border-t border-stone-100 pt-2">
+          <LoadMoreButton onClick={onLoadMoreCourses} />
+        </div>
+      )}
     </Card>
   );
 }

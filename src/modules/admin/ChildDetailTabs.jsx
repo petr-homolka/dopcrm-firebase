@@ -16,7 +16,7 @@ import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
 
-export default function ChildDetailTabs({ tab, child, history, notes, previousFosters, courtVerdicts, forms }) {
+export default function ChildDetailTabs({ tab, child, lists, onLoadMore, forms }) {
   const { submitting, submitError } = forms;
 
   if (tab === 'identita') {
@@ -67,7 +67,9 @@ export default function ChildDetailTabs({ tab, child, history, notes, previousFo
     return (
       <ChildOspodCourtTab
         child={child}
-        courtVerdicts={courtVerdicts}
+        courtVerdicts={lists.courtVerdicts.items}
+        hasMoreVerdicts={!!lists.courtVerdicts.cursor}
+        onLoadMoreVerdicts={() => onLoadMore('courtVerdicts')}
         ospodDialogOpen={forms.ospodDialogOpen}
         ospodForm={forms.ospodForm}
         setOspodForm={forms.setOspodForm}
@@ -96,7 +98,9 @@ export default function ChildDetailTabs({ tab, child, history, notes, previousFo
     return (
       <ChildFamilyTab
         child={child}
-        previousFosters={previousFosters}
+        previousFosters={lists.previousFosters.items}
+        hasMorePreviousFosters={!!lists.previousFosters.cursor}
+        onLoadMorePreviousFosters={() => onLoadMore('previousFosters')}
         relGroupsData={relGroups()}
         relDialogOpen={forms.relDialogOpen}
         relForm={forms.relForm}
@@ -135,7 +139,9 @@ export default function ChildDetailTabs({ tab, child, history, notes, previousFo
   if (tab === 'poznamky') {
     return (
       <ChildNotesTab
-        notes={notes}
+        notes={lists.notes.items}
+        hasMoreNotes={!!lists.notes.cursor}
+        onLoadMoreNotes={() => onLoadMore('notes')}
         noteText={forms.noteText}
         setNoteText={forms.setNoteText}
         onAddNote={forms.handleAddNote}
@@ -145,7 +151,15 @@ export default function ChildDetailTabs({ tab, child, history, notes, previousFo
     );
   }
 
-  if (tab === 'historie') return <ChildHistoryTab history={history} />;
+  if (tab === 'historie') {
+    return (
+      <ChildHistoryTab
+        history={lists.history.items}
+        hasMore={!!lists.history.cursor}
+        onLoadMore={() => onLoadMore('history')}
+      />
+    );
+  }
 
   return null;
 }

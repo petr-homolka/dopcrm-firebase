@@ -8,9 +8,10 @@
 import React from 'react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
+import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import { fieldClass } from './childDetailShared.js';
 
-export function ChildNotesTab({ notes, noteText, setNoteText, onAddNote, submitting, submitError }) {
+export function ChildNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText, setNoteText, onAddNote, submitting, submitError }) {
   return (
     <Card>
       <h2 className="mb-1 text-base font-semibold text-stone-800">Trvalé poznámky</h2>
@@ -43,11 +44,12 @@ export function ChildNotesTab({ notes, noteText, setNoteText, onAddNote, submitt
           </li>
         ))}
       </ul>
+      {hasMoreNotes && <LoadMoreButton onClick={onLoadMoreNotes} />}
     </Card>
   );
 }
 
-export function ChildHistoryTab({ history }) {
+export function ChildHistoryTab({ history, hasMore, onLoadMore }) {
   return (
     <Card>
       <h2 className="mb-1 text-base font-semibold text-stone-800">Historie změn</h2>
@@ -64,6 +66,7 @@ export function ChildHistoryTab({ history }) {
           </li>
         ))}
       </ul>
+      {hasMore && <LoadMoreButton onClick={onLoadMore} />}
     </Card>
   );
 }

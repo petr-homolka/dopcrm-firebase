@@ -12,12 +12,15 @@ import {
   updateDoc,
   query,
   orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { meta, createMeta } from './shared.js';
+import { meta, createMeta, TOP_LEVEL_PAGE_SIZE } from './shared.js';
 
 export async function listOrganizations() {
-  const snap = await getDocs(query(collection(db, 'organizations'), orderBy('createdAt', 'desc')));
+  const snap = await getDocs(
+    query(collection(db, 'organizations'), orderBy('createdAt', 'desc'), limit(TOP_LEVEL_PAGE_SIZE))
+  );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 

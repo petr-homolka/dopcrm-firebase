@@ -4,10 +4,23 @@
  * pěstounské rodiny, rozsudky, sociální prostor).
  */
 
-import { collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
+import {
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, startAfter,
+} from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
+import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET, TOP_LEVEL_PAGE_SIZE, SUBCOLLECTION_PAGE_SIZE } from './shared.js';
 import { getFoster } from './fosterFamilies.js';
+
+/** Jedna stránka podkolekce seřazená podle `createdAt desc` — sdílený tvar pro history/notes/previousFosters/courtVerdicts. */
+async function fetchSubcollectionPage(path, cursor) {
+  const constraints = [orderBy('createdAt', 'desc'), limit(SUBCOLLECTION_PAGE_SIZE)];
+  if (cursor) constraints.push(startAfter(cursor));
+  const snap = await getDocs(query(collection(db, ...path), ...constraints));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const lastDoc = snap.docs.length === SUBCOLLECTION_PAGE_SIZE ? snap.docs[snap.docs.length - 1] : null;
+  return { items, lastDoc };
+}
 
 /**
  * `organizationId` je POVINNÝ argument, ne jen pohodlí — firestore.rules pro
@@ -21,7 +34,8 @@ export async function listChildrenByFamily(fosterFamilyId, organizationId) {
     query(
       collection(db, 'children'),
       where('fosterFamilyId', '==', fosterFamilyId),
-      where('organizationId', '==', organizationId)
+      where('organizationId', '==', organizationId),
+      limit(TOP_LEVEL_PAGE_SIZE)
     )
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -29,7 +43,7 @@ export async function listChildrenByFamily(fosterFamilyId, organizationId) {
 
 export async function listChildrenByOrg(organizationId) {
   const snap = await getDocs(
-    query(collection(db, 'children'), where('organizationId', '==', organizationId))
+    query(collection(db, 'children'), where('organizationId', '==', organizationId), limit(TOP_LEVEL_PAGE_SIZE))
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
@@ -96,11 +110,9 @@ export async function deleteChild(childId) {
 // Volající (UI) sám rozhodne, CO se má logovat jako historická změna — orgService
 // jen ukládá; nikdy needituje/nemaže existující záznam (viz firestore.rules).
 
-export async function listChildHistory(childId) {
-  const snap = await getDocs(
-    query(collection(db, 'children', childId, 'history'), orderBy('createdAt', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/** Vrací `{ items, lastDoc }` — `lastDoc` slouží jako `cursor` pro další stránku (`null` = konec). */
+export async function listChildHistory(childId, cursor = null) {
+  return fetchSubcollectionPage(['children', childId, 'history'], cursor);
 }
 
 export async function addChildHistory(childId, { field, from = '—', to }) {
@@ -119,11 +131,9 @@ export async function updateChildTracked(childId, patch, historyEntries = []) {
 // ── Trvalé poznámky KO — append-only subkolekce ─────────────────
 // Citlivý obsah, důkazní hodnota — nikdy se needituje ani nemaže (viz firestore.rules).
 
-export async function listPermanentNotes(childId) {
-  const snap = await getDocs(
-    query(collection(db, 'children', childId, 'permanentNotes'), orderBy('createdAt', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/** Vrací `{ items, lastDoc }` — `lastDoc` slouží jako `cursor` pro další stránku (`null` = konec). */
+export async function listPermanentNotes(childId, cursor = null) {
+  return fetchSubcollectionPage(['children', childId, 'permanentNotes'], cursor);
 }
 
 export async function addPermanentNote(childId, text) {
@@ -136,11 +146,9 @@ export async function addPermanentNote(childId, text) {
 // ── Předchozí pěstounské rodiny dítěte — append-only subkolekce ─
 // Historie umístění, nikdy se needituje ani nemaže (viz firestore.rules).
 
-export async function listPreviousFosters(childId) {
-  const snap = await getDocs(
-    query(collection(db, 'children', childId, 'previousFosters'), orderBy('createdAt', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/** Vrací `{ items, lastDoc }` — `lastDoc` slouží jako `cursor` pro další stránku (`null` = konec). */
+export async function listPreviousFosters(childId, cursor = null) {
+  return fetchSubcollectionPage(['children', childId, 'previousFosters'], cursor);
 }
 
 export async function addPreviousFoster(childId, entry) {
@@ -154,11 +162,9 @@ export async function addPreviousFoster(childId, entry) {
 // `courtCase` na dokumentu drží jen identitu spisu (spisZnačka/soud/kontakt);
 // samotné rozsudky rostou v čase, proto vlastní podkolekce (viz firestore.rules).
 
-export async function listCourtVerdicts(childId) {
-  const snap = await getDocs(
-    query(collection(db, 'children', childId, 'courtVerdicts'), orderBy('createdAt', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/** Vrací `{ items, lastDoc }` — `lastDoc` slouží jako `cursor` pro další stránku (`null` = konec). */
+export async function listCourtVerdicts(childId, cursor = null) {
+  return fetchSubcollectionPage(['children', childId, 'courtVerdicts'], cursor);
 }
 
 export async function addCourtVerdict(childId, entry) {

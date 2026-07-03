@@ -9,6 +9,7 @@ import { Sparkles } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
+import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import { respitTypeLabel, respitEventDays } from '../../shared/domainConstants.js';
 
 function StatCard({ label, value, sub, tone = 'primary' }) {
@@ -38,6 +39,8 @@ export default function FosterFamilyRespitTab({
   onNadstandardChange,
   onSaveNadstandard,
   respitEvents,
+  hasMoreRespit,
+  onLoadMoreRespit,
   childrenList,
   onAddRespit,
 }) {
@@ -117,6 +120,7 @@ export default function FosterFamilyRespitTab({
             );
           })}
         </div>
+        {hasMoreRespit && <LoadMoreButton onClick={onLoadMoreRespit} />}
       </Card>
 
       <Card>

@@ -8,12 +8,15 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
+import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import ChildFormModal from './ChildFormModal.jsx';
 import { fieldClass, labelClass } from './childDetailShared.js';
 
 export default function ChildOspodCourtTab({
   child,
   courtVerdicts,
+  hasMoreVerdicts,
+  onLoadMoreVerdicts,
   ospodDialogOpen,
   ospodForm,
   setOspodForm,
@@ -87,6 +90,7 @@ export default function ChildOspodCourtTab({
             </li>
           ))}
         </ul>
+        {hasMoreVerdicts && <LoadMoreButton onClick={onLoadMoreVerdicts} />}
       </Card>
 
       {ospodDialogOpen && (

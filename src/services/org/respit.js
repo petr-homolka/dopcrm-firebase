@@ -3,19 +3,27 @@
  * a SPVPP (finanční peněženka dítěte na respit/pobyty).
  */
 
-import { collection, doc, getDocs, updateDoc, query, orderBy, runTransaction } from 'firebase/firestore';
+import {
+  collection, doc, getDocs, updateDoc, query, orderBy, limit, startAfter, runTransaction,
+} from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET } from './shared.js';
+import { meta, createMeta, SPVPP_DEFAULT_ROZPOCET, SUBCOLLECTION_PAGE_SIZE } from './shared.js';
 import { getChild } from './children.js';
 
 // ── Respit (odlehčovací volno) — per rodina/dohoda, ne per dítě ─
 
-/** Historie čerpání respitu jedné rodiny (subkolekce — může časem narůst, na rozdíl od `fosters[]`). */
-export async function listRespitEvents(familyId) {
-  const snap = await getDocs(
-    query(collection(db, 'foster_families', familyId, 'respitEvents'), orderBy('from', 'desc'))
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+/**
+ * Historie čerpání respitu jedné rodiny (subkolekce — může časem narůst, na
+ * rozdíl od `fosters[]`). Vrací `{ items, lastDoc }` — `lastDoc` slouží jako
+ * `cursor` pro další stránku (`null` = konec), viz audit nálezu #7.
+ */
+export async function listRespitEvents(familyId, cursor = null) {
+  const constraints = [orderBy('from', 'desc'), limit(SUBCOLLECTION_PAGE_SIZE)];
+  if (cursor) constraints.push(startAfter(cursor));
+  const snap = await getDocs(query(collection(db, 'foster_families', familyId, 'respitEvents'), ...constraints));
+  const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const lastDoc = snap.docs.length === SUBCOLLECTION_PAGE_SIZE ? snap.docs[snap.docs.length - 1] : null;
+  return { items, lastDoc };
 }
 
 /**

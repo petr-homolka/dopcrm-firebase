@@ -47,7 +47,10 @@ export default function FosterFamilyDetailPage() {
   const navigate = useNavigate();
   const state = useFosterFamilyDetail(familyId);
   const {
-    loading, error, family, children, respitEvents, fosterCourses, tab, setTab,
+    loading, error, family, children,
+    respitEvents, respitHasMore, loadMoreRespit,
+    fosterCourses, fosterCoursesHasMore, loadMoreCourses,
+    tab, setTab,
     nadstandardInput, setNadstandardInput, socialForm,
     vykazano, realny, limit, eligible,
     handleSaveNadstandard, openSocialDialog,
@@ -143,6 +146,8 @@ export default function FosterFamilyDetailPage() {
             <FosterFamilyFostersTab
               fosters={fosters}
               fosterCourses={fosterCourses}
+              hasMoreCourses={fosterCoursesHasMore}
+              onLoadMoreCourses={loadMoreCourses}
               requiredHours={requiredHours}
               onAddFoster={() => setFosterDialogOpen(true)}
               onAddCourse={(fosterId) => setCourseDialogFor(fosterId)}
@@ -160,6 +165,8 @@ export default function FosterFamilyDetailPage() {
               onNadstandardChange={setNadstandardInput}
               onSaveNadstandard={handleSaveNadstandard}
               respitEvents={respitEvents}
+              hasMoreRespit={respitHasMore}
+              onLoadMoreRespit={loadMoreRespit}
               childrenList={children}
               onAddRespit={() => setRespitDialogOpen(true)}
             />

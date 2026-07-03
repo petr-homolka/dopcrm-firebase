@@ -29,3 +29,10 @@ export function genId(prefix = '') {
 
 /** Výchozí roční rozpočet SPVPP peněženky dítěte (Kč) — sdíleno mezi respit.js a children.js. */
 export const SPVPP_DEFAULT_ROZPOCET = 48000;
+
+// Limity velikosti stránky pro list dotazy (audit nálezu #7, 2026-07-03) —
+// "seznamové obrazovky čtou jen hlavní dokumenty... stránkované po 20" (CLAUDE.md).
+/** Top-level seznamy (organizace, rodiny, děti, zaměstnanci). */
+export const TOP_LEVEL_PAGE_SIZE = 50;
+/** Podkolekce v detailu (historie, poznámky, respit, kurzy...). */
+export const SUBCOLLECTION_PAGE_SIZE = 20;

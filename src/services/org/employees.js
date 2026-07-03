@@ -17,13 +17,13 @@
 
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from 'firebase/auth';
-import { collection, doc, getDocs, setDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, query, where, limit } from 'firebase/firestore';
 import { db, firebaseConfig } from '../firebase.js';
-import { meta, createMeta } from './shared.js';
+import { meta, createMeta, TOP_LEVEL_PAGE_SIZE } from './shared.js';
 
 export async function listUsersByOrg(organizationId) {
   const snap = await getDocs(
-    query(collection(db, 'users'), where('organizationId', '==', organizationId))
+    query(collection(db, 'users'), where('organizationId', '==', organizationId), limit(TOP_LEVEL_PAGE_SIZE))
   );
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

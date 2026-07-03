@@ -9,6 +9,7 @@ import { UserPlus, Plus } from 'lucide-react';
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
+import LoadMoreButton from '../../components/ui/LoadMoreButton.jsx';
 import ChildFormModal from './ChildFormModal.jsx';
 import AddRelativeModal from './AddRelativeModal.jsx';
 import { REL_TYPES, relLegalLabel, relLegalColor } from '../../shared/domainConstants.js';
@@ -17,6 +18,8 @@ import { fieldClass, labelClass, legalBadgeTone } from './childDetailShared.js';
 export default function ChildFamilyTab({
   child,
   previousFosters,
+  hasMorePreviousFosters,
+  onLoadMorePreviousFosters,
   relGroupsData,
   relDialogOpen,
   relForm,
@@ -87,6 +90,7 @@ export default function ChildFamilyTab({
             </li>
           ))}
         </ul>
+        {hasMorePreviousFosters && <LoadMoreButton onClick={onLoadMorePreviousFosters} />}
       </Card>
 
       {relDialogOpen && (

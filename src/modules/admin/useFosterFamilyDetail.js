@@ -26,8 +26,8 @@ export default function useFosterFamilyDetail(familyId) {
   const [error, setError] = useState('');
   const [family, setFamily] = useState(null);
   const [children, setChildren] = useState([]);
-  const [respitEvents, setRespitEvents] = useState([]);
-  const [fosterCourses, setFosterCourses] = useState([]);
+  const [respitEvents, setRespitEvents] = useState({ items: [], cursor: null });
+  const [fosterCourses, setFosterCourses] = useState({ items: [], cursor: null });
   const [tab, setTab] = useState('pestouni');
 
   const [fosterDialogOpen, setFosterDialogOpen] = useState(false);
@@ -53,15 +53,15 @@ export default function useFosterFamilyDetail(familyId) {
     try {
       const familyData = await getFoster(familyId);
       if (!familyData) throw new Error('Rodina nenalezena.');
-      const [childrenData, respitData, coursesData] = await Promise.all([
+      const [childrenData, respitPage, coursesPage] = await Promise.all([
         listChildrenByFamily(familyId, familyData.organizationId),
         listRespitEvents(familyId),
         listFosterCourses(familyId),
       ]);
       setFamily(familyData);
       setChildren(childrenData);
-      setRespitEvents(respitData);
-      setFosterCourses(coursesData);
+      setRespitEvents({ items: respitPage.items, cursor: respitPage.lastDoc });
+      setFosterCourses({ items: coursesPage.items, cursor: coursesPage.lastDoc });
       setNadstandardInput(String(familyData.respitNadstandard ?? 0));
       setSocialForm(familyData.socialSpace ?? emptySocialSpace);
     } catch (err) {
@@ -74,8 +74,8 @@ export default function useFosterFamilyDetail(familyId) {
 
   useEffect(() => { load(); }, [load]);
 
-  const vykazano = useMemo(() => respitVykazano(respitEvents), [respitEvents]);
-  const realny = useMemo(() => respitRealny(respitEvents, children.length), [respitEvents, children.length]);
+  const vykazano = useMemo(() => respitVykazano(respitEvents.items), [respitEvents.items]);
+  const realny = useMemo(() => respitRealny(respitEvents.items, children.length), [respitEvents.items, children.length]);
   const limit = respitLimitFor(family?.respitNadstandard ?? 0);
   const eligible = family ? odmenaEligible(family.careType, children.length > 0) : false;
 
@@ -211,8 +211,25 @@ export default function useFosterFamilyDetail(familyId) {
     setSocialDialogOpen(true);
   }
 
+  // Stránkování podkolekcí respitEvents/fosterCourses (audit nálezu #7) —
+  // `cursor` = poslední načtený dokument, `null` = žádná další stránka.
+  async function loadMoreRespit() {
+    if (!respitEvents.cursor) return;
+    const page = await listRespitEvents(familyId, respitEvents.cursor);
+    setRespitEvents((prev) => ({ items: [...prev.items, ...page.items], cursor: page.lastDoc }));
+  }
+
+  async function loadMoreCourses() {
+    if (!fosterCourses.cursor) return;
+    const page = await listFosterCourses(familyId, fosterCourses.cursor);
+    setFosterCourses((prev) => ({ items: [...prev.items, ...page.items], cursor: page.lastDoc }));
+  }
+
   return {
-    loading, error, family, children, respitEvents, fosterCourses, tab, setTab,
+    loading, error, family, children,
+    respitEvents: respitEvents.items, respitHasMore: !!respitEvents.cursor, loadMoreRespit,
+    fosterCourses: fosterCourses.items, fosterCoursesHasMore: !!fosterCourses.cursor, loadMoreCourses,
+    tab, setTab,
     fosterDialogOpen, setFosterDialogOpen, fosterForm, setFosterForm,
     childDialogOpen, setChildDialogOpen, childForm, setChildForm,
     courseDialogFor, setCourseDialogFor, courseForm, setCourseForm,

@@ -25,9 +25,10 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import Badge from '../../components/ui/Badge.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { careLabel } from '../../shared/domainConstants.js';
-import { getChild, listChildHistory, listPermanentNotes, listPreviousFosters, listCourtVerdicts } from '../../services/orgService.js';
+import { getChild } from '../../services/orgService.js';
 
 import { useChildDetailForms } from './useChildDetailForms.js';
+import { useChildDetailLists } from './useChildDetailLists.js';
 import ChildDetailTabs from './ChildDetailTabs.jsx';
 
 const TABS = [
@@ -47,33 +48,23 @@ export default function ChildDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [child, setChild] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [notes, setNotes] = useState([]);
-  const [previousFosters, setPreviousFosters] = useState([]);
-  const [courtVerdicts, setCourtVerdicts] = useState([]);
   const [tab, setTab] = useState('identita');
+  const { lists, loadAll: loadLists, loadMore } = useChildDetailLists(childId);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, hist, permanentNotes, prevFosters, verdicts] = await Promise.all([
-        getChild(childId), listChildHistory(childId), listPermanentNotes(childId),
-        listPreviousFosters(childId), listCourtVerdicts(childId),
-      ]);
+      const [data] = await Promise.all([getChild(childId), loadLists()]);
       if (!data) throw new Error('Dítě nenalezeno.');
       setChild(data);
-      setHistory(hist);
-      setNotes(permanentNotes);
-      setPreviousFosters(prevFosters);
-      setCourtVerdicts(verdicts);
     } catch (err) {
       console.error('[ChildDetailPage] Načtení selhalo:', err);
       setError(err.message ?? 'Data se nepodařilo načíst.');
     } finally {
       setLoading(false);
     }
-  }, [childId]);
+  }, [childId, loadLists]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -124,15 +115,7 @@ export default function ChildDetailPage() {
             ))}
           </div>
 
-          <ChildDetailTabs
-            tab={tab}
-            child={child}
-            history={history}
-            notes={notes}
-            previousFosters={previousFosters}
-            courtVerdicts={courtVerdicts}
-            forms={forms}
-          />
+          <ChildDetailTabs tab={tab} child={child} lists={lists} onLoadMore={loadMore} forms={forms} />
         </>
       )}
     </div>
