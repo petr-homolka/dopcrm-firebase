@@ -11,9 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 import { registerOrganization } from '../../services/registrationService.js';
+import { isSlugAvailable } from '../../services/orgService.js';
 import { dashboardPathForRole } from '../../services/orgAuth.js';
+import { slugify } from '../../shared/slugUtils.js';
 import Button from '../../components/ui/Button.jsx';
 import Card from '../../components/ui/Card.jsx';
+import SlugField from '../../components/ui/SlugField.jsx';
 
 const inputClass =
   'w-full rounded-xl bg-stone-100 px-4 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
@@ -31,7 +34,7 @@ function mapFirebaseError(code) {
 }
 
 const emptyForm = {
-  orgName: '', ico: '', dataBoxId: '',
+  orgName: '', slug: '', ico: '', dataBoxId: '',
   sidloStreet: '', sidloCity: '', sidloZip: '',
   sameAsSidlo: true,
   provStreet: '', provCity: '', provZip: '',
@@ -51,11 +54,23 @@ function Field({ label, colSpan, ...props }) {
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(emptyForm);
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [slugStatus, setSlugStatus] = useState('idle');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   function updateForm(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  }
+
+  function updateOrgName(e) {
+    const orgName = e.target.value;
+    setForm((f) => ({ ...f, orgName, slug: slugTouched ? f.slug : slugify(orgName) }));
+  }
+
+  function updateSlug(slug) {
+    setSlugTouched(true);
+    setForm((f) => ({ ...f, slug }));
   }
 
   async function handleSubmit(e) {
@@ -66,12 +81,17 @@ export default function RegisterPage() {
       setError('Vyplňte prosím povinná pole. Heslo musí mít alespoň 6 znaků.');
       return;
     }
+    if (slugStatus !== 'ok') {
+      setError('Zvolte prosím platnou a volnou adresu URL organizace.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const { role } = await (async () => {
         await registerOrganization({
           orgName: form.orgName.trim(),
+          slug: form.slug,
           ico: form.ico.trim(),
           dataBoxId: form.dataBoxId.trim(),
           sidlo: { street: form.sidloStreet.trim(), city: form.sidloCity.trim(), zip: form.sidloZip.trim() },
@@ -113,7 +133,14 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <p className={sectionLabelClass}>Organizace</p>
-            <Field label="Název organizace" value={form.orgName} onChange={updateForm('orgName')} required disabled={submitting} autoFocus />
+            <Field label="Název organizace" value={form.orgName} onChange={updateOrgName} required disabled={submitting} autoFocus />
+            <SlugField
+              value={form.slug}
+              onChange={updateSlug}
+              onStatusChange={setSlugStatus}
+              checkAvailable={isSlugAvailable}
+              disabled={submitting}
+            />
             <div className="grid grid-cols-2 gap-3">
               <Field label="IČO" value={form.ico} onChange={updateForm('ico')} disabled={submitting} />
               <Field label="Datová schránka" value={form.dataBoxId} onChange={updateForm('dataBoxId')} disabled={submitting} />
@@ -166,7 +193,7 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-stone-400">Alespoň 6 znaků.</p>
             </div>
 
-            <Button type="submit" size="lg" disabled={submitting} className="mt-1 w-full">
+            <Button type="submit" size="lg" disabled={submitting || slugStatus !== 'ok'} className="mt-1 w-full">
               {submitting && <Loader2 size={18} className="animate-spin" />}
               {submitting ? 'Zakládám organizaci…' : 'Založit organizaci a pokračovat'}
             </Button>

@@ -127,6 +127,25 @@ service cloud.firestore {
       }
     }
 
+    // ── org_slugs (rezervace unikátní adresy organizace) ─────────
+    // Krok 1 (2026-07-03): top-level kolekce, doc ID == slug samotný. Slouží jen
+    // jako "zámek" pro unikátnost — Firestore vyhodnotí zápis na EXISTUJÍCÍ doc
+    // jako `update` (ne `create`), takže `allow update: if false` fakticky brání
+    // komukoli slug "ukrást", i bez transakce na klientovi. Čtení je veřejné,
+    // protože slug se má stát veřejnou URL (`doprovazeni.com/{slug}`, viz
+    // INVENTAR.md "Veřejný profil organizace") a dostupnost se ověřuje ještě
+    // před přihlášením/registrací.
+    match /org_slugs/{slug} {
+      allow read: if true;
+      allow create: if slug.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+                       && request.resource.data.organizationId is string
+                       && (isSuperadmin()
+                           || (isOrgAdmin() && myOrgId() == request.resource.data.organizationId));
+      allow update: if false;
+      allow delete: if isSuperadmin()
+                       || (isOrgAdmin() && myOrgId() == resource.data.organizationId);
+    }
+
     // ── users (zaměstnanci) ───────────────────────────────────
     // Role (hierarchie 2026-07-02, viz zadání): org_admin (zástupce/ředitel) →
     // vedouci_pobocky → teamleader → klicova_osoba → asistent_ko; + zamestnanec

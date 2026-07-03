@@ -19,10 +19,12 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, addDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
+import { reserveOrgSlug } from './org/organizations.js';
 
 /**
  * @param {object} input
  * @param {string} input.orgName
+ * @param {string} input.slug — unikátní adresa organizace (Krok 1, ověřená v UI přes isSlugAvailable)
  * @param {string} [input.ico]
  * @param {string} [input.dataBoxId] — ID datové schránky
  * @param {{street:string,city:string,zip:string}} input.sidlo — adresa sídla
@@ -32,7 +34,7 @@ import { auth, db } from './firebase.js';
  * @param {string} input.password
  * @returns {Promise<{uid:string, organizationId:string}>}
  */
-export async function registerOrganization({ orgName, ico = '', dataBoxId = '', sidlo, provozovna = null, zastupce, email, password }) {
+export async function registerOrganization({ orgName, slug, ico = '', dataBoxId = '', sidlo, provozovna = null, zastupce, email, password }) {
   // 1) Založí Auth účet zástupce NA PRIMÁRNÍ instanci — je to on sám, kdo se
   //    tímhle zapisuje do appky, žádná "cizí" session se nechrání.
   const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -42,6 +44,7 @@ export async function registerOrganization({ orgName, ico = '', dataBoxId = '', 
   //    self-registraci povolují jen "založ si organizaci sám sobě").
   const orgRef = await addDoc(collection(db, 'organizations'), {
     name: orgName,
+    slug,
     ico,
     dataBoxId,
     sidloAddress: sidlo,
@@ -76,6 +79,18 @@ export async function registerOrganization({ orgName, ico = '', dataBoxId = '', 
     createdBy: uid,
     updatedBy: uid,
   });
+
+  // 4) Rezervace slugu AŽ TEĎ — firestore.rules pro org_slugs vyžadují
+  //    isOrgAdmin() && myOrgId()==orgId, což platí až po zápisu users/{uid}
+  //    výše. Selhání (extrémně vzácný race na stejný slug ve stejné
+  //    milisekundě) NEBLOKUJE registraci — org_admin si slug může kdykoli
+  //    opravit v Nastavení (changeOrganizationSlug), účet i organizace už
+  //    existují a fungují i bez rezervace.
+  try {
+    await reserveOrgSlug(orgRef.id, slug, uid);
+  } catch (err) {
+    console.warn('[registrationService] rezervace slugu selhala, organizace založena i tak:', err);
+  }
 
   return { uid, organizationId: orgRef.id };
 }

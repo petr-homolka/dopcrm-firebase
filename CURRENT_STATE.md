@@ -1,5 +1,57 @@
 # CURRENT_STATE
-**Verze:** 1.5.0 (Fáze 2+3 — Pěstoun/Dítě hloubkově obohaceni, opraven kritický routing/rules bug, 2026-07-02)
+**Verze:** 1.6.0 (Krok 0+1 — Inventář rozšířen, slug organizace, 2026-07-03)
+
+## 2026-07-03 — Krok 1: Slug organizace
+
+**Zadání:** unikátní adresa organizace (`{slug}`), zatím jen ukládat/zobrazovat — veřejná
+stránka (`doprovazeni.com/{slug}`) přijde později (viz INVENTAR.md "Veřejný profil organizace").
+
+- `src/shared/slugUtils.js` (nové) — `sanitizeSlugInput`/`slugify`/`validateSlugFormat`,
+  `RESERVED_SLUGS` (admin/api/www/app/registrace/login/superadmin/…). Diakritika se odstraňuje
+  přes `normalize('NFD')` + odstranění kombinujících znaků v rozsahu Unicode U+0300 až U+036F
+  (poučení: regex na tenhle rozsah psát jako `new RegExp('[\\u0300-\\u036f]', 'g')`, NIKDY
+  vepsat doslovné kombinující znaky přímo do regex literálu — vizuálně nerozeznatelné od
+  správného zápisu, ale jiný byte obsah, matoucí k údržbě).
+- `src/components/ui/SlugField.jsx` (nové, sdílené) — debounced (400 ms) kontrola dostupnosti,
+  vizuální stavy idle/checking/ok/taken/invalid, `onStatusChange` callback pro gating submit
+  tlačítka v rodiči.
+- **Uniqueness bez transakce na klientovi:** `org_slugs/{slug}` (doc ID == slug) — Firestore
+  vyhodnotí zápis na JIŽ EXISTUJÍCÍ doc jako `update`, ne `create`; `allow update: if false`
+  proto fakticky brání komukoli slug "ukrást", i při souběžném zápisu dvou uživatelů ve stejný
+  okamžik (Firestore serializuje zápisy na stejný dokument). `src/services/org/organizations.js`
+  — `isSlugAvailable`, `reserveOrgSlug(orgId, slug, uid)` (první rezervace, explicitní `uid`
+  kvůli stejnému race jako u `registrationService.js` — store ještě nemusí mít session),
+  `changeOrganizationSlug(orgId, newSlug)` (transakce: ověří volnost nového, zapíše, přepne
+  `organizations.slug`, uvolní starý — vzor `reassignFoster`).
+- `registrationService.js` — slug se ukládá na `organizations` rovnou při založení; rezervace
+  (`reserveOrgSlug`) běží AŽ PO zápisu `users/{uid}` (ne dřív), protože `org_slugs` create rule
+  vyžaduje `isOrgAdmin() && myOrgId()==orgId`, což platí až jakmile vlastní zaměstnanecký profil
+  existuje — vyhnuli jsme se tak závislosti na `get()` nad ještě neexistujícím uživatelem.
+  Selhání rezervace (vzácný race) NEBLOKUJE registraci — org_admin si slug opraví v Nastavení.
+- `RegisterPage.jsx` — pole "Adresa URL organizace" s auto-návrhem ze jména organizace (dokud
+  uživatel slug ručně needitoval), submit uzamčen dokud `slugStatus !== 'ok'`.
+- `SettingsPage.jsx` — PRVNÍ reálný obsah (dřív 8řádkový stub s inline styly): editace slugu
+  pro `org_admin`, ostatní role vidí `EmptyState` "může upravovat jen administrátor organizace".
+- `firestore.rules` — nová top-level kolekce `org_slugs` (čtení veřejné — slug se má stát
+  veřejnou URL), `scripts/dev-seed.mjs` — `DEMO_ORGS[].slug` + rezervace při seedu,
+  `wipeAllData` nově maže i `org_slugs` (jinak by druhý `npm run seed` narazil na "already
+  taken" ze starého běhu).
+- Nasazeno na **dev** (`firebase deploy --only firestore:rules`, `npm run seed` 2× pro ověření
+  idempotence — druhý běh správně smazal a znovu založil 2 rezervace).
+
+**Ověřeno živě v Preview:** auto-návrh slugu z názvu s diakritikou (`Testovací Organizace Ř` →
+`testovaci-organizace-r`), kolize s obsazeným (`demo-organizace-sever` → "obsazená"), rezervované
+slovo (`admin` → odmítnuto), celá registrace end-to-end (org+user+rezervace založeny, dashboard
+funkční), změna slugu v Nastavení (nový rezervován, starý se ihned uvolnil — ověřeno opětovným
+zadáním starého slugu, ukázal "volná"). Testovací organizace po ověření smazána (`npm run seed`).
+
+## 2026-07-03 — Krok 0: Inventář rozšířen o 7 položek
+
+Do `docs/INVENTAR.md` doplněno (všechny ⬜, specifikace budou dodány později): break-glass režim
+podpory pro superadmina, editovatelné systémové texty (`system_texts`), časově platné sazebníky
+(`tariffs`), evidence výplaty dávek MPSV, branding organizace (rozšířen existující řádek),
+veřejný profil organizace, lokalizace legislativy jako zásada (+ krátká poznámka
+`docs/domain/lokalizace-legislativy.md`).
 
 ## 2026-07-02 — Velký úklid repozitáře (podle UKLID-PROMPT.md)
 

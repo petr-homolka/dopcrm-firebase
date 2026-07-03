@@ -15,6 +15,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 |---|---|---|---|
 | B2B multi-tenant schéma | `organizations → users → foster_families → children` | `docs/history.md` | ✅ |
 | Self-service registrace organizace | Veřejná `/registrace`, žádné zakládání superadminem | `docs/history.md` (Fáze 1) | ✅ |
+| Slug organizace | Unikátní adresa (`org_slugs` rezervace), validace formátu/rezervovaných slov, editovatelná v registraci i Nastavení; zatím jen ukládá/zobrazuje, veřejná stránka přijde později | `docs/history.md` (Krok 1, 2026-07-03) | ✅ |
 | Veřejný profil organizace | `doprovazeni.com/{slug}`; čte VÝHRADNĚ oddělenou kolekci `public_profiles` a Storage cestu `public/{orgId}/`; publikace dokumentu = vědomé kopírování org_adminem; správa slugů | zadání 2026-07-03 (Krok 0), čeká na `docs/domain/` | ⬜ |
 | Hierarchie zaměstnanců | `org_admin → vedouci_pobocky → teamleader → klicova_osoba → asistent_ko`, `nadrizeny` | `docs/history.md` (Fáze 1) | ✅ |
 | Limit 25 rodin / klíčová osoba | `assertFamilyCapacity` | `docs/history.md` (Fáze 1) | ✅ |

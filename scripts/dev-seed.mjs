@@ -73,6 +73,7 @@ function genFosterId() {
 const DEMO_ORGS = [
   {
     name: 'Demo organizace Sever',
+    slug: 'demo-organizace-sever',
     ico: '27604977',
     address: 'Kopeckého 15, Brno',
     contactEmail: 'info@sever.doprovazeni.dev',
@@ -132,6 +133,7 @@ const DEMO_ORGS = [
   },
   {
     name: 'Demo organizace Jih',
+    slug: 'demo-organizace-jih',
     ico: '02345678',
     address: 'Riegrova 4, České Budějovice',
     contactEmail: 'info@jih.doprovazeni.dev',
@@ -215,13 +217,14 @@ async function deleteAllInCollection(db, collectionName, { exceptIds = [] } = {}
 
 async function wipeAllData(db, myUid) {
   console.log('Mažu stará data…');
-  const [organizations, users, fosterFamilies, children] = await Promise.all([
+  const [organizations, orgSlugs, users, fosterFamilies, children] = await Promise.all([
     deleteAllInCollection(db, 'organizations'),
+    deleteAllInCollection(db, 'org_slugs'),
     deleteAllInCollection(db, 'users', { exceptIds: [myUid] }),
     deleteAllInCollection(db, 'foster_families'),
     deleteAllInCollection(db, 'children'),
   ]);
-  console.log(`  Smazáno: ${organizations} organizací, ${users} uživatelů, ${fosterFamilies} rodin, ${children} dětí.`);
+  console.log(`  Smazáno: ${organizations} organizací, ${orgSlugs} rezervací slugů, ${users} uživatelů, ${fosterFamilies} rodin, ${children} dětí.`);
 }
 
 /** Založí zaměstnance, nebo (pokud email už existuje z minulého seedu) se do něj jen přihlásí a přepíše profil. */
@@ -267,6 +270,7 @@ async function seedDemoData(db, app, myUid) {
   for (const orgDef of DEMO_ORGS) {
     const orgRef = await addDoc(collection(db, 'organizations'), {
       name: orgDef.name,
+      slug: orgDef.slug,
       ico: orgDef.ico,
       address: orgDef.address,
       contactEmail: orgDef.contactEmail,
@@ -277,6 +281,14 @@ async function seedDemoData(db, app, myUid) {
       updatedAt: serverTimestamp(),
       createdBy: myUid,
       updatedBy: myUid,
+    });
+
+    // Rezervace slugu (Krok 1, 2026-07-03) — myUid je superadmin, takže
+    // firestore.rules `org_slugs` create povolí přímo (isSuperadmin()).
+    await setDoc(doc(db, 'org_slugs', orgDef.slug), {
+      organizationId: orgRef.id,
+      createdAt: serverTimestamp(),
+      createdBy: myUid,
     });
 
     await createOrGetDemoEmployee(db, app, myUid, {
