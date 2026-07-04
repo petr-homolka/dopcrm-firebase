@@ -1,10 +1,11 @@
 /**
- * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a, DESIGN.md §6.4):
- * koordinátorky jako řádky, dny jako sloupce, bloky návštěv barevné podle
- * typu (§2.4). Čistě prezentační — data a navigace týdnem v
- * useCalendarWeek.js. Zatím BEZ capacity barů/sticky footeru (Krok 4b),
- * drag&drop a publish workflow (Krok 4c) a šablon/otevřených návštěv
- * (Krok 4d) — viz docs/INVENTAR.md.
+ * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a/4b, DESIGN.md
+ * §6.4): koordinátorky jako řádky, dny jako sloupce, bloky návštěv barevné
+ * podle typu (§2.4), poslední sloupec = týdenní součet. Patičkové řádky
+ * Návštěvy/Rodiny (Krok 4b) — bez řádku Hodiny a bez capacity barů pod day
+ * headery, viz komentář v useCalendarWeek.js. Čistě prezentační — data a
+ * navigace týdnem v useCalendarWeek.js. Drag&drop a publish workflow
+ * (Krok 4c) a šablon/otevřených návštěv (Krok 4d) — viz docs/INVENTAR.md.
  */
 
 import React from 'react';
@@ -45,7 +46,19 @@ function DayCell({ events, onOpen, allDayLabel }) {
   );
 }
 
-export default function CalendarWeekGrid({ employees, days, rows, unassignedCount }) {
+function TotalCell({ value, strong }) {
+  return (
+    <div className={cn('flex items-center justify-center border-l border-border-subtle p-2 text-sm', strong ? 'font-semibold text-ink-800' : 'text-ink-500')}>
+      {value}
+    </div>
+  );
+}
+
+function weekVisitCount(dayEvents) {
+  return dayEvents.flat().filter((ev) => ev.type === 'visit').length;
+}
+
+export default function CalendarWeekGrid({ employees, days, rows, unassignedCount, dayTotals, weekTotals }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const allDayLabel = t('calendar.week.allDay');
@@ -69,7 +82,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
   return (
     <div className="overflow-x-auto rounded-2xl border border-border-subtle bg-white">
       <div className="min-w-[860px]">
-        <div className="grid grid-cols-[160px_repeat(7,1fr)]">
+        <div className="grid grid-cols-[160px_repeat(7,1fr)_88px]">
           <div className="border-b border-border-subtle p-2" />
           {days.map((day) => (
             <div
@@ -82,6 +95,9 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
               {formatDayHeader(day)}
             </div>
           ))}
+          <div className="border-b border-l border-border-subtle p-2 text-center text-xs font-semibold uppercase tracking-wide text-ink-500">
+            {t('calendar.week.total')}
+          </div>
 
           {employees.map((ko) => (
             <React.Fragment key={ko.id}>
@@ -94,6 +110,9 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
                   <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} />
                 </div>
               ))}
+              <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">
+                {weekVisitCount(rows.get(ko.id))}
+              </div>
             </React.Fragment>
           ))}
 
@@ -107,8 +126,31 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
                   <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} />
                 </div>
               ))}
+              <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">
+                {weekVisitCount(rows.get(UNASSIGNED_ROW))}
+              </div>
             </React.Fragment>
           )}
+
+          <div className="flex items-center border-b border-border-subtle bg-surface-muted p-2 text-sm font-semibold text-ink-700">
+            {t('calendar.week.visitsRow')}
+          </div>
+          {dayTotals.map((d, i) => (
+            <div key={i} className="flex items-center justify-center border-b border-l border-border-subtle bg-surface-muted p-2 text-sm font-semibold text-ink-800">
+              {d.visitCount}
+            </div>
+          ))}
+          <TotalCell value={weekTotals.visitCount} strong />
+
+          <div className="flex items-center border-border-subtle bg-surface-muted p-2 text-sm font-semibold text-ink-700">
+            {t('calendar.week.familiesRow')}
+          </div>
+          {dayTotals.map((d, i) => (
+            <div key={i} className="flex items-center justify-center border-l border-border-subtle bg-surface-muted p-2 text-sm font-semibold text-ink-800">
+              {d.familyCount}
+            </div>
+          ))}
+          <TotalCell value={weekTotals.familyCount} strong />
         </div>
       </div>
     </div>

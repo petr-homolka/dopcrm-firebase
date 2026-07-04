@@ -175,7 +175,10 @@
       "allDay": "Celý den",
       "unassigned": "Bez přiřazení",
       "emptyKoTitle": "Žádné klíčové osoby",
-      "emptyKoDescription": "Týdenní mřížka zobrazuje návštěvy podle koordinátorek (role klíčová osoba) — organizace zatím žádnou nemá."
+      "emptyKoDescription": "Týdenní mřížka zobrazuje návštěvy podle koordinátorek (role klíčová osoba) — organizace zatím žádnou nemá.",
+      "total": "Týden",
+      "visitsRow": "Návštěvy",
+      "familiesRow": "Rodiny"
     }
   },
   "family": {

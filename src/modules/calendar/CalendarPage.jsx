@@ -224,6 +224,8 @@ export default function CalendarPage() {
               days={week.days}
               rows={week.rows}
               unassignedCount={week.unassignedCount}
+              dayTotals={week.dayTotals}
+              weekTotals={week.weekTotals}
             />
           )}
         </>

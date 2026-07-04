@@ -1,9 +1,15 @@
 /**
- * useCalendarWeek.js — data pro CalendarWeekGrid.jsx (Krok 4a redesignu,
+ * useCalendarWeek.js — data pro CalendarWeekGrid.jsx (Krok 4a/4b redesignu,
  * DESIGN.md §6.4): koordinátorky (role klicova_osoba) jako řádky, události
  * týdne seskupené po dnech. `listEventsInRange` je celoorganizační dotaz
  * (žádný N+1 per koordinátorka), `listKlicoveOsobyByOrg` jeden dotaz na
  * zaměstnance — stejný vzor jako FosterFamilyTimelineTab.jsx.
+ *
+ * Krok 4b (sticky footer) počítá jen `Návštěvy`/`Rodiny` — DESIGN.md §6.4
+ * má ve footeru i řádek `Hodiny` a capacity bary „2/3" pod day headery, ale
+ * ty vyžadují data, která model nemá (žádná délka trvání události — jen
+ * `start` — ani nastavená denní kapacita koordinátorky). VĚDOMĚ
+ * NEIMPLEMENTOVÁNO, viz docs/INVENTAR.md.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -78,8 +84,28 @@ export default function useCalendarWeek(enabled = true) {
 
   const unassignedCount = rows.get(UNASSIGNED_ROW).flat().length;
 
+  // Sticky footer (Krok 4b) — jen z reálně dostupných dat: počet návštěv a
+  // počet UNIKÁTNÍCH rodin za den; týdenní součet rodin je sjednocení napříč
+  // dny (rodina navštívená víckrát za týden se nepočítá dvakrát).
+  const dayTotals = days.map((day, i) => {
+    const visits = events.filter((ev) => {
+      if (ev.type !== 'visit') return false;
+      const start = typeof ev.start?.toDate === 'function' ? ev.start.toDate() : new Date(ev.start);
+      return Math.floor((startOfDay(start) - weekStart) / 86400000) === i;
+    });
+    const familyIds = new Set(visits.map((ev) => ev.fosterFamilyId).filter(Boolean));
+    return { visitCount: visits.length, familyCount: familyIds.size };
+  });
+  const weekFamilyIds = new Set(
+    events.filter((ev) => ev.type === 'visit' && ev.fosterFamilyId).map((ev) => ev.fosterFamilyId)
+  );
+  const weekTotals = {
+    visitCount: dayTotals.reduce((sum, d) => sum + d.visitCount, 0),
+    familyCount: weekFamilyIds.size,
+  };
+
   return {
-    loading, error, employees, days, weekStart, rows, unassignedCount,
+    loading, error, employees, days, weekStart, rows, unassignedCount, dayTotals, weekTotals,
     goPrevWeek: () => setWeekStart((w) => addDays(w, -7)),
     goNextWeek: () => setWeekStart((w) => addDays(w, 7)),
     goToday: () => setWeekStart(startOfWeek(new Date())),
