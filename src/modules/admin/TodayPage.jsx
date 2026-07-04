@@ -1,8 +1,9 @@
 /**
- * TodayPage.jsx — obrazovka Dnes (Krok 3a redesignu, DESIGN.md §6.1).
- * Domovská stránka klíčové osoby: agenda dne, ne dashboard s grafy/KPI
- * dlaždicemi (DESIGN.md §8 bod — žádné KPI/grafy tady). Vykreslování; data
- * v useTodayPage.js.
+ * TodayPage.jsx — obrazovka Dnes (Krok 3a redesignu, DESIGN.md §6.1;
+ * mobilní hlavička a quick actions dle §11.2, reálné Connecteam screenshoty
+ * 2026-07-04). Domovská stránka klíčové osoby: agenda dne, ne dashboard
+ * s grafy/KPI dlaždicemi (DESIGN.md §8 bod — žádné KPI/grafy tady).
+ * Vykreslování; data v useTodayPage.js.
  *
  * Dvě záměrné odchylky od DESIGN.md popisu, obě zdůvodněné projektovým
  * pravidlem "žádná emoji v UI" (CLAUDE.md, `crm-zadne-emoji-nikde`), které
@@ -10,24 +11,33 @@
  * nahrazeny lucide-react ikonami. Vokativ jména ("Jano" z "Jana") záměrně
  * NEřešíme — automatická česká deklinace bez slovníku je nespolehlivá.
  *
+ * Na mobilu (<lg) jsou quick actions 2×2 mřížka velkých pill dlaždic
+ * (§11.2) místo řádku malých obrysových tlačítek na desktopu — barevně
+ * odlišena JEDINÁ skutečně funkční akce (Naplánovat návštěvu, brand modrá)
+ * od tří `toast.info` stubů (neutrální `surface-muted`), aby dlaždice
+ * nepředstíraly funkčnost, která neexistuje.
+ *
  * Pravý sloupec BEZ QR promo (zadání Kroku 3a — mobilní appka není v
  * obchodech) a bez "Novinky" (Interní chat je zatím jen roadmapa, žádná
- * data k zobrazení).
+ * data k zobrazení). Zvonek s notifikacemi (§11.2) VĚDOMĚ vynechán — appka
+ * nemá žádná reálná oznámení k zobrazení (viz AdminTopbar's bell na
+ * desktopu, taky jen stub "Zatím žádná oznámení").
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, UserPlus, CalendarPlus, Megaphone, FileText, ClipboardCheck } from 'lucide-react';
+import { Loader2, ClipboardCheck } from 'lucide-react';
 
+import Avatar from '../../components/ui/Avatar.jsx';
 import Card from '../../components/ui/Card.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { eventTypeLabel } from '../../shared/domainConstants.js';
-import { toast } from '../../store/toastStore.js';
 import useTodayPage, { CRISIS_THRESHOLD_DAYS, toDate } from './useTodayPage.js';
 import TodayRightRail from './TodayRightRail.jsx';
+import TodayQuickActions from './TodayQuickActions.jsx';
 
 const EVENT_BORDER = {
   visit: 'border-module-families',
@@ -77,19 +87,6 @@ function EventCard({ event, familyName, onOpenFamily, quiet = false }) {
   );
 }
 
-function QuickActionButton({ icon: Icon, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-brand-200 px-4 text-sm font-semibold text-brand-700 transition hover:bg-brand-50"
-    >
-      <Icon size={16} strokeWidth={1.75} />
-      {label}
-    </button>
-  );
-}
-
 const UPCOMING_LABEL_KEYS = ['today.upcoming.tomorrow', 'today.upcoming.dayAfterTomorrow'];
 
 export default function TodayPage() {
@@ -129,35 +126,17 @@ export default function TodayPage() {
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:gap-8">
       <div className="min-w-0 flex-1 space-y-6">
-        <div>
-          <h1 className="text-[28px] font-bold leading-tight text-ink-900">
-            {t('today.greetingLine', { greeting, name: firstName })}
-          </h1>
-          <p className="mt-1 text-sm text-ink-500">{dateLabel}</p>
+        <div className="flex items-center gap-3">
+          <Avatar name={profile?.displayName ?? profile?.email} size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-[28px] font-bold leading-tight text-ink-900">
+              {t('today.greetingLine', { greeting, name: firstName })}
+            </h1>
+            <p className="mt-1 text-sm text-ink-500">{dateLabel}</p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <QuickActionButton
-            icon={UserPlus}
-            label={t('today.quickActions.addFamily')}
-            onClick={() => toast.info(t('today.quickActions.notAvailable'))}
-          />
-          <QuickActionButton
-            icon={CalendarPlus}
-            label={t('today.quickActions.scheduleVisit')}
-            onClick={() => navigate('/kalendar')}
-          />
-          <QuickActionButton
-            icon={Megaphone}
-            label={t('today.quickActions.sendAnnouncement')}
-            onClick={() => toast.info(t('today.quickActions.announcementsNotAvailable'))}
-          />
-          <QuickActionButton
-            icon={FileText}
-            label={t('today.quickActions.fillReport')}
-            onClick={() => toast.info(t('today.quickActions.reportsNotAvailable'))}
-          />
-        </div>
+        <TodayQuickActions />
 
         <section>
           <h2 className="mb-2.5 text-sm font-semibold text-ink-800">{t('today.toResolve.title')}</h2>
