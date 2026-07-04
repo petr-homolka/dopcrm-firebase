@@ -1,10 +1,14 @@
 /** @type {import('tailwindcss').Config} */
-// Tokeny 1:1 podle DESIGN.md §2-4 ("Přítomnost" design systém).
+// Tokeny podle DESIGN.md §2-4 — redesign "Connecteam" (2026-07-04), nahrazuje
+// starý "Přítomnost"/Amie design systém (archiv docs/DESIGN-amie-archiv.md).
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
+        // ── Legacy Amie tokeny — PONECHÁNY dokud se obrazovky postupně
+        // nepřevedou na novou paletu (Krok 3 redesignu). Bez nich by
+        // nepřevedené obrazovky přišly o barvy dřív, než na ně dojde řada.
         primary: {
           50: '#EDF6F5',
           100: '#D7EAE7',
@@ -12,12 +16,86 @@ export default {
           700: '#14544F',
           900: '#0F3D3A',
         },
+
+        // ── Connecteam redesign (DESIGN.md §2.1) ──────────────────────
+        brand: {
+          50: '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#60A5FA',
+          500: '#2E7CF6',
+          600: '#1E6FF5',
+          700: '#1D4ED8',
+          800: '#1E40AF',
+          900: '#1E3A8A',
+        },
+        accent: {
+          50: '#ECFEFF',
+          100: '#CFFAFE',
+          500: '#0FB3B1',
+          600: '#0891A2',
+          700: '#0E7490',
+        },
+        surface: {
+          canvas: '#F5F7FA',
+          card: '#FFFFFF',
+          sidebar: '#FFFFFF',
+          muted: '#F8FAFC',
+          tint: '#EFF6FF',
+        },
+        border: {
+          subtle: '#EEF1F5',
+          default: '#E5E9F0',
+          strong: '#D9DEE7',
+        },
+        ink: {
+          900: '#0F172A',
+          800: '#1A2B49',
+          700: '#334155',
+          600: '#4A5568',
+          500: '#64748B',
+          400: '#6B7A90',
+          300: '#A0AEC0',
+        },
+        success: { 50: '#DCFCE7', 500: '#22C55E', 600: '#16A34A', 700: '#166534' },
+        warning: { 50: '#FEF3C7', 500: '#F59E0B', 600: '#D97706', 700: '#92400E' },
+        danger: { 50: '#FEE2E2', 500: '#EF4444', 600: '#DC2626', 700: '#991B1B' },
+        info: { 50: '#DBEAFE', 500: '#2E7CF6', 600: '#1E6FF5' },
+
+        // Barvy modulů — dlaždice v sidebaru (DESIGN.md §2.2).
+        module: {
+          today: '#2E7CF6',
+          families: '#3ECF8E',
+          calendar: '#F5A623',
+          timeline: '#7B61FF',
+          documents: '#0FB3B1',
+          allowances: '#F2C94C',
+          team: '#5B6B8C',
+          admin: '#6B7280',
+        },
+
+        // Sémantické barvy entit (DESIGN.md §2.3) — přebarveno z Amie, stejné
+        // sémantické role a API (`Badge` tone="family"|"ospod"|"court"|"bio"|"crisis"),
+        // NESMÍ regresovat rozlišitelnost (§8 bod 5).
         entity: {
-          family: { text: '#15803D', bg: '#F0FDF4' },
+          family: { text: '#047857', bg: '#ECFDF5' },
           ospod: { text: '#1D4ED8', bg: '#EFF6FF' },
-          court: { text: '#44403C', bg: '#F5F5F4' },
-          bio: { text: '#B45309', bg: '#FFFBEB' },
-          crisis: { text: '#C2410C', bg: '#FFF7ED' },
+          court: { text: '#334155', bg: '#F8FAFC' },
+          bio: { text: '#92400E', bg: '#FFFBEB' },
+          crisis: { text: '#991B1B', bg: '#FEE2E2' },
+        },
+
+        // Barvy shift bloků v kalendáři (DESIGN.md §2.4) — sytá plná barva,
+        // bílý text; odlišné od entity tinted pills výše.
+        shift: {
+          visit: '#2E7D5B',
+          ospod: '#1E40AF',
+          court: '#4A5A78',
+          bio: '#B58B2E',
+          crisis: '#B23A3A',
+          methodics: '#6B4EA0',
+          education: '#2A8FA0',
         },
       },
       fontFamily: {
@@ -28,7 +106,7 @@ export default {
         '2xl': '16px',
       },
       boxShadow: {
-        sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        sm: '0 1px 2px 0 rgb(16 24 40 / 0.05), 0 1px 3px 0 rgb(16 24 40 / 0.06)',
         lg: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.08)',
       },
     },

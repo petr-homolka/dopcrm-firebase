@@ -113,7 +113,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
-| Design systém „Connecteam" (světlé plátno, module barvy, sidebar+topbar+right rail) | Nahrazuje „Přítomnost"/Amie styl (archiv `docs/DESIGN-amie-archiv.md`); tokeny, komponenty, layout, obrazovky, kalendář | `DESIGN.md` (redesign 2026-07-04) | 🟡 zavádí se postupně (Krok 0–4) |
+| Design systém „Connecteam" (světlé plátno, module barvy, sidebar+topbar+right rail) | Nahrazuje „Přítomnost"/Amie styl (archiv `docs/DESIGN-amie-archiv.md`); tokeny, komponenty, layout, obrazovky, kalendář | `DESIGN.md` (redesign 2026-07-04) | 🟡 zavádí se postupně — Krok 1 hotový: `tailwind.config.js` (brand/accent/surface/border/ink/sémantika/module/entity/shift tokeny), `src/components/ui/` (Button/Badge/Avatar+double-avatar/Card/Chip/EmptyState/LoadMoreButton přebarveny, nově Input/Tabs/Table/ProgressBar/Toast/Modal/Drawer). Staré `primary`/`stone` tokeny ZÁMĚRNĚ ponechány souběžně, ať nepřevedené obrazovky (Krok 2–4) nepřijdou o styl předčasně. |
 | Karta kontaktu = hub (chat/dokumenty/údaje/vazby/kalendář/vzdělávání) | Centrum všeho dění kolem osoby | `crm-karta-kontaktu-hub` (paměť) | 🟡 (`HubPage.jsx` je zatím stub) |
 | Chat / jednotná časová osa (jádro systému) | Interní vs. s pěstounem, systémové zápisy | `docs/history-claude-md.md` §4 | 🟡 (Osa/timeline u rodiny ✅ implementována, sjednocený „chat" napříč celou appkou ⬜) |
 | Obrazovka Dnes (agenda, domovská pro klicova_osoba) | Pozdrav+datum, dnešní program, „Čeká na vás" (lastVisitAt > 45 dní), nejbližší dny; žádné KPI/grafy | `DESIGN.md` §6.1, `CURRENT_STATE.md` (Krok 3, 2026-07-03) | ✅ route `/`, `TodayPage.jsx` |

@@ -9,11 +9,13 @@
 import React from 'react';
 import AppRouter from './core/router.jsx';
 import ErrorBoundary from './core/ErrorBoundary.jsx';
+import { ToastContainer } from './components/ui/Toast.jsx';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <AppRouter />
+      <ToastContainer />
     </ErrorBoundary>
   );
 }
