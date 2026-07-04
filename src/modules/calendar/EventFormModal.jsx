@@ -1,21 +1,24 @@
 /**
- * EventFormModal.jsx — dialog "Nová událost" pro CalendarPage.jsx, vytažen
- * do vlastního souboru, aby hlavní stránka zůstala pod 300 řádky (CLAUDE.md).
- * Čistě prezentační, veškerou logiku/stav drží rodič.
+ * EventFormModal.jsx — dialog "Nová událost" pro CalendarPage.jsx.
+ * Krok 4a redesignu (DESIGN.md §5.11) — na sdílené `Modal`/`Input`/`Button`
+ * komponenty (Krok 1), stejný vzor jako NewFamilyModal.jsx.
  */
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
+import Input from '../../components/ui/Input.jsx';
+import Modal from '../../components/ui/Modal.jsx';
 import { EVENT_TYPES } from '../../shared/domainConstants.js';
 
-const fieldClass =
-  'w-full rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 ' +
-  'focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
-const labelClass = 'mb-1.5 block text-sm font-medium text-stone-700';
+const fieldBaseClass =
+  'w-full rounded-lg border border-border-strong bg-white text-sm text-ink-800 ' +
+  'focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:opacity-50';
+const selectClass = `h-10 px-3.5 ${fieldBaseClass}`;
+const textareaClass = `px-3.5 py-2.5 ${fieldBaseClass}`;
+const labelClass = 'mb-1 block text-[13px] font-medium text-ink-700';
 
 const emptyForm = {
   title: '', type: 'visit', date: '', time: '09:00', allDay: false,
@@ -31,135 +34,114 @@ export default function EventFormModal({ families, submitting, submitError, onCl
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-      onClick={() => !submitting && onClose()}
+    <Modal
+      title={t('calendar.newEvent')}
+      onClose={() => !submitting && onClose()}
+      footer={(
+        <>
+          <Button variant="secondary" type="button" onClick={onClose} disabled={submitting} form="event-form">
+            {t('calendar.form.cancel')}
+          </Button>
+          <Button type="submit" disabled={submitting} form="event-form">
+            {submitting && <Loader2 size={16} strokeWidth={1.75} className="animate-spin" />}
+            {t('calendar.form.submit')}
+          </Button>
+        </>
+      )}
     >
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{t('calendar.newEvent')}</h2>
-          <button
-            type="button"
-            onClick={() => !submitting && onClose()}
-            aria-label={t('calendar.form.close')}
-            className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+      <form id="event-form" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="flex flex-col gap-3.5">
+        {submitError && (
+          <div className="rounded-xl bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">{submitError}</div>
+        )}
+
+        <Input
+          label={t('calendar.form.name')}
+          value={form.title}
+          onChange={(e) => update('title', e.target.value)}
+          required
+          disabled={submitting}
+          autoFocus
+        />
+
+        <div>
+          <label className={labelClass} htmlFor="event-type">{t('calendar.form.type')}</label>
+          <select
+            id="event-type"
+            className={selectClass}
+            value={form.type}
+            onChange={(e) => update('type', e.target.value)}
+            disabled={submitting}
           >
-            <X size={18} strokeWidth={1.75} />
-          </button>
+            {Object.entries(EVENT_TYPES).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="flex flex-col gap-4">
-          {submitError && (
-            <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{submitError}</div>
-          )}
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            type="date"
+            label={t('calendar.form.date')}
+            value={form.date}
+            onChange={(e) => update('date', e.target.value)}
+            required
+            disabled={submitting}
+          />
+          <Input
+            type="time"
+            label={t('calendar.form.time')}
+            value={form.time}
+            onChange={(e) => update('time', e.target.value)}
+            disabled={submitting || form.allDay}
+          />
+        </div>
 
-          <div>
-            <label className={labelClass}>{t('calendar.form.name')}</label>
-            <input
-              className={fieldClass}
-              value={form.title}
-              onChange={(e) => update('title', e.target.value)}
-              required
-              disabled={submitting}
-              autoFocus
-            />
-          </div>
+        <label className="flex items-center gap-2.5 text-sm text-ink-700">
+          <input
+            type="checkbox"
+            checked={form.allDay}
+            onChange={(e) => update('allDay', e.target.checked)}
+            disabled={submitting}
+            className="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-2 focus:ring-brand-100"
+          />
+          {t('calendar.form.allDay')}
+        </label>
 
-          <div>
-            <label className={labelClass}>{t('calendar.form.type')}</label>
-            <select
-              className={fieldClass}
-              value={form.type}
-              onChange={(e) => update('type', e.target.value)}
-              disabled={submitting}
-            >
-              {Object.entries(EVENT_TYPES).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className={labelClass} htmlFor="event-family">{t('calendar.form.family')}</label>
+          <select
+            id="event-family"
+            className={selectClass}
+            value={form.fosterFamilyId}
+            onChange={(e) => update('fosterFamilyId', e.target.value)}
+            disabled={submitting}
+          >
+            <option value="">{t('calendar.form.noFamily')}</option>
+            {families.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>{t('calendar.form.date')}</label>
-              <input
-                type="date"
-                className={fieldClass}
-                value={form.date}
-                onChange={(e) => update('date', e.target.value)}
-                required
-                disabled={submitting}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>{t('calendar.form.time')}</label>
-              <input
-                type="time"
-                className={fieldClass}
-                value={form.time}
-                onChange={(e) => update('time', e.target.value)}
-                disabled={submitting || form.allDay}
-              />
-            </div>
-          </div>
+        <Input
+          label={t('calendar.form.location')}
+          value={form.location}
+          onChange={(e) => update('location', e.target.value)}
+          disabled={submitting}
+        />
 
-          <label className="flex items-center gap-2.5 text-sm text-stone-700">
-            <input
-              type="checkbox"
-              checked={form.allDay}
-              onChange={(e) => update('allDay', e.target.checked)}
-              disabled={submitting}
-              className="h-4 w-4 rounded border-stone-300 text-primary-600 focus:ring-2 focus:ring-primary-600"
-            />
-            {t('calendar.form.allDay')}
-          </label>
-
-          <div>
-            <label className={labelClass}>{t('calendar.form.family')}</label>
-            <select
-              className={fieldClass}
-              value={form.fosterFamilyId}
-              onChange={(e) => update('fosterFamilyId', e.target.value)}
-              disabled={submitting}
-            >
-              <option value="">{t('calendar.form.noFamily')}</option>
-              {families.map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelClass}>{t('calendar.form.location')}</label>
-            <input
-              className={fieldClass}
-              value={form.location}
-              onChange={(e) => update('location', e.target.value)}
-              disabled={submitting}
-            />
-          </div>
-
-          <div>
-            <label className={labelClass}>{t('calendar.form.note')}</label>
-            <textarea
-              className={fieldClass}
-              rows={2}
-              value={form.note}
-              onChange={(e) => update('note', e.target.value)}
-              disabled={submitting}
-            />
-          </div>
-
-          <div className="mt-1 flex justify-end gap-2.5">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
-              {t('calendar.form.cancel')}
-            </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {t('calendar.form.submit')}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+        <div>
+          <label className={labelClass} htmlFor="event-note">{t('calendar.form.note')}</label>
+          <textarea
+            id="event-note"
+            className={textareaClass}
+            rows={2}
+            value={form.note}
+            onChange={(e) => update('note', e.target.value)}
+            disabled={submitting}
+          />
+        </div>
+      </form>
+    </Modal>
   );
 }

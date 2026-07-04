@@ -163,6 +163,19 @@
       "submit": "Založit",
       "missingFields": "Vyplňte název a datum.",
       "submitError": "Založení se nezdařilo."
+    },
+    "view": {
+      "agenda": "Agenda",
+      "week": "Týden"
+    },
+    "week": {
+      "prev": "Předchozí týden",
+      "next": "Další týden",
+      "today": "Tento týden",
+      "allDay": "Celý den",
+      "unassigned": "Bez přiřazení",
+      "emptyKoTitle": "Žádné klíčové osoby",
+      "emptyKoDescription": "Týdenní mřížka zobrazuje návštěvy podle koordinátorek (role klíčová osoba) — organizace zatím žádnou nemá."
     }
   },
   "family": {

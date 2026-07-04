@@ -1,24 +1,30 @@
 /**
- * CalendarPage.jsx — Kalendář na Sekci B (audit nálezu #5, 2026-07-03).
+ * CalendarPage.jsx — Kalendář na Sekci B (audit nálezu #5, 2026-07-03),
+ * Krok 4a redesignu (DESIGN.md §6.4) přidal týdenní mřížku vedle agendy.
  *
- * Dřív 8řádkový stub bez logiky. Teď agenda pohled (příštích 30 dní,
- * seskupeno po dnech) nad `organizations/{orgId}/events` — viz
- * `src/services/org/events.js` pro schéma a `EventFormModal.jsx` pro
- * formulář nové události. Plný měsíční/týdenní grid je mimo rozsah tohoto
- * kroku (agenda odpovídá měřítku ostatních prototypových obrazovek).
+ * Agenda pohled (příštích 30 dní) zůstává výchozí a nezměněný nad
+ * `organizations/{orgId}/events` — viz `src/services/org/events.js`.
+ * Nový tab „Týden" (`CalendarWeekGrid.jsx` + `useCalendarWeek.js`) přidává
+ * koordinátorky jako řádky a barevné bloky návštěv dle typu. Capacity bary,
+ * sticky footer, publish workflow a šablony jsou další Kroky 4b–4d — viz
+ * docs/INVENTAR.md.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarPlus, Loader2 } from 'lucide-react';
+import { CalendarPlus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
+import Tabs from '../../components/ui/Tabs.jsx';
 import { useAuthStore } from '../../store/authStore.js';
 import { eventTypeLabel } from '../../shared/domainConstants.js';
 import { listEventsInRange, createEvent, listFostersByOrg } from '../../services/orgService.js';
 import EventFormModal from './EventFormModal.jsx';
+import CalendarWeekGrid from './CalendarWeekGrid.jsx';
+import useCalendarWeek from './useCalendarWeek.js';
+import { formatWeekRange } from './calendarShared.js';
 
 const AGENDA_DAYS = 30;
 
@@ -46,6 +52,7 @@ function groupByDay(events) {
 export default function CalendarPage() {
   const { t } = useTranslation();
   const { organizationId } = useAuthStore();
+  const [view, setView] = useState('agenda');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [events, setEvents] = useState([]);
@@ -53,6 +60,7 @@ export default function CalendarPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const week = useCalendarWeek(view === 'week');
 
   const load = useCallback(async () => {
     if (!organizationId) return;
@@ -112,13 +120,17 @@ export default function CalendarPage() {
   }
 
   const days = groupByDay(events);
+  const viewItems = [
+    { value: 'agenda', label: t('calendar.view.agenda') },
+    { value: 'week', label: t('calendar.view.week') },
+  ];
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-stone-800">{t('calendar.title')}</h1>
-          <p className="text-sm text-stone-500">{t('calendar.subtitle', { days: AGENDA_DAYS })}</p>
+          <h1 className="text-[28px] font-bold leading-tight text-ink-900">{t('calendar.title')}</h1>
+          <p className="text-sm text-ink-500">{t('calendar.subtitle', { days: AGENDA_DAYS })}</p>
         </div>
         <Button variant="primary" onClick={() => setDialogOpen(true)}>
           <CalendarPlus size={16} strokeWidth={1.75} />
@@ -126,41 +138,95 @@ export default function CalendarPage() {
         </Button>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-14 text-stone-500">
-          <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
-        </div>
-      )}
+      <div className="mb-5">
+        <Tabs items={viewItems} value={view} onChange={setView} />
+      </div>
 
-      {!loading && error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {view === 'agenda' && (
+        <>
+          {loading && (
+            <div className="flex items-center justify-center gap-2 py-14 text-ink-500">
+              <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
+            </div>
+          )}
 
-      {!loading && !error && days.length === 0 && (
-        <Card className="py-10 text-center text-sm text-stone-500">
-          {t('calendar.empty', { days: AGENDA_DAYS })}
-        </Card>
-      )}
+          {!loading && error && <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>}
 
-      {!loading && !error && (
-        <div className="flex flex-col gap-4">
-          {days.map(({ date, items }) => (
-            <Card key={date.toDateString()}>
-              <h2 className="mb-2 text-sm font-semibold capitalize text-stone-800">{formatDay(date)}</h2>
-              <ul className="flex flex-col divide-y divide-stone-100">
-                {items.map((ev) => (
-                  <li key={ev.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-stone-800">{ev.title}</p>
-                      <p className="text-xs text-stone-500">
-                        {[!ev.allDay && formatTime(ev.start), ev.location].filter(Boolean).join(' · ')}
-                      </p>
-                    </div>
-                    <Badge tone="neutral" className="shrink-0">{eventTypeLabel(ev.type)}</Badge>
-                  </li>
-                ))}
-              </ul>
+          {!loading && !error && days.length === 0 && (
+            <Card className="py-10 text-center text-sm text-ink-500">
+              {t('calendar.empty', { days: AGENDA_DAYS })}
             </Card>
-          ))}
-        </div>
+          )}
+
+          {!loading && !error && (
+            <div className="flex flex-col gap-4">
+              {days.map(({ date, items }) => (
+                <Card key={date.toDateString()}>
+                  <h2 className="mb-2 text-sm font-semibold capitalize text-ink-800">{formatDay(date)}</h2>
+                  <ul className="flex flex-col divide-y divide-border-subtle">
+                    {items.map((ev) => (
+                      <li key={ev.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-ink-800">{ev.title}</p>
+                          <p className="text-xs text-ink-500">
+                            {[!ev.allDay && formatTime(ev.start), ev.location].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                        <Badge tone="neutral" className="shrink-0">{eventTypeLabel(ev.type)}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {view === 'week' && (
+        <>
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={week.goPrevWeek}
+              aria-label={t('calendar.week.prev')}
+              className="rounded-lg p-1.5 text-ink-500 hover:bg-surface-muted"
+            >
+              <ChevronLeft size={18} strokeWidth={1.75} />
+            </button>
+            <p className="w-40 text-center text-sm font-medium text-ink-800">{formatWeekRange(week.weekStart)}</p>
+            <button
+              type="button"
+              onClick={week.goNextWeek}
+              aria-label={t('calendar.week.next')}
+              className="rounded-lg p-1.5 text-ink-500 hover:bg-surface-muted"
+            >
+              <ChevronRight size={18} strokeWidth={1.75} />
+            </button>
+            <Button variant="secondary" size="sm" onClick={week.goToday}>
+              {t('calendar.week.today')}
+            </Button>
+          </div>
+
+          {week.loading && (
+            <div className="flex items-center justify-center gap-2 py-14 text-ink-500">
+              <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
+            </div>
+          )}
+
+          {!week.loading && week.error && (
+            <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{week.error}</div>
+          )}
+
+          {!week.loading && !week.error && (
+            <CalendarWeekGrid
+              employees={week.employees}
+              days={week.days}
+              rows={week.rows}
+              unassignedCount={week.unassignedCount}
+            />
+          )}
+        </>
       )}
 
       {dialogOpen && (

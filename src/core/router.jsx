@@ -180,7 +180,6 @@ const router = createBrowserRouter([
       { path: '/deti',            element: <Suspense fallback={<Loading />}><ChildrenPage /></Suspense> },
       { path: '/deti/:id',        element: <Suspense fallback={<Loading />}><ChildDetailPage /></Suspense> },
       { path: '/kontakty',        element: <Suspense fallback={<Loading />}><ContactsPage /></Suspense> },
-      { path: '/kalendar',        element: <Suspense fallback={<Loading />}><CalendarPage /></Suspense> },
       { path: '/vzdelavani',      element: <Suspense fallback={<Loading />}><FamiliesPage /></Suspense> },
       { path: '/hub/:typ/:id',    element: <Suspense fallback={<Loading />}><HubPage /></Suspense> },
       { path: '/uzivatele',       element: <Suspense fallback={<Loading />}><UsersPage /></Suspense> },
@@ -261,6 +260,19 @@ const router = createBrowserRouter([
       element: <RequireOrgRole allowed={['vedouci_pobocky', 'teamleader']} />,
       children: [
         { path: '/admin/tym', element: <Suspense fallback={<Loading />}><TeamDashboard /></Suspense> },
+      ],
+    }],
+  },
+  {
+    // Kalendář (Krok 4a redesignu, 2026-07-04) — přesunuto ze staré Sekce A
+    // (RequireAuth/Layout výš) pod AdminLayout, protože CalendarPage.jsx už
+    // dřív přešel na Sekci B data (organizations/{orgId}/events) a
+    // AdminSidebar naň odkazuje pro VŠECHNY Sekce B role (viz PATH_FOR_KEY).
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Kalendář" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
+      children: [
+        { path: '/kalendar', element: <Suspense fallback={<Loading />}><CalendarPage /></Suspense> },
       ],
     }],
   },
