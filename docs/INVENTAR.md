@@ -113,12 +113,12 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
-| Design systém „Přítomnost“ (soft/playful, Tailwind) | Barvy, typografie, komponenty | `DESIGN.md` | ⬜ (právě zaváděno, Krok 4 úklidu) |
+| Design systém „Connecteam" (světlé plátno, module barvy, sidebar+topbar+right rail) | Nahrazuje „Přítomnost"/Amie styl (archiv `docs/DESIGN-amie-archiv.md`); tokeny, komponenty, layout, obrazovky, kalendář | `DESIGN.md` (redesign 2026-07-04) | 🟡 zavádí se postupně (Krok 0–4) |
 | Karta kontaktu = hub (chat/dokumenty/údaje/vazby/kalendář/vzdělávání) | Centrum všeho dění kolem osoby | `crm-karta-kontaktu-hub` (paměť) | 🟡 (`HubPage.jsx` je zatím stub) |
 | Chat / jednotná časová osa (jádro systému) | Interní vs. s pěstounem, systémové zápisy | `docs/history-claude-md.md` §4 | 🟡 (Osa/timeline u rodiny ✅ implementována, sjednocený „chat" napříč celou appkou ⬜) |
 | Obrazovka Dnes (agenda, domovská pro klicova_osoba) | Pozdrav+datum, dnešní program, „Čeká na vás" (lastVisitAt > 45 dní), nejbližší dny; žádné KPI/grafy | `DESIGN.md` §6.1, `CURRENT_STATE.md` (Krok 3, 2026-07-03) | ✅ route `/`, `TodayPage.jsx` |
 | Kalendář (měsíc/týden/den/agenda) | Zatím jen agenda pohled (30 dní dopředu), ne plný měsíční/týdenní grid | `docs/history-claude-md.md` §4 | 🟡 (`CalendarPage.jsx` — agenda funkční, 2026-07-03) |
-| Úkoly (kanban/termíny) | — | `docs/history-claude-md.md` §6 | ⬜ |
+| Úkoly (kanban/termíny) | ★★★★☆ dle DESIGN.md §9 (Connecteam „Tasks/Quick Tasks") — přiřazení úkolů KO s podúkoly a přílohami | `docs/history-claude-md.md` §6, `DESIGN.md` §9 | ⬜ |
 | Globální vyhledávání | Napříč pěstouny/dětmi/dokumenty/událostmi | `docs/history-claude-md.md` §5 | ⬜ |
 | Akční upozornění | Návštěva due, vzdělávání low, výroční revize | `docs/history-claude-md.md` §5 | 🟡 (návštěva due řeší obrazovka Dnes „Čeká na vás", 2026-07-03; vzdělávání/výroční revize ⬜) |
 | Reporty pro OSPOD (editovatelné, generované z osy) | — | `docs/history-claude-md.md` §4 | ⬜ |
@@ -344,6 +344,52 @@ Rozhodnutí, zda a v jakém pořadí to udělat, čeká na uživatele.
 podkolekce), `foster_families/{id}/respitEvents` (podkolekce, ne pole) a `reassignFoster`
 (atomická transakce přes rodinu i všechny její děti) přesně odpovídají pravidlům — jsou dobrým
 vzorem pro opravu nálezů výše.
+
+---
+
+## 12. Connecteam feature roadmap (DESIGN.md §9, 2026-07-04)
+
+Přeneseno z redesignu „Connecteam styl" (nahrazuje „Amie" design systém, viz `docs/DESIGN-amie-archiv.md`).
+**Jde čistě o inventář budoucích funkcí, ne o úkoly k okamžité implementaci** — redesign v tomto
+kroku mění jen vzhled (tokeny/komponenty/layout/obrazovky), ne datový model ani funkční rozsah.
+Priorita dle DESIGN.md §9 legendy: ★★★★★ MUST v V1 · ★★★★☆ SHOULD v V1 · ★★★☆☆ MOŽNO v V2 ·
+★★☆☆☆ LATER v3+. Položky ☆☆☆☆☆ NEIMPORTOVAT (Kiosk mode, Help Desk/Ticketing, komerční
+Recognition & Rewards, Celebrations jako social feed, White-label) záměrně nejsou přenesené —
+DESIGN.md je sám vyřazuje jako nerelevantní pro doprovázející organizaci. Multi-language pokrývá
+už sekce 10 (i18n základ). Správa uživatelů, Role a oprávnění a Mobilní aplikace v terénu už mají
+vlastní řádky výše (sekce 1 a 9) — zde jen odkázáno, ne duplikováno.
+
+| Funkce | Popis | Kde popsáno | Stav |
+|---|---|---|---|
+| ★★★★★ Dovolené a nepřítomnost | Žádosti o dovolenou/nemocenskou/sabbatical; zobrazí se v kalendáři a znemožní naplánování návštěvy | `DESIGN.md` §9 | ⬜ |
+| ★★★★★ Reporty a formuláře | Digitální formuláře (report návštěvy, incident, žádost o mimořádnou dávku, hodnocení pěstouna), podpisy, přílohy fotek, PDF export pro OSPOD | `DESIGN.md` §9 — navazuje na „Checklisty terénní sběr" (sekce 4) a CLM (sekce 5) | ⬜ |
+| ★★★★★ Interní chat | Bezpečná komunikace KO↔vedení, kanály per rodina/tým/1:1; musí být šifrovaný, EU hosting | `DESIGN.md` §9 | ⬜ |
+| ★★★★★ Metodická knihovna | Interní wiki — metodiky, zákony (SPO, OSŘ), formuláře OSPOD, vzory dokumentů; offline dostupné na mobilu KO | `DESIGN.md` §9 | ⬜ |
+| ★★★★★ Vzdělávání pěstounů (LMS) | Kurzy s videem/PDF/kvízem, automatické certifikáty, konfety při dokončení ročního minima | `DESIGN.md` §9 — ROZŠIŘUJE stávající evidenci hodin/certifikátů (sekce 2, ✅) o obsahovou platformu | ⬜ |
+| ★★★★★ Dokumenty s expirací | Automatické upomínky 30/14/7 dní před expirací (OP, lékařské potvrzení, rejstřík trestů, rozsudky, souhlas OSPOD) | `DESIGN.md` §9 — navazuje na CLM (sekce 5) | ⬜ |
+| ★★★★★ Reporty a statistiky | Přednastavené reporty pro MPSV (roční výkaz, kvartální statistika), vlastní analytika, export CSV/PDF | `DESIGN.md` §9 — ROZŠIŘUJE M3 Manažerské reporty (sekce 6) a Reporty pro OSPOD (sekce 7) | ⬜ |
+| ★★★★★ Auditní log | GDPR + zákon o soc. službách vyžaduje kompletní audit — kdo/co/kdy změnil na osobních datech dětí | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Šablony návštěv | Přednastavené typy návštěv („Standardní 2 h", „První kontakt 3 h", „Krizová intervence") pro rychlé plánování | `DESIGN.md` §9, §6.4 (kalendář) | ⬜ |
+| ★★★★☆ Dostupnost koordinátorek | Nastavení kdy je KO k dispozici (úvazek, dovolená, homeworking dny) | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Chat s rodinami (opt-in) | Volitelný chat KO↔pěstounská rodina, přísně opt-in, plně auditovatelný | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Adresář kolegů a institucí | Interní adresář KO + externí kontakty (OSPOD, soudy, psychologové, pediatři) | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Vzdělávací akce a porady | Kalendář vzdělávacích akcí pro pěstouny, porad KO, supervizí; RSVP a docházka | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Opakované reporty | Měsíční/kvartální reporty automaticky přiřazené koordinátorkám | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Chytré skupiny | Pravidly definované skupiny rodin (např. „děti <3 roky, kraj Praha") pro cílení oznámení/kurzů/reportů | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Vlastní pole | Rozšíření profilu rodiny/dítěte/dokumentu o organizací specifické atributy | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Onboarding koordinátorek | Strukturovaný nástup nové KO — checklist, přiřazené kurzy, dokumenty k podpisu | `DESIGN.md` §9 | ⬜ |
+| ★★★★☆ Google Calendar / Outlook sync | Synchronizace návštěv do osobního kalendáře koordinátorky | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Docházka / Check-in u rodiny | „Zahájit návštěvu" tlačítko při příchodu, čas začátku/konce propojený s reportem | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Ověření místa návštěvy (GPS) | Volitelné GPS ověření adresy; MUSÍ být GDPR-compliant, opt-in, transparentní vůči pěstounům | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Otevřené návštěvy | Při nemoci KO se návštěva nabídne kolegům jako „otevřená" k převzetí | `DESIGN.md` §9, §6.4 (kalendář) | ⬜ |
+| ★★★☆☆ Výkazy hodin | Souhrn hodin per koordinátorka za období — základ pro mzdy a vykazování MPSV | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Zpětná vazba a ankety | Anonymní zpětná vazba od pěstounů, evaluace vzdělávacích akcí, spokojenost | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Oznámení organizace | Informační kanál (nová metodika, změny vedení) s potvrzením přečtení — ne social feed | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Export pro mzdový systém | CSV export výkazů hodin do českých mzdových SW (Pohoda, Money, Helios) | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ API pro integrace | REST API pro integrace s OSPOD systémy, MPSV reportingem | `DESIGN.md` §9 | ⬜ |
+| ★★☆☆☆ Návrh plánování (auto-scheduling) | AI/rule-based návrh plánu na základě potřeb rodin a kapacity KO | `DESIGN.md` §9 | ⬜ |
+| ★★☆☆☆ Významné dny | Připomínky narozenin dětí v PP pro koordinátorky (interní info, ne social feed) | `DESIGN.md` §9 | ⬜ |
+| ★★☆☆☆ SSO (Google/MS) | Pro větší organizace s vlastní IT infrastrukturou | `DESIGN.md` §9 | ⬜ |
 
 ---
 
