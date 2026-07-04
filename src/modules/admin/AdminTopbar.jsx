@@ -1,5 +1,10 @@
 /**
  * AdminTopbar.jsx — topbar dle DESIGN.md §4.3 (Connecteam redesign, Krok 2).
+ * DESKTOP POUZE (lg+) — na mobilu appka od redesignu dle Connecteam
+ * screenshotů (DESIGN.md §11.2) nemá sdílený topbar vůbec: každá obrazovka
+ * má vlastní hlavičku (H1 + zpět tlačítko, viz TodayPage/FosterFamily...),
+ * avatar dropdown nahrazuje `MobileProfilePage.jsx` (tab „Profil").
+ *
  * Global search je zatím JEN rodiny (zadání Kroku 2) — přes existující
  * `listFostersByOrg`/`listFostersAssignedTo`, klientský filtr podle jména
  * (žádný dedikovaný search index zatím neexistuje). Zvonek zatím prázdný,
@@ -8,19 +13,11 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, HelpCircle, ChevronDown, Menu } from 'lucide-react';
+import { Search, Bell, HelpCircle, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.js';
-import { signOut } from '../../services/orgAuth.js';
+import { signOut, roleLabel } from '../../services/orgAuth.js';
 import { listFostersByOrg, listFostersAssignedTo } from '../../services/orgService.js';
 import { toast } from '../../store/toastStore.js';
-
-const ROLE_LABELS = {
-  superadmin: 'SaaS Superadmin',
-  org_admin: 'Org. Admin',
-  vedouci_pobocky: 'Vedoucí pobočky',
-  teamleader: 'Teamleader',
-  klicova_osoba: 'Klíčová osoba',
-};
 
 function initials(user) {
   if (!user) return '?';
@@ -28,7 +25,7 @@ function initials(user) {
   return name.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('') || '?';
 }
 
-export default function AdminTopbar({ title, onOpenMobileSidebar }) {
+export default function AdminTopbar({ title }) {
   const navigate = useNavigate();
   const { currentUser, role, organizationId } = useAuthStore();
   const [query, setQuery] = useState('');
@@ -72,17 +69,8 @@ export default function AdminTopbar({ title, onOpenMobileSidebar }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border-default bg-white px-4 sm:px-6">
-      <button
-        type="button"
-        onClick={onOpenMobileSidebar}
-        aria-label="Otevřít navigaci"
-        className="rounded-lg p-1.5 text-ink-600 hover:bg-surface-muted lg:hidden"
-      >
-        <Menu size={20} strokeWidth={1.75} />
-      </button>
-
-      <div className="relative hidden w-full max-w-[400px] sm:block">
+    <header className="sticky top-0 z-30 hidden h-14 items-center gap-3 border-b border-border-default bg-white px-4 lg:flex lg:px-6">
+      <div className="relative w-full max-w-[400px]">
         <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
         <input
           value={query}
@@ -114,11 +102,11 @@ export default function AdminTopbar({ title, onOpenMobileSidebar }) {
 
       <div className="flex-1" />
 
-      {title && <span className="hidden text-sm text-ink-400 md:block">{title}</span>}
+      {title && <span className="text-sm text-ink-400">{title}</span>}
 
       {/* Plán/org badge (DESIGN.md §4.3) — zatím statický text, dokud topbar
           nenačítá `organizations/{orgId}.plan`/`.status` (mimo rozsah Kroku 2). */}
-      <span className="hidden shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 sm:inline-flex">
+      <span className="inline-flex shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
         Doprovázející org
       </span>
 
@@ -126,7 +114,7 @@ export default function AdminTopbar({ title, onOpenMobileSidebar }) {
         type="button"
         onClick={() => toast.info('Nápověda zatím není k dispozici.')}
         aria-label="Nápověda"
-        className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-muted sm:flex"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-muted"
       >
         <HelpCircle size={18} strokeWidth={1.75} />
       </button>
@@ -158,7 +146,7 @@ export default function AdminTopbar({ title, onOpenMobileSidebar }) {
           <div className="absolute right-0 top-11 z-40 w-56 rounded-xl border border-border-subtle bg-white py-1.5 shadow-lg">
             <div className="border-b border-border-subtle px-3.5 py-2.5">
               <p className="truncate text-sm font-medium text-ink-800">{currentUser?.displayName ?? currentUser?.email}</p>
-              <p className="text-xs text-ink-400">{ROLE_LABELS[role] ?? role}</p>
+              <p className="text-xs text-ink-400">{roleLabel(role)}</p>
             </div>
             <button
               type="button"

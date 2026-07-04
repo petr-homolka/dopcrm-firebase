@@ -49,6 +49,7 @@ const SuperAdminDashboard    = lazy(() => import('../modules/admin/SuperAdminDas
 const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashboard.jsx'));
 const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
 const TeamDashboard          = lazy(() => import('../modules/admin/TeamDashboard.jsx'));
+const MobileProfilePage      = lazy(() => import('../modules/admin/MobileProfilePage.jsx'));
 const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
 const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
 const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
@@ -273,6 +274,18 @@ const router = createBrowserRouter([
       element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
       children: [
         { path: '/kalendar', element: <Suspense fallback={<Loading />}><CalendarPage /></Suspense> },
+      ],
+    }],
+  },
+  {
+    // Profil (mobilní tab bar, DESIGN.md §11.8) — cíl posledního tlačítka
+    // v MobileTabBar.jsx pro všechny Sekce B role. Na desktopu zatím bez
+    // odkazu ze sidebaru (tam funkci plní avatar dropdown v AdminTopbar).
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Profil" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
+      children: [
+        { path: '/profil', element: <Suspense fallback={<Loading />}><MobileProfilePage /></Suspense> },
       ],
     }],
   },

@@ -4,6 +4,10 @@
  * routy, které appka dnes skutečně má pro danou roli — Krok 2 mění chrome/
  * layout, ne funkční rozsah (dlaždice pro Osu/Dokumenty/Čerpání jako
  * samostatné moduly čekají na `docs/INVENTAR.md` §12 roadmapu).
+ *
+ * DESKTOP POUZE (lg+) — mobil má od redesignu dle skutečných Connecteam
+ * screenshotů (DESIGN.md §11.1) `MobileTabBar.jsx` dole, ne hamburger +
+ * tento sidebar jako výsuvný drawer.
  */
 
 import React from 'react';
@@ -46,14 +50,13 @@ const PATH_FOR_KEY = {
   admin: '/admin/superadmin',
 };
 
-function NavItem({ itemKey, onNavigate }) {
+function NavItem({ itemKey }) {
   const meta = MODULE_META[itemKey];
   const Icon = meta.icon;
   return (
     <NavLink
       to={PATH_FOR_KEY[itemKey]}
       end={PATH_FOR_KEY[itemKey] === '/'}
-      onClick={onNavigate}
       className={({ isActive }) => cn(
         'relative flex h-10 items-center gap-3 rounded-lg pl-[11px] pr-3 text-sm font-medium transition',
         isActive
@@ -73,7 +76,7 @@ function NavItem({ itemKey, onNavigate }) {
   );
 }
 
-function SidebarContent({ onNavigate }) {
+function SidebarContent() {
   const { role } = useAuthStore();
   const items = navItemsForRole(role);
   const isAdminRole = role === 'org_admin' || role === 'superadmin';
@@ -92,7 +95,7 @@ function SidebarContent({ onNavigate }) {
           Pracovní prostor
         </p>
         <div className="space-y-0.5">
-          {items.map((key) => <NavItem key={key} itemKey={key} onNavigate={onNavigate} />)}
+          {items.map((key) => <NavItem key={key} itemKey={key} />)}
         </div>
 
         {isAdminRole && (
@@ -102,7 +105,6 @@ function SidebarContent({ onNavigate }) {
             </p>
             <NavLink
               to="/nastaveni"
-              onClick={onNavigate}
               className={({ isActive }) => cn(
                 'flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition',
                 isActive ? 'bg-surface-tint font-semibold text-brand-700' : 'text-ink-800 hover:bg-surface-muted'
@@ -120,21 +122,10 @@ function SidebarContent({ onNavigate }) {
   );
 }
 
-export default function AdminSidebar({ mobileOpen, onCloseMobile }) {
+export default function AdminSidebar() {
   return (
-    <>
-      <aside className="hidden w-60 shrink-0 border-r border-border-default bg-surface-sidebar lg:block">
-        <SidebarContent onNavigate={() => {}} />
-      </aside>
-
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/30" onClick={onCloseMobile} />
-          <div className="absolute inset-y-0 left-0 w-60 bg-white shadow-lg">
-            <SidebarContent onNavigate={onCloseMobile} />
-          </div>
-        </div>
-      )}
-    </>
+    <aside className="hidden w-60 shrink-0 border-r border-border-default bg-surface-sidebar lg:block">
+      <SidebarContent />
+    </aside>
   );
 }

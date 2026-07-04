@@ -55,3 +55,16 @@ export function homePathForRole(role) {
 export function isReadOnlyManager(role) {
   return role === 'vedouci_pobocky' || role === 'teamleader';
 }
+
+const ROLE_LABELS = {
+  superadmin: 'SaaS Superadmin',
+  org_admin: 'Org. Admin',
+  vedouci_pobocky: 'Vedoucí pobočky',
+  teamleader: 'Teamleader',
+  klicova_osoba: 'Klíčová osoba',
+};
+
+/** Lidský popisek role pro zobrazení v UI (topbar dropdown, mobilní Profil). */
+export function roleLabel(role) {
+  return ROLE_LABELS[role] ?? role;
+}
