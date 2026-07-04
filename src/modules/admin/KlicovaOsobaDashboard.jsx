@@ -1,24 +1,27 @@
 /**
- * KlicovaOsobaDashboard.jsx — Krok 3 zadání (2026-07-01), obohaceno 2026-07-02
+ * KlicovaOsobaDashboard.jsx — Krok 3 zadání (2026-07-01), redesign Krok 3b
+ * (DESIGN.md §5.6/§6.2, 2026-07-04).
  *
- * Terénní pohled klíčové osoby: výchozí záložka "Moje rodiny" (Bento Grid
- * karty rodin přidělených jí, assignedTo == její uid — jediné, do čeho smí
- * zapisovat). Záložka "Celá organizace" navíc ukazuje hierarchickou
- * viditelnost — čtení všech rodin organizace (zastupitelnost, přehled),
- * firestore.rules to KO povolují, jen zápis mají omezený na svoje.
+ * Terénní pohled klíčové osoby: výchozí záložka "Moje rodiny" (tabulka rodin
+ * přidělených jí, assignedTo == její uid — jediné, do čeho smí zapisovat).
+ * Záložka "Celá organizace" navíc ukazuje hierarchickou viditelnost — čtení
+ * všech rodin organizace (zastupitelnost, přehled), firestore.rules to KO
+ * povolují, jen zápis mají omezený na svoje.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Phone, MapPin, Loader2 } from 'lucide-react';
+import { Home, Loader2 } from 'lucide-react';
 
 import { useAuthStore } from '../../store/authStore.js';
 import { listFostersAssignedTo } from '../../services/orgService.js';
+import { careLabel } from '../../shared/domainConstants.js';
 import Card from '../../components/ui/Card.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import Avatar from '../../components/ui/Avatar.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
-import { cn } from '../../components/ui/cn.js';
+import Tabs from '../../components/ui/Tabs.jsx';
+import { Table, TableHead, Th, TableBody, Tr, Td } from '../../components/ui/Table.jsx';
 import FosterFamiliesPanel from './FosterFamiliesPanel.jsx';
 
 const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
@@ -29,34 +32,11 @@ const TABS = [
   { value: 'organizace', label: 'Celá organizace' },
 ];
 
-function FamilyCard({ family, onClick }) {
-  return (
-    <button type="button" onClick={onClick} className="text-left">
-      <Card className="flex h-full flex-col gap-3 transition duration-150 hover:shadow-lg active:scale-[0.98]">
-        <div className="flex items-center gap-3">
-          <Avatar name={family.name} size="md" />
-          <div className="min-w-0">
-            <p className="truncate font-semibold text-stone-800">{family.name || '(bez jména)'}</p>
-            <Badge tone={STATUS_TONE[family.status] ?? 'neutral'} className="mt-1">
-              {STATUS_LABELS[family.status] ?? family.status}
-            </Badge>
-          </div>
-        </div>
-        {family.address && (
-          <div className="flex items-center gap-2 text-stone-500">
-            <MapPin size={16} strokeWidth={1.75} className="shrink-0" />
-            <span className="truncate text-sm">{family.address}</span>
-          </div>
-        )}
-        {family.contactPhone && (
-          <div className="flex items-center gap-2 text-stone-500">
-            <Phone size={16} strokeWidth={1.75} className="shrink-0" />
-            <span className="text-sm">{family.contactPhone}</span>
-          </div>
-        )}
-      </Card>
-    </button>
-  );
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate();
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function MyFamilies() {
@@ -86,14 +66,12 @@ function MyFamilies() {
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-12">
-        <Loader2 size={24} strokeWidth={1.75} className="animate-spin text-primary-600" />
+        <Loader2 size={24} strokeWidth={1.75} className="animate-spin text-brand-600" />
       </div>
     );
   }
   if (error) {
-    return (
-      <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-    );
+    return <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>;
   }
   if (families.length === 0) {
     return (
@@ -107,11 +85,29 @@ function MyFamilies() {
     );
   }
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-      {families.map((family) => (
-        <FamilyCard key={family.id} family={family} onClick={() => navigate(`/admin/terenni/${family.id}`)} />
-      ))}
-    </div>
+    <Table>
+      <TableHead>
+        <Th>Rodina</Th>
+        <Th>Typ</Th>
+        <Th>Poslední návštěva</Th>
+        <Th>Status</Th>
+      </TableHead>
+      <TableBody>
+        {families.map((family) => (
+          <Tr key={family.id} onClick={() => navigate(`/admin/terenni/${family.id}`)} className="cursor-pointer">
+            <Td>
+              <div className="flex items-center gap-3">
+                <Avatar name={family.name} size="md" />
+                <span className="font-medium text-ink-800">{family.name || '(bez jména)'}</span>
+              </div>
+            </Td>
+            <Td><Badge tone="family">{careLabel(family.careType)}</Badge></Td>
+            <Td className="text-ink-500">{toDate(family.lastVisitAt)?.toLocaleDateString('cs-CZ') ?? '—'}</Td>
+            <Td><Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>{STATUS_LABELS[family.status] ?? family.status}</Badge></Td>
+          </Tr>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -121,24 +117,10 @@ export default function KlicovaOsobaDashboard() {
 
   return (
     <div>
-      <h1 className="mb-6 text-lg font-semibold text-stone-800 sm:text-xl">Terén</h1>
+      <h1 className="mb-6 text-[28px] font-bold text-ink-900">Terén</h1>
 
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-stone-100">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            onClick={() => setTab(t.value)}
-            className={cn(
-              'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition',
-              tab === t.value
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent text-stone-500 hover:text-stone-700'
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="mb-6">
+        <Tabs items={TABS} value={tab} onChange={setTab} />
       </div>
 
       {tab === 'moje' && <MyFamilies />}
