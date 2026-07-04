@@ -15,17 +15,17 @@ import { respitTypeLabel, respitEventDays } from '../../shared/domainConstants.j
 
 function StatCard({ label, value, sub, tone = 'primary' }) {
   const toneClass = {
-    primary: 'text-primary-600',
-    success: 'text-green-700',
-    warning: 'text-amber-700',
-    error: 'text-red-700',
-    neutral: 'text-stone-600',
+    primary: 'text-brand-600',
+    success: 'text-success-700',
+    warning: 'text-warning-700',
+    error: 'text-danger-700',
+    neutral: 'text-ink-600',
   }[tone];
   return (
     <Card>
-      <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">{label}</p>
       <p className={`mt-1 text-2xl font-semibold leading-tight ${toneClass}`}>{value}</p>
-      {sub && <p className="mt-0.5 text-sm text-stone-500">{sub}</p>}
+      {sub && <p className="mt-0.5 text-sm text-ink-500">{sub}</p>}
     </Card>
   );
 }
@@ -71,21 +71,21 @@ export default function FosterFamilyRespitTab({
       </div>
 
       <Card>
-        <p className="mb-4 text-sm text-stone-500">
+        <p className="mb-4 text-sm text-ink-500">
           {t('family.detail.respit.legalNote')}
         </p>
 
         {canManage && (
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-stone-700">
+              <label className="mb-1.5 block text-sm font-medium text-ink-700">
                 {t('family.detail.respit.nadstandardLabel')}
               </label>
               <input
                 type="number"
                 value={nadstandardInput}
                 onChange={(e) => onNadstandardChange(e.target.value)}
-                className="w-40 rounded-xl bg-stone-100 px-3.5 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-primary-600"
+                className="w-40 rounded-lg border border-border-strong bg-white px-3.5 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:border-brand-500 focus:ring-brand-100"
               />
             </div>
             <Button variant="secondary" size="sm" onClick={onSaveNadstandard} className="mt-6">
@@ -99,18 +99,18 @@ export default function FosterFamilyRespitTab({
           </div>
         )}
 
-        <div className="flex flex-col divide-y divide-stone-100">
+        <div className="flex flex-col divide-y divide-border-subtle">
           {respitEvents.length === 0 && (
-            <p className="py-3 text-sm text-stone-500">{t('family.detail.respit.empty')}</p>
+            <p className="py-3 text-sm text-ink-500">{t('family.detail.respit.empty')}</p>
           )}
           {respitEvents.map((ev) => {
             const days = respitEventDays(ev);
             return (
               <div key={ev.id} className="py-2.5">
-                <p className="text-sm font-medium text-stone-800">
+                <p className="text-sm font-medium text-ink-800">
                   {respitTypeLabel(ev.typ)} — {t('family.detail.respit.daysCount', { count: days })}
                 </p>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-ink-500">
                   {[
                     ev.from === ev.to ? ev.from : `${ev.from} – ${ev.to}`,
                     ev.childIds?.length ? t('family.detail.respit.childrenCount', { count: ev.childIds.length }) : null,
@@ -127,28 +127,28 @@ export default function FosterFamilyRespitTab({
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-base font-semibold text-stone-800">
+        <h2 className="mb-4 text-base font-semibold text-ink-800">
           {t('family.detail.respit.spvppTitle')}
         </h2>
         {childrenList.length === 0 && (
-          <p className="text-sm text-stone-500">{t('family.detail.respit.spvppEmpty')}</p>
+          <p className="text-sm text-ink-500">{t('family.detail.respit.spvppEmpty')}</p>
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {childrenList.map((child) => {
             const wallet = child.spvpp ?? { rozpocet: 48000, vycerpano: 0 };
             const zustatek = wallet.rozpocet - wallet.vycerpano;
             return (
-              <div key={child.id} className="rounded-xl bg-stone-50 p-4">
-                <p className="font-semibold text-stone-800">
+              <div key={child.id} className="rounded-xl bg-surface-muted p-4">
+                <p className="font-semibold text-ink-800">
                   {child.firstName} {child.lastName}
                 </p>
-                <p className="text-sm text-stone-500">
+                <p className="text-sm text-ink-500">
                   {t('family.detail.respit.spvppSpent', {
                     spent: wallet.vycerpano.toLocaleString('cs-CZ'),
                     total: wallet.rozpocet.toLocaleString('cs-CZ'),
                   })}
                 </p>
-                <p className={`text-sm font-semibold ${zustatek < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                <p className={`text-sm font-semibold ${zustatek < 0 ? 'text-danger-700' : 'text-success-700'}`}>
                   {t('family.detail.respit.spvppBalance', { balance: zustatek.toLocaleString('cs-CZ') })}
                 </p>
               </div>

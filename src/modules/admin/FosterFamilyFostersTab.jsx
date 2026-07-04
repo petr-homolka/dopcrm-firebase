@@ -26,7 +26,7 @@ export default function FosterFamilyFostersTab({
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">{t('family.detail.fosters.title')}</h2>
+        <h2 className="text-base font-semibold text-ink-800">{t('family.detail.fosters.title')}</h2>
         {canManage && (
           <Button size="sm" variant="secondary" onClick={onAddFoster}>
             <UserPlus size={16} strokeWidth={1.75} />
@@ -36,10 +36,10 @@ export default function FosterFamilyFostersTab({
       </div>
 
       {fosters.length === 0 && (
-        <p className="py-4 text-sm text-stone-500">{t('family.detail.fosters.empty')}</p>
+        <p className="py-4 text-sm text-ink-500">{t('family.detail.fosters.empty')}</p>
       )}
 
-      <div className="flex flex-col divide-y divide-stone-100">
+      <div className="flex flex-col divide-y divide-border-subtle">
         {fosters.map((foster, idx) => {
           const courses = (fosterCourses ?? []).filter((c) => c.personId === foster.id);
           const hours = courses.reduce((sum, c) => sum + (Number(c.hodiny) || 0), 0);
@@ -47,16 +47,16 @@ export default function FosterFamilyFostersTab({
           return (
             <div key={foster.id ?? idx} className={idx > 0 ? 'pt-4' : ''}>
               <div className="flex items-start gap-3 pb-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
                   <User size={20} strokeWidth={1.75} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-stone-800">{foster.name}</p>
-                  <p className="text-sm text-stone-500">
+                  <p className="font-semibold text-ink-800">{foster.name}</p>
+                  <p className="text-sm text-ink-500">
                     {[foster.rc && t('family.detail.fosters.rcPrefix', { rc: foster.rc }), foster.phone, foster.email].filter(Boolean).join(' · ') || '—'}
                   </p>
                   {(foster.addressPermanentText || foster.addressResidenceText) && (
-                    <p className="mt-0.5 text-sm text-stone-500">
+                    <p className="mt-0.5 text-sm text-ink-500">
                       {foster.addressPermanentText && <>{t('family.detail.fosters.permanentAddress', { address: foster.addressPermanentText })} </>}
                       {foster.addressResidenceText && <>{t('family.detail.fosters.residenceAddress', { address: foster.addressResidenceText })}</>}
                     </p>
@@ -66,9 +66,9 @@ export default function FosterFamilyFostersTab({
                     <GraduationCap
                       size={16}
                       strokeWidth={1.75}
-                      className={meetsHours ? 'text-green-700' : 'text-amber-700'}
+                      className={meetsHours ? 'text-success-700' : 'text-warning-700'}
                     />
-                    <p className="text-sm text-stone-700">
+                    <p className="text-sm text-ink-700">
                       {t('family.detail.fosters.educationLabel')} <b>{t('family.detail.fosters.hoursValue', { hours })}</b> / {t('family.detail.fosters.hoursOf12Months', { hours: requiredHours })}
                       {meetsHours ? t('family.detail.fosters.educationMet') : t('family.detail.fosters.educationBelowPlan')}
                     </p>
@@ -77,8 +77,8 @@ export default function FosterFamilyFostersTab({
                   {courses.length > 0 && (
                     <ul className="mt-1.5 flex flex-col gap-1">
                       {courses.map((c) => (
-                        <li key={c.id} className="text-sm text-stone-600">
-                          <span className="font-medium text-stone-700">{c.kod}</span>
+                        <li key={c.id} className="text-sm text-ink-600">
+                          <span className="font-medium text-ink-700">{c.kod}</span>
                           {[c.kde, c.kdy, c.forma, c.poradatel, t('family.detail.fosters.hoursValue', { hours: c.hodiny || 0 }), c.certifikat ? t('family.detail.fosters.certificateMark') : null]
                             .filter(Boolean)
                             .map((part) => ` · ${part}`)}
@@ -92,7 +92,7 @@ export default function FosterFamilyFostersTab({
                       type="button"
                       onClick={() => onAddCourse(foster.id)}
                       disabled={!foster.id}
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-primary-700 hover:bg-primary-50 disabled:opacity-50 disabled:pointer-events-none"
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50 disabled:pointer-events-none"
                     >
                       <Plus size={16} strokeWidth={1.75} />
                       {t('family.detail.fosters.addCourse')}
@@ -105,7 +105,7 @@ export default function FosterFamilyFostersTab({
         })}
       </div>
       {hasMoreCourses && (
-        <div className="mt-2 border-t border-stone-100 pt-2">
+        <div className="mt-2 border-t border-border-subtle pt-2">
           <LoadMoreButton onClick={onLoadMoreCourses} />
         </div>
       )}

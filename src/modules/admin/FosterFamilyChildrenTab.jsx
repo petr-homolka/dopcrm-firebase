@@ -24,7 +24,7 @@ export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOp
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">
+        <h2 className="text-base font-semibold text-ink-800">
           {t('family.detail.children.title', { count: childrenList.length })}
         </h2>
         {canManage && (
@@ -36,32 +36,32 @@ export default function FosterFamilyChildrenTab({ childrenList, onAddChild, onOp
       </div>
 
       {childrenList.length === 0 && (
-        <p className="py-4 text-sm text-stone-500">{t('family.detail.children.empty')}</p>
+        <p className="py-4 text-sm text-ink-500">{t('family.detail.children.empty')}</p>
       )}
 
-      <div className="flex flex-col divide-y divide-stone-100">
+      <div className="flex flex-col divide-y divide-border-subtle">
         {childrenList.map((child) => (
           <button
             key={child.id}
             type="button"
             onClick={() => onOpenChild(child.id)}
-            className="flex items-center gap-3 py-3 text-left transition hover:bg-stone-50 active:scale-[0.99]"
+            className="flex items-center gap-3 py-3 text-left transition hover:bg-surface-muted active:scale-[0.99]"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-entity-family-bg text-entity-family-text">
               <Baby size={20} strokeWidth={1.75} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-stone-800">
+              <p className="truncate font-semibold text-ink-800">
                 {`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim() || t('family.detail.children.noName')}
               </p>
-              <p className="truncate text-sm text-stone-500">
+              <p className="truncate text-sm text-ink-500">
                 {[child.rc && t('family.detail.children.rcPrefix', { rc: child.rc }), t('family.detail.children.birthDate', { date: formatBirthDate(child.birthDate) })]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
             </div>
             <Badge tone="neutral">{child.status ?? 'active'}</Badge>
-            <ChevronRight size={18} strokeWidth={1.75} className="shrink-0 text-stone-400" />
+            <ChevronRight size={18} strokeWidth={1.75} className="shrink-0 text-ink-400" />
           </button>
         ))}
       </div>
