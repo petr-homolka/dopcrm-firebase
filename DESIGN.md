@@ -784,6 +784,54 @@ Doporučené nástroje: **ColorZilla**, **WhatFont**, **PerfectPixel**, DevTools
 
 ---
 
+## §11 Mobilní PWA — Connecteam mobile app (ověřeno reálnými screenshoty 2026-07-04)
+
+**Toto je poprvé, kdy máme reálné screenshoty přímo z Connecteam mobilní appky** (56 obrázků, iOS, čeština), ne jen odhady z §10. Sekce popisuje, co appka na mobilu skutečně dělá jinak než desktop — a co z toho přebíráme pro PWA na mobilním prohlížeči (`src/modules/admin/`).
+
+### 11.1 Navigace — bottom tab bar, ne sidebar
+
+Mobil NEMÁ sidebar ani hamburger drawer. Má **pevný spodní tab bar** (5 ikon u Connecteamu: Domů/Vyhledávání/Chat/Profil/Správce — aktivní = modrá plná ikona + label, neaktivní = šedá obrysová). Náš app nemá chat ani univerzální vyhledávání, takže tab bar je **per-roli, 3–4 položky**:
+- klíčová osoba: Dnes / Moje rodiny / Kalendář / Profil
+- org_admin: Organizace / Kalendář / Profil
+- vedoucí pobočky / teamleader: Tým / Kalendář / Profil
+- superadmin: Organizace / Profil
+
+Sekundární obrazovky (např. Schedule jako admin) mají navíc VLASTNÍ kontextový tab bar dole (Rozvrh/Žádosti/Seznam/Činnost) — tenhle vzor v tomto kroku nepřebíráme, jen ho zaznamenáváme pro budoucí referenci.
+
+### 11.2 Domovská obrazovka — pozdrav + dvě velké pill dlaždice
+
+Header: kulaté avatar (iniciály, sytá barva) + „Dobré ráno, {Jméno} 👋" + zvonek s červeným badge počtu vpravo. Pod tím **dvě velké dlaždice vedle sebe** (ne řádek malých tlačítek) — plně zaoblené rohy, pastelové pozadí (light blue / light peach), ikona + label uprostřed. Teprve pod tím sekční karty.
+
+### 11.3 Seznamy — list-row s barevnou kulatou ikonou, ne tabulka
+
+Nastavení/Zdroje/Admin console jsou VŽDY plochý seznam řádků (bílé pozadí, tenký šedý oddělovač, žádné ohraničení karty): barevný kruh s ikonou vlevo (32–40px, sytá barva jako module tiles) + label + volitelně chevron/badge vpravo. Tabulky s více sloupci se na mobilu Connecteamu nepoužívají vůbec.
+
+### 11.4 Karty směn (shift cards) — barevný levý pruh, ne plný barevný blok
+
+V listových pohledech (na rozdíl od Schedule week grid) má karta směny bílé pozadí, silný barevný levý pruh (3–4px, barva dle stavu/typu), avatar iniciál vpravo nahoře, tučný čas, adresu/rodinu, a akční tlačítka dole (Odmítnout/Potvrdit) — odpovídá už existujícímu vzoru `EVENT_BORDER` v `TodayPage.jsx`.
+
+### 11.5 Tlačítka — plná kapsle (pill), ne rounded-lg
+
+Primární/destruktivní akce na mobilu jsou **vždy plná kapsle** (border-radius = polovina výšky, ne 8px roh) — `Přihlášení`, `Začátek/Konec směny`, `Potvrdit/Odmítnout`, `Hotovo/Upravit`. Barvy: brand modrá (primární), `shift-crisis`/červená (ukončit/negativní), zelený gradient (uložit poznámku). Desktop zůstává na `rounded-lg` dle §5.1 — toto je mobil-specifické zesílení.
+
+### 11.6 Segmentované ovládání
+
+Přepínač typu „Uživatelé/Správci/Archivovat" nebo „Přílohy/Můj denní protokol": world-pill kontejner (`bg-surface-muted`, plně zaoblený), aktivní segment = bílá karta s jemným stínem uvnitř. Odpovídá našemu `Tabs.jsx`, ale vizuálně kapslovitější — na mobilu zvážit `SegmentedControl` varianty místo podtržených tabů tam, kde má uživatel přepínat pohled (ne prokliknout jinou stránku).
+
+### 11.7 Bottom sheet modaly
+
+Modal na mobilu vyjíždí zdola, zaoblené horní rohy, `×` zavřít vpravo nahoře, tučný nadpis, obsah, patička se dvěma tlačítky (outline pill vlevo + solid pill vpravo). Odpovídá `Modal.jsx`, na mobilu ale bez centrování — ukotvený dole.
+
+### 11.8 Profil obrazovka
+
+Hero karta s dekorativním pastelovým vzorem na pozadí (ne plná barva), hranatý (ne kulatý) avatar s iniciálami, jméno + role pod tím. Pod hero kartou plochý seznam (§11.3): Moje aktivita, Osobní údaje, Nastavení, Přepnout společnost, Odhlásit se (červeně).
+
+### 11.9 Co NEpřebíráme (mimo rozsah tohoto kroku)
+
+Chat/Vyhledávání tab (appka nemá ekvivalent), kontextové sekundární tab bary uvnitř Kalendáře, hranatý avatar všude (zatím jen na Profilu), drag&drop cokoli, konfetti/gamifikace mimo §7.3.
+
+---
+
 ## Závěr
 
 Tento dokument nahrazuje původní `DESIGN.md` v repozitáři Doprovázení.com. Klíčové posuny oproti Amie-style:
