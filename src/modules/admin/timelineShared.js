@@ -7,13 +7,16 @@
 
 import { Footprints, StickyNote, Mic, Camera, FileText, GitCommitHorizontal } from 'lucide-react';
 
+// `moduleClassName` = Tailwind bg třída modulu pro double-avatar overlay
+// (DESIGN.md §5.5/§5.7, Krok 3c) — barva podle nejbližšího odpovídajícího
+// modulu (visit→Rodiny, note/audio_note→Osa, photo/document→Dokumenty).
 export const TIMELINE_TYPE_META = {
-  visit: { label: 'Návštěva', icon: Footprints, tone: 'family' },
-  note: { label: 'Poznámka', icon: StickyNote, tone: 'neutral' },
-  audio_note: { label: 'Audio poznámka', icon: Mic, tone: 'family' },
-  photo: { label: 'Foto', icon: Camera, tone: 'success' },
-  document: { label: 'Dokument', icon: FileText, tone: 'ospod' },
-  system: { label: 'Systém', icon: GitCommitHorizontal, tone: 'neutral' },
+  visit: { label: 'Návštěva', icon: Footprints, tone: 'family', moduleClassName: 'bg-module-families' },
+  note: { label: 'Poznámka', icon: StickyNote, tone: 'neutral', moduleClassName: 'bg-module-timeline' },
+  audio_note: { label: 'Audio poznámka', icon: Mic, tone: 'family', moduleClassName: 'bg-module-timeline' },
+  photo: { label: 'Foto', icon: Camera, tone: 'success', moduleClassName: 'bg-module-documents' },
+  document: { label: 'Dokument', icon: FileText, tone: 'ospod', moduleClassName: 'bg-module-documents' },
+  system: { label: 'Systém', icon: GitCommitHorizontal, tone: 'neutral', moduleClassName: 'bg-module-admin' },
 };
 
 // `labelKey` místo natvrdo textu (Krok 2, i18n) — tohle je datová konstanta,
@@ -46,6 +49,14 @@ export function formatDayHeading(date, t) {
 export function formatTime(date) {
   if (!date) return '';
   return date.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Krátký popisek pro day-chip strip (DESIGN.md §5.7) — např. "St 25". */
+export function formatDayChip(date) {
+  if (!date) return '—';
+  const weekday = date.toLocaleDateString('cs-CZ', { weekday: 'short' }).replace('.', '');
+  const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  return `${capitalized} ${date.getDate()}`;
 }
 
 /** Seskupí záznamy podle dne (occurredAt), zachovává pořadí (nejnovější první). */
