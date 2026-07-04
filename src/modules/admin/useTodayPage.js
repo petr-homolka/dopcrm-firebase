@@ -1,9 +1,9 @@
 /**
- * useTodayPage.js — data pro obrazovku Dnes (Krok 3, 2026-07-03, DESIGN.md §6.1).
+ * useTodayPage.js — data pro obrazovku Dnes (Krok 3a redesignu, DESIGN.md §6.1).
  * Domovská stránka klíčové osoby na "/": dnešní program, rodiny čekající na
- * návštěvu (lastVisitAt > 45 dní), nejbližší dva dny. Max 25 rodin na KO
- * (CLAUDE.md) → filtrování/řazení "čeká na vás" klidně na klientovi, žádná
- * potřeba dalšího indexu/stránkování.
+ * návštěvu (lastVisitAt > 45 dní), nejbližší 3 dny, statistika týdne. Max 25
+ * rodin na KO (CLAUDE.md) → filtrování/řazení "čeká na vás" klidně na
+ * klientovi, žádná potřeba dalšího indexu/stránkování.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -14,6 +14,7 @@ import { listEventsForAssignee, listFostersAssignedTo } from '../../services/org
 export const WAITING_THRESHOLD_DAYS = 45;
 export const CRISIS_THRESHOLD_DAYS = 60;
 const MAX_WAITING_SHOWN = 3;
+const UPCOMING_DAYS = 3;
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -25,6 +26,13 @@ function addDays(d, n) {
   const x = new Date(d);
   x.setDate(x.getDate() + n);
   return x;
+}
+
+/** Pondělní týden (ISO) — pro statistiku "návštěvy tento týden" v right railu. */
+function startOfWeek(d) {
+  const x = startOfDay(d);
+  const day = x.getDay();
+  return addDays(x, day === 0 ? -6 : 1 - day);
 }
 
 export function toDate(value) {
@@ -49,6 +57,7 @@ export default function useTodayPage() {
   const [upcomingByDay, setUpcomingByDay] = useState([]);
   const [waitingFamilies, setWaitingFamilies] = useState([]);
   const [familiesById, setFamiliesById] = useState({});
+  const [visitsThisWeek, setVisitsThisWeek] = useState(0);
 
   const load = useCallback(async () => {
     if (!organizationId || !uid) { setLoading(false); return; }
@@ -56,24 +65,23 @@ export default function useTodayPage() {
     setError('');
     try {
       const today = startOfDay(new Date());
-      const tomorrow = addDays(today, 1);
-      const dayAfter = addDays(today, 2);
-      const rangeEnd = new Date(addDays(today, 3).getTime() - 1);
+      const dayBoundaries = Array.from({ length: UPCOMING_DAYS + 1 }, (_, i) => addDays(today, i));
+      const rangeEnd = new Date(addDays(today, UPCOMING_DAYS + 1).getTime() - 1);
+      const weekStart = startOfWeek(today);
+      const weekEnd = new Date(addDays(weekStart, 7).getTime() - 1);
 
-      const [events, families] = await Promise.all([
+      const [events, families, weekEvents] = await Promise.all([
         listEventsForAssignee(organizationId, uid, { from: today, to: rangeEnd }),
         listFostersAssignedTo(uid, organizationId),
+        listEventsForAssignee(organizationId, uid, { from: weekStart, to: weekEnd }),
       ]);
 
-      const todays = [];
-      const tomorrows = [];
-      const dayAfters = [];
+      const byDay = Array.from({ length: UPCOMING_DAYS + 1 }, () => []);
       events.forEach((ev) => {
         const start = toDate(ev.start);
         if (!start) return;
-        if (start < tomorrow) todays.push(ev);
-        else if (start < dayAfter) tomorrows.push(ev);
-        else dayAfters.push(ev);
+        const dayIndex = dayBoundaries.findIndex((d, i) => start >= d && (i === UPCOMING_DAYS || start < dayBoundaries[i + 1]));
+        if (dayIndex >= 0) byDay[dayIndex].push(ev);
       });
 
       const byId = Object.fromEntries(families.map((f) => [f.id, f]));
@@ -86,13 +94,11 @@ export default function useTodayPage() {
         .filter((x) => x.days === null || x.days > WAITING_THRESHOLD_DAYS)
         .sort((a, b) => (b.days ?? Infinity) - (a.days ?? Infinity));
 
-      setTodayEvents(todays);
-      setUpcomingByDay([
-        { date: tomorrow, items: tomorrows },
-        { date: dayAfter, items: dayAfters },
-      ]);
+      setTodayEvents(byDay[0]);
+      setUpcomingByDay(dayBoundaries.slice(1).map((date, i) => ({ date, items: byDay[i + 1] })));
       setWaitingFamilies(waiting);
       setFamiliesById(byId);
+      setVisitsThisWeek(weekEvents.filter((e) => e.type === 'visit').length);
     } catch (err) {
       console.error('[useTodayPage] Načtení selhalo:', err);
       setError(err.message ?? t('today.loadError'));
@@ -104,7 +110,7 @@ export default function useTodayPage() {
   useEffect(() => { load(); }, [load]);
 
   return {
-    loading, error, todayEvents, upcomingByDay, familiesById,
+    loading, error, todayEvents, upcomingByDay, familiesById, visitsThisWeek,
     waitingTotal: waitingFamilies.length,
     waitingShown: waitingFamilies.slice(0, MAX_WAITING_SHOWN),
   };

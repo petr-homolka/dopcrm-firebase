@@ -1,11 +1,29 @@
 {
   "today": {
-    "header": "{{greeting}}, {{name}} · {{date}}",
+    "greetingLine": "{{greeting}}, {{name}}",
     "loadError": "Data se nepodařilo načíst.",
     "greeting": {
       "morning": "Dobré ráno",
       "afternoon": "Dobré odpoledne",
       "evening": "Dobrý večer"
+    },
+    "quickActions": {
+      "addFamily": "Přidat rodinu",
+      "scheduleVisit": "Naplánovat návštěvu",
+      "sendAnnouncement": "Poslat oznámení",
+      "fillReport": "Vyplnit report",
+      "notAvailable": "Tato funkce zatím není k dispozici.",
+      "announcementsNotAvailable": "Oznámení organizace zatím nejsou k dispozici.",
+      "reportsNotAvailable": "Reporty a formuláře zatím nejsou k dispozici."
+    },
+    "toResolve": {
+      "title": "Dnes k vyřešení",
+      "emptyTitle": "Nic k vyřešení",
+      "emptyDescription": "Až budou existovat expirující dokumenty, nevydané reporty nebo zprávy z OSPOD, objeví se tady."
+    },
+    "stats": {
+      "title": "Statistiky týdne",
+      "visitsThisWeek": "Návštěvy tento týden"
     },
     "program": {
       "title": "Dnešní program",
