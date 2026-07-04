@@ -272,3 +272,16 @@ export const EVENT_TYPES = {
 export function eventTypeLabel(key) {
   return EVENT_TYPES[key] ?? key;
 }
+
+/**
+ * Barva levého pruhu karty události podle typu — sdíleno mezi TodayPage.jsx
+ * (Dnes) a CalendarAgendaList.jsx (Kalendář agenda), aby stejný typ události
+ * vypadal v obou stejně (DESIGN.md §11.4 shift card vzor).
+ */
+export const EVENT_BORDER_CLASS = {
+  visit: 'border-module-families',
+  meeting: 'border-brand-500',
+  deadline: 'border-entity-crisis-text',
+  education: 'border-entity-bio-text',
+  other: 'border-border-default',
+};

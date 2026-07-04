@@ -21,28 +21,17 @@ import { CalendarPlus, Loader2, ChevronLeft, ChevronRight, Bell } from 'lucide-r
 
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
-import Badge from '../../components/ui/Badge.jsx';
 import Tabs from '../../components/ui/Tabs.jsx';
 import { useAuthStore } from '../../store/authStore.js';
-import { eventTypeLabel } from '../../shared/domainConstants.js';
 import { listEventsInRange, createEvent, listFostersByOrg } from '../../services/orgService.js';
 import EventFormModal from './EventFormModal.jsx';
 import CalendarWeekGrid from './CalendarWeekGrid.jsx';
+import CalendarAgendaList from './CalendarAgendaList.jsx';
 import PublishModal from './PublishModal.jsx';
 import useCalendarWeek from './useCalendarWeek.js';
 import { formatWeekRange, canCreateOpenVisit } from './calendarShared.js';
 
 const AGENDA_DAYS = 30;
-
-function formatDay(date) {
-  return date.toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-function formatTime(value) {
-  const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
-}
 
 function groupByDay(events) {
   const groups = new Map();
@@ -166,28 +155,7 @@ export default function CalendarPage() {
             </Card>
           )}
 
-          {!loading && !error && (
-            <div className="flex flex-col gap-4">
-              {days.map(({ date, items }) => (
-                <Card key={date.toDateString()}>
-                  <h2 className="mb-2 text-sm font-semibold capitalize text-ink-800">{formatDay(date)}</h2>
-                  <ul className="flex flex-col divide-y divide-border-subtle">
-                    {items.map((ev) => (
-                      <li key={ev.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-ink-800">{ev.title}</p>
-                          <p className="text-xs text-ink-500">
-                            {[!ev.allDay && formatTime(ev.start), ev.location].filter(Boolean).join(' · ')}
-                          </p>
-                        </div>
-                        <Badge tone="neutral" className="shrink-0">{eventTypeLabel(ev.type)}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              ))}
-            </div>
-          )}
+          {!loading && !error && <CalendarAgendaList days={days} />}
         </>
       )}
 

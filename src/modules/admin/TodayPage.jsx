@@ -34,18 +34,10 @@ import Card from '../../components/ui/Card.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { useAuthStore } from '../../store/authStore.js';
-import { eventTypeLabel } from '../../shared/domainConstants.js';
+import { eventTypeLabel, EVENT_BORDER_CLASS } from '../../shared/domainConstants.js';
 import useTodayPage, { CRISIS_THRESHOLD_DAYS, toDate } from './useTodayPage.js';
 import TodayRightRail from './TodayRightRail.jsx';
 import TodayQuickActions from './TodayQuickActions.jsx';
-
-const EVENT_BORDER = {
-  visit: 'border-module-families',
-  meeting: 'border-brand-500',
-  deadline: 'border-entity-crisis-text',
-  education: 'border-entity-bio-text',
-  other: 'border-border-default',
-};
 
 function greetingKey(hour) {
   if (hour < 12) return 'today.greeting.morning';
@@ -68,7 +60,7 @@ function EventCard({ event, familyName, onOpenFamily, quiet = false }) {
       className={cn(
         'flex w-full items-center gap-3 rounded-xl border-l-4 bg-white px-4 py-3 text-left shadow-sm transition',
         'disabled:cursor-default',
-        quiet ? 'border-border-subtle py-2.5 shadow-none' : EVENT_BORDER[event.type] ?? EVENT_BORDER.other,
+        quiet ? 'border-border-subtle py-2.5 shadow-none' : EVENT_BORDER_CLASS[event.type] ?? EVENT_BORDER_CLASS.other,
         event.fosterFamilyId && 'hover:bg-surface-muted'
       )}
     >
