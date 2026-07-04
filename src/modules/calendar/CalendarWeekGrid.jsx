@@ -1,12 +1,14 @@
 /**
- * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a–4c, DESIGN.md
+ * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a–4d, DESIGN.md
  * §6.4): koordinátorky jako řádky, dny jako sloupce, bloky návštěv barevné
  * podle typu (§2.4), poslední sloupec = týdenní součet. Patičkové řádky
  * Návštěvy/Rodiny (Krok 4b) — bez řádku Hodiny a bez capacity barů pod day
  * headery, viz komentář v useCalendarWeek.js. Koncepty (Krok 4c,
- * `published === false`) mají šrafovaný overlay. Čistě prezentační — data,
- * navigace týdnem a publish akce v useCalendarWeek.js. Šablony/otevřené
- * návštěvy (Krok 4d) — viz docs/INVENTAR.md.
+ * `published === false`) mají šrafovaný overlay. Otevřené návštěvy (Krok 4d,
+ * `assignedTo == null`) mají přerušovaný rámeček a světlejší výplň dle §6.4 —
+ * bez tlačítka „Přijmout" (vyžadovalo by změnu firestore.rules, viz
+ * calendarShared.js). Čistě prezentační — data, navigace týdnem a publish
+ * akce v useCalendarWeek.js.
  */
 
 import React from 'react';
@@ -19,11 +21,14 @@ import Avatar from '../../components/ui/Avatar.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { eventTypeLabel } from '../../shared/domainConstants.js';
-import { EVENT_SHIFT_CLASS, DRAFT_HATCH_STYLE, formatDayHeader, formatTime, isToday } from './calendarShared.js';
+import {
+  EVENT_SHIFT_CLASS, DRAFT_HATCH_STYLE, formatDayHeader, formatTime, isToday, isOpenVisit,
+} from './calendarShared.js';
 import { UNASSIGNED_ROW } from './useCalendarWeek.js';
 
-function EventBlock({ event, onOpen, allDayLabel, draftLabel }) {
+function EventBlock({ event, onOpen, allDayLabel, draftLabel, openLabel }) {
   const isDraft = event.published === false;
+  const isOpen = isOpenVisit(event);
   return (
     <button
       type="button"
@@ -31,21 +36,23 @@ function EventBlock({ event, onOpen, allDayLabel, draftLabel }) {
       title={isDraft ? `${event.title} — ${draftLabel}` : `${event.title} — ${eventTypeLabel(event.type)}`}
       style={isDraft ? DRAFT_HATCH_STYLE : undefined}
       className={cn(
-        'w-full rounded-md px-1.5 py-1 text-left text-[11px] leading-tight text-white transition hover:opacity-90',
-        EVENT_SHIFT_CLASS[event.type] ?? EVENT_SHIFT_CLASS.other
+        'w-full rounded-md px-1.5 py-1 text-left text-[11px] leading-tight transition hover:opacity-90',
+        isOpen
+          ? 'border-2 border-dashed border-ink-300 bg-surface-muted text-ink-600'
+          : cn('text-white', EVENT_SHIFT_CLASS[event.type] ?? EVENT_SHIFT_CLASS.other)
       )}
     >
-      <p className="font-semibold">{event.allDay ? allDayLabel : formatTime(event.start)}</p>
+      <p className="font-semibold">{isOpen ? openLabel : (event.allDay ? allDayLabel : formatTime(event.start))}</p>
       <p className="truncate">{event.title}</p>
     </button>
   );
 }
 
-function DayCell({ events, onOpen, allDayLabel, draftLabel }) {
+function DayCell({ events, onOpen, allDayLabel, draftLabel, openLabel }) {
   return (
     <div className="flex min-h-[52px] flex-col gap-1 border-l border-border-subtle p-1">
       {events.map((ev) => (
-        <EventBlock key={ev.id} event={ev} onOpen={onOpen} allDayLabel={allDayLabel} draftLabel={draftLabel} />
+        <EventBlock key={ev.id} event={ev} onOpen={onOpen} allDayLabel={allDayLabel} draftLabel={draftLabel} openLabel={openLabel} />
       ))}
     </div>
   );
@@ -68,6 +75,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
   const navigate = useNavigate();
   const allDayLabel = t('calendar.week.allDay');
   const draftLabel = t('calendar.week.draft');
+  const openLabel = t('calendar.week.openVisit');
 
   function openEvent(event) {
     if (event.fosterFamilyId) navigate(`/admin/terenni/${event.fosterFamilyId}`);
@@ -113,7 +121,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
               </div>
               {rows.get(ko.id).map((dayEvents, i) => (
                 <div key={i} className="border-b border-border-subtle">
-                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} />
+                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} openLabel={openLabel} />
                 </div>
               ))}
               <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">
@@ -129,7 +137,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
               </div>
               {rows.get(UNASSIGNED_ROW).map((dayEvents, i) => (
                 <div key={i} className="border-b border-border-subtle">
-                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} />
+                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} openLabel={openLabel} />
                 </div>
               ))}
               <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">

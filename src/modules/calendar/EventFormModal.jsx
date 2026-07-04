@@ -3,6 +3,9 @@
  * Krok 4a redesignu (DESIGN.md §5.11) — na sdílené `Modal`/`Input`/`Button`
  * komponenty (Krok 1), stejný vzor jako NewFamilyModal.jsx. Krok 4c přidal
  * checkbox „Uložit jako koncept" (publish workflow, viz calendarShared.js).
+ * Krok 4d přidal šablony (rychlé předvyplnění typu/názvu, bez ukládání do
+ * Firestore — jen klientská pohodlnost) a pro management volitelně založení
+ * otevřené (nepřiřazené) návštěvy.
  */
 
 import React, { useState } from 'react';
@@ -12,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 import Button from '../../components/ui/Button.jsx';
 import Input from '../../components/ui/Input.jsx';
 import Modal from '../../components/ui/Modal.jsx';
+import { cn } from '../../components/ui/cn.js';
 import { EVENT_TYPES } from '../../shared/domainConstants.js';
 
 const fieldBaseClass =
@@ -21,17 +25,29 @@ const selectClass = `h-10 px-3.5 ${fieldBaseClass}`;
 const textareaClass = `px-3.5 py-2.5 ${fieldBaseClass}`;
 const labelClass = 'mb-1 block text-[13px] font-medium text-ink-700';
 
+// DESIGN.md §6.4 „Templates tab" — zjednodušeno na rychlé předvyplnění (bez
+// drag&drop, bez perzistence šablon; jen 3 příklady ze specifikace).
+const VISIT_TEMPLATES = [
+  { key: 'standard', labelKey: 'calendar.templates.standard', type: 'visit', title: 'Standardní návštěva' },
+  { key: 'first', labelKey: 'calendar.templates.first', type: 'visit', title: 'První kontakt' },
+  { key: 'crisis', labelKey: 'calendar.templates.crisis', type: 'visit', title: 'Krizová intervence' },
+];
+
 const emptyForm = {
   title: '', type: 'visit', date: '', time: '09:00', allDay: false,
-  location: '', note: '', fosterFamilyId: '', draft: false,
+  location: '', note: '', fosterFamilyId: '', draft: false, openVisit: false,
 };
 
-export default function EventFormModal({ families, submitting, submitError, onClose, onSubmit }) {
+export default function EventFormModal({ families, submitting, submitError, canCreateOpenVisit, onClose, onSubmit }) {
   const { t } = useTranslation();
   const [form, setForm] = useState(emptyForm);
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function applyTemplate(tpl) {
+    setForm((f) => ({ ...f, title: tpl.title, type: tpl.type }));
   }
 
   return (
@@ -54,6 +70,28 @@ export default function EventFormModal({ families, submitting, submitError, onCl
         {submitError && (
           <div className="rounded-xl bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">{submitError}</div>
         )}
+
+        <div>
+          <label className={labelClass}>{t('calendar.templates.label')}</label>
+          <div className="flex flex-wrap gap-1.5">
+            {VISIT_TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.key}
+                type="button"
+                onClick={() => applyTemplate(tpl)}
+                disabled={submitting}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-50',
+                  form.title === tpl.title
+                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    : 'border-border-strong text-ink-600 hover:bg-surface-muted'
+                )}
+              >
+                {t(tpl.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <Input
           label={t('calendar.form.name')}
@@ -153,6 +191,19 @@ export default function EventFormModal({ families, submitting, submitError, onCl
           />
           {t('calendar.form.saveAsDraft')}
         </label>
+
+        {canCreateOpenVisit && (
+          <label className="flex items-center gap-2.5 text-sm text-ink-700">
+            <input
+              type="checkbox"
+              checked={form.openVisit}
+              onChange={(e) => update('openVisit', e.target.checked)}
+              disabled={submitting}
+              className="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-2 focus:ring-brand-100"
+            />
+            {t('calendar.form.openVisit')}
+          </label>
+        )}
       </form>
     </Modal>
   );

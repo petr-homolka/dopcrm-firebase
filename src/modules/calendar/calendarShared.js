@@ -48,7 +48,7 @@ export const DRAFT_HATCH_STYLE = {
     'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.15) 8px, rgba(255,255,255,0.15) 16px)',
 };
 
-const EVENT_MANAGEMENT_ROLES = ['superadmin', 'org_admin', 'vedouci_pobocky', 'teamleader'];
+export const EVENT_MANAGEMENT_ROLES = ['superadmin', 'org_admin', 'vedouci_pobocky', 'teamleader'];
 
 /**
  * Kdo smí publikovat koncept dané události — zrcadlí firestore.rules
@@ -59,4 +59,22 @@ const EVENT_MANAGEMENT_ROLES = ['superadmin', 'org_admin', 'vedouci_pobocky', 't
 export function canPublishEvent(role, uid, event) {
   if (role === 'klicova_osoba') return event.assignedTo === uid;
   return EVENT_MANAGEMENT_ROLES.includes(role);
+}
+
+/**
+ * Krok 4d (DESIGN.md §6.4 „Přidat otevřenou návštěvu") — otevřená návštěva
+ * = `assignedTo: null` (čeká na přiřazení). Firestore rules dovolí založit
+ * `assignedTo != vlastní uid` (tedy i `null`) jen managementu/superadminovi —
+ * klíčová osoba smí `create` výhradně s `assignedTo == request.auth.uid`.
+ * „Přijmout" (self-claim klíčovou osobou) by vyžadovalo změnu pravidel
+ * (update rule dnes vyžaduje `resource.data.assignedTo == request.auth.uid`,
+ * takže nepřiřazenou událost si nikdo sám nepřevezme) — VĚDOMĚ
+ * NEIMPLEMENTOVÁNO, viz docs/INVENTAR.md.
+ */
+export function canCreateOpenVisit(role) {
+  return EVENT_MANAGEMENT_ROLES.includes(role);
+}
+
+export function isOpenVisit(event) {
+  return !event.assignedTo;
 }

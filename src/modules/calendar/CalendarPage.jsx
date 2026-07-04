@@ -8,8 +8,11 @@
  * koordinátorky jako řádky, barevné bloky návštěv dle typu, sticky footer
  * (Krok 4b) a publish workflow (Krok 4c, `PublishModal.jsx`) — nová událost
  * může vzniknout jako koncept (checkbox v `EventFormModal.jsx`), publikace
- * je skutečný batch zápis `published: true`. Šablony a otevřené návštěvy
- * jsou Krok 4d — viz docs/INVENTAR.md.
+ * je skutečný batch zápis `published: true`. Krok 4d přidal šablony (jen
+ * klientské předvyplnění, viz EventFormModal.jsx) a otevřené (nepřiřazené)
+ * návštěvy pro management — „Přijmout" klíčovou osobou VĚDOMĚ
+ * NEIMPLEMENTOVÁNO (vyžadovalo by změnu firestore.rules, viz
+ * calendarShared.js/docs/INVENTAR.md).
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -27,7 +30,7 @@ import EventFormModal from './EventFormModal.jsx';
 import CalendarWeekGrid from './CalendarWeekGrid.jsx';
 import PublishModal from './PublishModal.jsx';
 import useCalendarWeek from './useCalendarWeek.js';
-import { formatWeekRange } from './calendarShared.js';
+import { formatWeekRange, canCreateOpenVisit } from './calendarShared.js';
 
 const AGENDA_DAYS = 30;
 
@@ -54,7 +57,7 @@ function groupByDay(events) {
 
 export default function CalendarPage() {
   const { t } = useTranslation();
-  const { organizationId } = useAuthStore();
+  const { organizationId, role } = useAuthStore();
   const [view, setView] = useState('agenda');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -109,7 +112,7 @@ export default function CalendarPage() {
         allDay: form.allDay,
         location: form.location.trim(),
         note: form.note.trim(),
-        assignedTo: useAuthStore.getState().currentUser?.uid,
+        assignedTo: form.openVisit ? null : useAuthStore.getState().currentUser?.uid,
         fosterFamilyId: form.fosterFamilyId || null,
         subjectRefs: form.fosterFamilyId ? [{ type: 'family', id: form.fosterFamilyId }] : [],
         published: !form.draft,
@@ -248,6 +251,7 @@ export default function CalendarPage() {
           families={families}
           submitting={submitting}
           submitError={submitError}
+          canCreateOpenVisit={canCreateOpenVisit(role)}
           onClose={() => setDialogOpen(false)}
           onSubmit={handleCreate}
         />

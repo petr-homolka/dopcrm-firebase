@@ -162,8 +162,15 @@
       "cancel": "Zrušit",
       "submit": "Založit",
       "saveAsDraft": "Uložit jako koncept (nepublikováno)",
+      "openVisit": "Otevřená návštěva (bez přiřazení koordinátorce)",
       "missingFields": "Vyplňte název a datum.",
       "submitError": "Založení se nezdařilo."
+    },
+    "templates": {
+      "label": "Šablony",
+      "standard": "Standardní návštěva (2 h)",
+      "first": "První kontakt (3 h)",
+      "crisis": "Krizová intervence"
     },
     "view": {
       "agenda": "Agenda",
@@ -175,6 +182,7 @@
       "today": "Tento týden",
       "allDay": "Celý den",
       "unassigned": "Bez přiřazení",
+      "openVisit": "Otevřená návštěva",
       "emptyKoTitle": "Žádné klíčové osoby",
       "emptyKoDescription": "Týdenní mřížka zobrazuje návštěvy podle koordinátorek (role klíčová osoba) — organizace zatím žádnou nemá.",
       "total": "Týden",
