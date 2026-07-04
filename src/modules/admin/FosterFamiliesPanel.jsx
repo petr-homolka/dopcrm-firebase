@@ -31,6 +31,7 @@ import Input from '../../components/ui/Input.jsx';
 import Tabs from '../../components/ui/Tabs.jsx';
 import { Table, TableHead, Th, TableBody, Tr, Td } from '../../components/ui/Table.jsx';
 import NewFamilyModal from './NewFamilyModal.jsx';
+import FamilyListRow from './FamilyListRow.jsx';
 
 const STATUS_LABEL = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
 const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
@@ -187,31 +188,48 @@ export default function FosterFamiliesPanel({ organizationId, basePath, canCreat
       )}
 
       {!loading && !error && filtered.length > 0 && (
-        <Table>
-          <TableHead>
-            <Th>Rodina</Th>
-            <Th>Typ</Th>
-            <Th>Koordinátorka</Th>
-            <Th>Poslední návštěva</Th>
-            <Th>Status</Th>
-          </TableHead>
-          <TableBody>
+        <>
+          <div className="hidden lg:block">
+            <Table>
+              <TableHead>
+                <Th>Rodina</Th>
+                <Th>Typ</Th>
+                <Th>Koordinátorka</Th>
+                <Th>Poslední návštěva</Th>
+                <Th>Status</Th>
+              </TableHead>
+              <TableBody>
+                {filtered.map((family) => (
+                  <Tr key={family.id} onClick={() => navigate(`${basePath}/${family.id}`)} className="cursor-pointer">
+                    <Td>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={family.name} size="md" />
+                        <span className="font-medium text-ink-800">{family.name}</span>
+                      </div>
+                    </Td>
+                    <Td><Badge tone="family">{careLabel(family.careType)}</Badge></Td>
+                    <Td>{koName(family.assignedTo)}</Td>
+                    <Td className="text-ink-500">{lastVisitLabel(family)}</Td>
+                    <Td><Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>{STATUS_LABEL[family.status] ?? family.status}</Badge></Td>
+                  </Tr>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="rounded-2xl border border-border-subtle bg-white px-4 lg:hidden">
             {filtered.map((family) => (
-              <Tr key={family.id} onClick={() => navigate(`${basePath}/${family.id}`)} className="cursor-pointer">
-                <Td>
-                  <div className="flex items-center gap-3">
-                    <Avatar name={family.name} size="md" />
-                    <span className="font-medium text-ink-800">{family.name}</span>
-                  </div>
-                </Td>
-                <Td><Badge tone="family">{careLabel(family.careType)}</Badge></Td>
-                <Td>{koName(family.assignedTo)}</Td>
-                <Td className="text-ink-500">{lastVisitLabel(family)}</Td>
-                <Td><Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>{STATUS_LABEL[family.status] ?? family.status}</Badge></Td>
-              </Tr>
+              <FamilyListRow
+                key={family.id}
+                family={family}
+                careLabel={`${careLabel(family.careType)} · ${lastVisitLabel(family)}`}
+                statusLabel={STATUS_LABEL[family.status] ?? family.status}
+                statusTone={STATUS_TONE[family.status] ?? 'neutral'}
+                onClick={() => navigate(`${basePath}/${family.id}`)}
+              />
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </>
       )}
 
       {dialogOpen && (
