@@ -1,18 +1,20 @@
 /**
  * CalendarPage.jsx — Kalendář na Sekci B (audit nálezu #5, 2026-07-03),
- * Krok 4a redesignu (DESIGN.md §6.4) přidal týdenní mřížku vedle agendy.
+ * Krok 4a–4c redesignu (DESIGN.md §6.4) přidal týdenní mřížku vedle agendy.
  *
  * Agenda pohled (příštích 30 dní) zůstává výchozí a nezměněný nad
  * `organizations/{orgId}/events` — viz `src/services/org/events.js`.
- * Nový tab „Týden" (`CalendarWeekGrid.jsx` + `useCalendarWeek.js`) přidává
- * koordinátorky jako řádky a barevné bloky návštěv dle typu. Capacity bary,
- * sticky footer, publish workflow a šablony jsou další Kroky 4b–4d — viz
- * docs/INVENTAR.md.
+ * Tab „Týden" (`CalendarWeekGrid.jsx` + `useCalendarWeek.js`) přidává
+ * koordinátorky jako řádky, barevné bloky návštěv dle typu, sticky footer
+ * (Krok 4b) a publish workflow (Krok 4c, `PublishModal.jsx`) — nová událost
+ * může vzniknout jako koncept (checkbox v `EventFormModal.jsx`), publikace
+ * je skutečný batch zápis `published: true`. Šablony a otevřené návštěvy
+ * jsou Krok 4d — viz docs/INVENTAR.md.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarPlus, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarPlus, Loader2, ChevronLeft, ChevronRight, Bell } from 'lucide-react';
 
 import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -23,6 +25,7 @@ import { eventTypeLabel } from '../../shared/domainConstants.js';
 import { listEventsInRange, createEvent, listFostersByOrg } from '../../services/orgService.js';
 import EventFormModal from './EventFormModal.jsx';
 import CalendarWeekGrid from './CalendarWeekGrid.jsx';
+import PublishModal from './PublishModal.jsx';
 import useCalendarWeek from './useCalendarWeek.js';
 import { formatWeekRange } from './calendarShared.js';
 
@@ -58,6 +61,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([]);
   const [families, setFamilies] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const week = useCalendarWeek(view === 'week');
@@ -108,6 +112,7 @@ export default function CalendarPage() {
         assignedTo: useAuthStore.getState().currentUser?.uid,
         fosterFamilyId: form.fosterFamilyId || null,
         subjectRefs: form.fosterFamilyId ? [{ type: 'family', id: form.fosterFamilyId }] : [],
+        published: !form.draft,
       });
       setDialogOpen(false);
       await load();
@@ -206,6 +211,13 @@ export default function CalendarPage() {
             <Button variant="secondary" size="sm" onClick={week.goToday}>
               {t('calendar.week.today')}
             </Button>
+            <div className="flex-1" />
+            {week.publishableCount > 0 && (
+              <Button variant="primary" size="sm" onClick={() => setPublishModalOpen(true)}>
+                <Bell size={16} strokeWidth={1.75} />
+                {t('calendar.publish.button', { count: week.publishableCount })}
+              </Button>
+            )}
           </div>
 
           {week.loading && (
@@ -238,6 +250,15 @@ export default function CalendarPage() {
           submitError={submitError}
           onClose={() => setDialogOpen(false)}
           onSubmit={handleCreate}
+        />
+      )}
+
+      {publishModalOpen && (
+        <PublishModal
+          count={week.publishableCount}
+          publishing={week.publishing}
+          onClose={() => setPublishModalOpen(false)}
+          onConfirm={async () => { await week.publish(); setPublishModalOpen(false); }}
         />
       )}
     </div>

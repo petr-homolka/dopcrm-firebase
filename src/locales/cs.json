@@ -161,6 +161,7 @@
       "note": "Poznámka",
       "cancel": "Zrušit",
       "submit": "Založit",
+      "saveAsDraft": "Uložit jako koncept (nepublikováno)",
       "missingFields": "Vyplňte název a datum.",
       "submitError": "Založení se nezdařilo."
     },
@@ -178,7 +179,21 @@
       "emptyKoDescription": "Týdenní mřížka zobrazuje návštěvy podle koordinátorek (role klíčová osoba) — organizace zatím žádnou nemá.",
       "total": "Týden",
       "visitsRow": "Návštěvy",
-      "familiesRow": "Rodiny"
+      "familiesRow": "Rodiny",
+      "draft": "Koncept"
+    },
+    "publish": {
+      "button": "Publikovat ({{count}})",
+      "modalTitle": "Publikovat plán",
+      "summary_one": "{{count}} nepublikovaná událost bude nyní viditelná pro koordinátorky.",
+      "summary_few": "{{count}} nepublikované události budou nyní viditelné pro koordinátorky.",
+      "summary_other": "{{count}} nepublikovaných událostí bude nyní viditelných pro koordinátorky.",
+      "notifyLabel": "Odeslat koordinátorkám oznámení",
+      "notifyNotAvailable": "Odesílání oznámení zatím není k dispozici — koncepty se jen označí jako zveřejněné.",
+      "cancel": "Zrušit",
+      "confirm": "Publikovat",
+      "publishing": "Publikuji…",
+      "success": "Plán zveřejněn."
     }
   },
   "family": {

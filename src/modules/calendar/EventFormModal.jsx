@@ -1,7 +1,8 @@
 /**
  * EventFormModal.jsx — dialog "Nová událost" pro CalendarPage.jsx.
  * Krok 4a redesignu (DESIGN.md §5.11) — na sdílené `Modal`/`Input`/`Button`
- * komponenty (Krok 1), stejný vzor jako NewFamilyModal.jsx.
+ * komponenty (Krok 1), stejný vzor jako NewFamilyModal.jsx. Krok 4c přidal
+ * checkbox „Uložit jako koncept" (publish workflow, viz calendarShared.js).
  */
 
 import React, { useState } from 'react';
@@ -22,7 +23,7 @@ const labelClass = 'mb-1 block text-[13px] font-medium text-ink-700';
 
 const emptyForm = {
   title: '', type: 'visit', date: '', time: '09:00', allDay: false,
-  location: '', note: '', fosterFamilyId: '',
+  location: '', note: '', fosterFamilyId: '', draft: false,
 };
 
 export default function EventFormModal({ families, submitting, submitError, onClose, onSubmit }) {
@@ -141,6 +142,17 @@ export default function EventFormModal({ families, submitting, submitError, onCl
             disabled={submitting}
           />
         </div>
+
+        <label className="flex items-center gap-2.5 text-sm text-ink-700">
+          <input
+            type="checkbox"
+            checked={form.draft}
+            onChange={(e) => update('draft', e.target.checked)}
+            disabled={submitting}
+            className="h-4 w-4 rounded border-border-strong text-brand-600 focus:ring-2 focus:ring-brand-100"
+          />
+          {t('calendar.form.saveAsDraft')}
+        </label>
       </form>
     </Modal>
   );

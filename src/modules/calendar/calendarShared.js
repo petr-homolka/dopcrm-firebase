@@ -1,5 +1,5 @@
 /**
- * calendarShared.js — sdílené drobnosti pro týdenní mřížku (Krok 4a,
+ * calendarShared.js — sdílené drobnosti pro týdenní mřížku (Krok 4a–4c,
  * DESIGN.md §2.4/§6.4). Barvy bloků podle skutečných `EVENT_TYPES`
  * (domainConstants.js: visit/meeting/deadline/education/other) — DESIGN.md
  * §2.4 popisuje bohatší taxonomii (OSPOD/Soud/bio-rodina/krize/metodika),
@@ -37,4 +37,26 @@ export function formatWeekRange(weekStart) {
 
 export function isToday(date) {
   return date.toDateString() === new Date().toDateString();
+}
+
+// DESIGN.md §2.4 — šrafovaný overlay pro nepublikovaný (draft) blok. Inline
+// style, ne Tailwind třída: repeating-linear-gradient s přesnými hodnotami
+// ze specifikace se nedá vyjádřit staticky přes utility třídu (stejná
+// výjimka jako ProgressBar.jsx pro dynamickou šířku).
+export const DRAFT_HATCH_STYLE = {
+  backgroundImage:
+    'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.15) 8px, rgba(255,255,255,0.15) 16px)',
+};
+
+const EVENT_MANAGEMENT_ROLES = ['superadmin', 'org_admin', 'vedouci_pobocky', 'teamleader'];
+
+/**
+ * Kdo smí publikovat koncept dané události — zrcadlí firestore.rules
+ * `isManagement()`/`isKlicovaOsoba()` pro `events` (klíčová osoba jen svoje,
+ * management celou organizaci). Batch zápis v `publishEvents()` by bez
+ * tohoto filtru na klientu selhal na permission-denied pro cizí koncepty.
+ */
+export function canPublishEvent(role, uid, event) {
+  if (role === 'klicova_osoba') return event.assignedTo === uid;
+  return EVENT_MANAGEMENT_ROLES.includes(role);
 }

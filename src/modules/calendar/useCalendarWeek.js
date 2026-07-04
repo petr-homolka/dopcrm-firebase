@@ -1,5 +1,5 @@
 /**
- * useCalendarWeek.js — data pro CalendarWeekGrid.jsx (Krok 4a/4b redesignu,
+ * useCalendarWeek.js — data pro CalendarWeekGrid.jsx (Krok 4a–4c redesignu,
  * DESIGN.md §6.4): koordinátorky (role klicova_osoba) jako řádky, události
  * týdne seskupené po dnech. `listEventsInRange` je celoorganizační dotaz
  * (žádný N+1 per koordinátorka), `listKlicoveOsobyByOrg` jeden dotaz na
@@ -10,11 +10,16 @@
  * ty vyžadují data, která model nemá (žádná délka trvání události — jen
  * `start` — ani nastavená denní kapacita koordinátorky). VĚDOMĚ
  * NEIMPLEMENTOVÁNO, viz docs/INVENTAR.md.
+ *
+ * Krok 4c (publish workflow) — `published` pole na události (events.js).
+ * `publishableDraftIds` jsou koncepty VIDITELNÉ tento týden, které smí
+ * publikovat AKTUÁLNÍ uživatel (`canPublishEvent`, zrcadlí firestore.rules).
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore.js';
-import { listEventsInRange, listKlicoveOsobyByOrg } from '../../services/orgService.js';
+import { listEventsInRange, listKlicoveOsobyByOrg, publishEvents } from '../../services/orgService.js';
+import { canPublishEvent } from './calendarShared.js';
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -37,12 +42,13 @@ export function startOfWeek(d) {
 export const UNASSIGNED_ROW = '__unassigned__';
 
 export default function useCalendarWeek(enabled = true) {
-  const { organizationId } = useAuthStore();
+  const { organizationId, currentUser, role } = useAuthStore();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [employees, setEmployees] = useState([]);
   const [events, setEvents] = useState([]);
+  const [publishing, setPublishing] = useState(false);
 
   const load = useCallback(async () => {
     if (!organizationId || !enabled) return;
@@ -104,8 +110,24 @@ export default function useCalendarWeek(enabled = true) {
     familyCount: weekFamilyIds.size,
   };
 
+  const uid = currentUser?.uid;
+  const draftEvents = events.filter((ev) => ev.published === false);
+  const publishableDraftIds = draftEvents.filter((ev) => canPublishEvent(role, uid, ev)).map((ev) => ev.id);
+
+  async function publish() {
+    if (publishableDraftIds.length === 0) return;
+    setPublishing(true);
+    try {
+      await publishEvents(organizationId, publishableDraftIds);
+      await load();
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return {
     loading, error, employees, days, weekStart, rows, unassignedCount, dayTotals, weekTotals,
+    draftCount: draftEvents.length, publishableCount: publishableDraftIds.length, publishing, publish,
     goPrevWeek: () => setWeekStart((w) => addDays(w, -7)),
     goNextWeek: () => setWeekStart((w) => addDays(w, 7)),
     goToday: () => setWeekStart(startOfWeek(new Date())),

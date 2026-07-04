@@ -19,7 +19,7 @@
  */
 
 import {
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, writeBatch,
   query, where, orderBy, limit, startAfter,
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
@@ -69,7 +69,7 @@ export async function listEventsForAssignee(organizationId, uid, { from, to }) {
 
 export async function createEvent(organizationId, {
   title, type = 'other', start, end = null, allDay = false,
-  location = '', note = '', assignedTo, fosterFamilyId = null, subjectRefs = [],
+  location = '', note = '', assignedTo, fosterFamilyId = null, subjectRefs = [], published = true,
 }) {
   const ref = await addDoc(eventsCol(organizationId), {
     title,
@@ -83,6 +83,7 @@ export async function createEvent(organizationId, {
     fosterFamilyId,
     subjectRefs,
     status: 'scheduled', // 'scheduled' | 'done' | 'cancelled'
+    published,    // Krok 4c (DESIGN.md §6.4 publish workflow) — koncept vs. zveřejněno
     ...createMeta(),
   });
   return ref.id;
@@ -94,4 +95,21 @@ export async function updateEvent(organizationId, eventId, patch) {
 
 export async function deleteEvent(organizationId, eventId) {
   await deleteDoc(doc(db, 'organizations', organizationId, 'events', eventId));
+}
+
+/**
+ * Hromadné publikování konceptů (Krok 4c) — jeden batch zápis místo N
+ * sekvenčních `updateEvent` volání. `eventIds` musí být předem
+ * přefiltrované na ty, které smí publikovat AKTUÁLNÍ uživatel (klíčová
+ * osoba jen svoje, management celou organizaci — viz firestore.rules);
+ * batch respektuje stejná pravidla, jen zapíše atomicky.
+ */
+export async function publishEvents(organizationId, eventIds) {
+  if (eventIds.length === 0) return;
+  const batch = writeBatch(db);
+  const stamp = meta();
+  eventIds.forEach((id) => {
+    batch.update(doc(db, 'organizations', organizationId, 'events', id), { published: true, ...stamp });
+  });
+  await batch.commit();
 }

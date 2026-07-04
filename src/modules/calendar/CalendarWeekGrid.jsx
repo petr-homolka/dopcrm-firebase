@@ -1,11 +1,12 @@
 /**
- * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a/4b, DESIGN.md
+ * CalendarWeekGrid.jsx — týdenní mřížka kalendáře (Krok 4a–4c, DESIGN.md
  * §6.4): koordinátorky jako řádky, dny jako sloupce, bloky návštěv barevné
  * podle typu (§2.4), poslední sloupec = týdenní součet. Patičkové řádky
  * Návštěvy/Rodiny (Krok 4b) — bez řádku Hodiny a bez capacity barů pod day
- * headery, viz komentář v useCalendarWeek.js. Čistě prezentační — data a
- * navigace týdnem v useCalendarWeek.js. Drag&drop a publish workflow
- * (Krok 4c) a šablon/otevřených návštěv (Krok 4d) — viz docs/INVENTAR.md.
+ * headery, viz komentář v useCalendarWeek.js. Koncepty (Krok 4c,
+ * `published === false`) mají šrafovaný overlay. Čistě prezentační — data,
+ * navigace týdnem a publish akce v useCalendarWeek.js. Šablony/otevřené
+ * návštěvy (Krok 4d) — viz docs/INVENTAR.md.
  */
 
 import React from 'react';
@@ -18,15 +19,17 @@ import Avatar from '../../components/ui/Avatar.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { eventTypeLabel } from '../../shared/domainConstants.js';
-import { EVENT_SHIFT_CLASS, formatDayHeader, formatTime, isToday } from './calendarShared.js';
+import { EVENT_SHIFT_CLASS, DRAFT_HATCH_STYLE, formatDayHeader, formatTime, isToday } from './calendarShared.js';
 import { UNASSIGNED_ROW } from './useCalendarWeek.js';
 
-function EventBlock({ event, onOpen, allDayLabel }) {
+function EventBlock({ event, onOpen, allDayLabel, draftLabel }) {
+  const isDraft = event.published === false;
   return (
     <button
       type="button"
       onClick={() => onOpen(event)}
-      title={`${event.title} — ${eventTypeLabel(event.type)}`}
+      title={isDraft ? `${event.title} — ${draftLabel}` : `${event.title} — ${eventTypeLabel(event.type)}`}
+      style={isDraft ? DRAFT_HATCH_STYLE : undefined}
       className={cn(
         'w-full rounded-md px-1.5 py-1 text-left text-[11px] leading-tight text-white transition hover:opacity-90',
         EVENT_SHIFT_CLASS[event.type] ?? EVENT_SHIFT_CLASS.other
@@ -38,10 +41,12 @@ function EventBlock({ event, onOpen, allDayLabel }) {
   );
 }
 
-function DayCell({ events, onOpen, allDayLabel }) {
+function DayCell({ events, onOpen, allDayLabel, draftLabel }) {
   return (
     <div className="flex min-h-[52px] flex-col gap-1 border-l border-border-subtle p-1">
-      {events.map((ev) => <EventBlock key={ev.id} event={ev} onOpen={onOpen} allDayLabel={allDayLabel} />)}
+      {events.map((ev) => (
+        <EventBlock key={ev.id} event={ev} onOpen={onOpen} allDayLabel={allDayLabel} draftLabel={draftLabel} />
+      ))}
     </div>
   );
 }
@@ -62,6 +67,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
   const { t } = useTranslation();
   const navigate = useNavigate();
   const allDayLabel = t('calendar.week.allDay');
+  const draftLabel = t('calendar.week.draft');
 
   function openEvent(event) {
     if (event.fosterFamilyId) navigate(`/admin/terenni/${event.fosterFamilyId}`);
@@ -107,7 +113,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
               </div>
               {rows.get(ko.id).map((dayEvents, i) => (
                 <div key={i} className="border-b border-border-subtle">
-                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} />
+                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} />
                 </div>
               ))}
               <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">
@@ -123,7 +129,7 @@ export default function CalendarWeekGrid({ employees, days, rows, unassignedCoun
               </div>
               {rows.get(UNASSIGNED_ROW).map((dayEvents, i) => (
                 <div key={i} className="border-b border-border-subtle">
-                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} />
+                  <DayCell events={dayEvents} onOpen={openEvent} allDayLabel={allDayLabel} draftLabel={draftLabel} />
                 </div>
               ))}
               <div className="flex items-center justify-center border-b border-l border-border-subtle p-2 text-sm text-ink-500">
