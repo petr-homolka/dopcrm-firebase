@@ -305,13 +305,10 @@
     "emptyCta": "Začněte první poznámkou.",
     "addNote": "Přidat poznámku",
     "defaultTitle": "Poznámka",
-    "correctionTitle": "Oprava: {{title}}",
     "pin": "Připnout",
     "unpin": "Odepnout",
     "moreOptions": "Další možnosti",
-    "writeCorrection": "Napsat opravu",
     "showMore": "zobrazit více",
-    "correctedNote": "opraveno novějším záznamem",
     "saveFailed": "Nepodařilo se uložit.",
     "retry": "Zkusit znovu",
     "discard": "Zahodit",
@@ -324,14 +321,17 @@
     },
     "form": {
       "newNoteTitle": "Nová poznámka",
+      "editNoteTitle": "Upravit záznam",
       "titleLabel": "Titulek",
       "textLabel": "Text",
       "dateLabel": "Datum události",
-      "subjectsLabel": "Koho se týká (prázdné = celá rodina)"
+      "subjectsLabel": "Koho se týká (prázdné = celá rodina)",
+      "save": "Uložit"
     },
     "errors": {
       "loadFailed": "Záznamy se nepodařilo načíst.",
-      "pinFailed": "Připnutí se nezdařilo."
+      "pinFailed": "Připnutí se nezdařilo.",
+      "updateFailed": "Úpravu se nepodařilo uložit."
     }
   },
   "child": {

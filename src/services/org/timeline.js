@@ -1,8 +1,10 @@
 /**
  * org/timeline.js — chronologický deník rodiny (docs/domain/timeline.md).
- * Immutabilní podkolekce `foster_families/{familyId}/timeline`: create ano,
- * update jen `pinned` (max 3, hlídáno tady i v rules), delete nikdy. Oprava
- * záznamu = nový záznam s `correctsEntryId`, ne editace původního.
+ * Podkolekce `foster_families/{familyId}/timeline`. Immutabilita POZASTAVENA
+ * 2026-07-05 (do odvolání, na žádost produktového vlastníka) — `body`/
+ * `title`/`occurredAt`/`subjectRefs` se teď smí editovat přes
+ * `updateTimelineEntry`, ne jen `pinned` (max 3, hlídáno tady i v rules).
+ * Delete stále nikdy — mazání záznamů zůstává mimo rozsah této změny.
  */
 
 import {
@@ -73,16 +75,13 @@ export async function createSystemTimelineEntry(familyId, { title, body, subject
   });
 }
 
-/** Oprava = nový záznam typu `note` s `correctsEntryId` — původní se nikdy needituje. */
-export async function createTimelineCorrection(familyId, originalEntry, { body, occurredAt, subjectRefs }) {
-  return createTimelineEntry(familyId, {
-    type: 'note',
-    title: `Oprava: ${originalEntry.title}`,
-    body,
-    subjectRefs: subjectRefs ?? originalEntry.subjectRefs ?? [],
-    occurredAt,
-    correctsEntryId: originalEntry.id,
-  });
+/**
+ * Editace obsahu záznamu na místě (immutability pozastavena 2026-07-05, viz
+ * komentář nahoře). `patch` smí obsahovat jen `body`/`title`/`occurredAt`/
+ * `subjectRefs` — cokoli jiného firestore.rules odmítne.
+ */
+export async function updateTimelineEntry(familyId, entryId, patch) {
+  await updateDoc(doc(db, 'foster_families', familyId, 'timeline', entryId), { ...patch, ...meta() });
 }
 
 /** Pin/unpin — max 3 připnuté na rodinu, srozumitelná chyba při překročení (viz timeline.md §5 bod 5). */

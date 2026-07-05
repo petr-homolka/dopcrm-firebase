@@ -1,6 +1,9 @@
 /**
- * TimelineEntryForm.jsx — formulář „+ Záznam" i „Napsat opravu" (stejný
- * formulář, docs/domain/timeline.md §4). MVP: jen typ Poznámka.
+ * TimelineEntryForm.jsx — formulář „+ Záznam" i editace existujícího
+ * záznamu (immutability pozastavena 2026-07-05, do odvolání). Stejný
+ * formulář pro obojí, jen předvyplněný obsahem při editaci — na rozdíl od
+ * dřívější "Napsat opravu" (nový záznam s prázdným textem) teď `title`/
+ * `body`/`datum` nesou AKTUÁLNÍ hodnoty a uživatel je přepisuje na místě.
  */
 
 import React from 'react';
@@ -10,7 +13,7 @@ import { fieldClass, labelClass } from './childDetailShared.js';
 import { cn } from '../../components/ui/cn.js';
 
 export default function TimelineEntryForm({
-  form, setForm, childrenList, correctingEntry, onClose, onSubmit,
+  form, setForm, childrenList, editingEntry, submitting = false, onClose, onSubmit,
 }) {
   const { t } = useTranslation();
 
@@ -30,23 +33,21 @@ export default function TimelineEntryForm({
 
   return (
     <ChildFormModal
-      title={correctingEntry ? t('timeline.correctionTitle', { title: correctingEntry.title }) : t('timeline.form.newNoteTitle')}
+      title={editingEntry ? t('timeline.form.editNoteTitle') : t('timeline.form.newNoteTitle')}
       onClose={onClose}
       onSubmit={handleSubmit}
-      submitting={false}
-      submitLabel={t('common.save')}
+      submitting={submitting}
+      submitLabel={t('timeline.form.save')}
     >
-      {!correctingEntry && (
-        <div>
-          <label className={labelClass}>{t('timeline.form.titleLabel')}</label>
-          <input
-            className={fieldClass}
-            placeholder={t('timeline.defaultTitle')}
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
-        </div>
-      )}
+      <div>
+        <label className={labelClass}>{t('timeline.form.titleLabel')}</label>
+        <input
+          className={fieldClass}
+          placeholder={t('timeline.defaultTitle')}
+          value={form.title}
+          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+        />
+      </div>
 
       <div>
         <label className={labelClass}>{t('timeline.form.textLabel')}</label>
@@ -81,8 +82,8 @@ export default function TimelineEntryForm({
               className={cn(
                 'rounded-full px-3 py-1 text-xs font-medium transition',
                 form.childIds.includes(child.id)
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-surface-muted text-ink-600 hover:bg-border-subtle'
               )}
             >
               {child.firstName} {child.lastName}

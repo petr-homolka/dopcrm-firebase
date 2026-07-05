@@ -33,8 +33,8 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList, canMan
   const {
     entries, pinned, pending, loading, hasMore, loadMore,
     typeFilter, setTypeFilter, childFilter, setChildFilter,
-    dialogOpen, setDialogOpen, form, setForm, correctingEntry,
-    openAdd, openCorrection, submitEntry, retryPending, discardPending, togglePin, pinError, loadError,
+    dialogOpen, setDialogOpen, form, setForm, editingEntry, editSubmitting,
+    openAdd, openEdit, submitEntry, retryPending, discardPending, togglePin, pinError, loadError,
   } = useFamilyTimeline(familyId);
 
   useEffect(() => {
@@ -46,11 +46,6 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList, canMan
 
   const childrenById = Object.fromEntries(childrenList.map((c) => [c.id, c]));
   const allItems = [...pending, ...entries];
-
-  // Nejlepší dostupné zjištění — jen v rámci aktuálně načtené stránky/pending (viz timeline.md §5 bod 4).
-  const correctionOf = {};
-  allItems.forEach((e) => { if (e.correctsEntryId) correctionOf[e.correctsEntryId] = e; });
-
   const dayGroups = groupByDay(allItems);
 
   function authorName(entry) {
@@ -114,10 +109,9 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList, canMan
                 key={entry.id}
                 entry={entry}
                 childrenById={childrenById}
-                correctedBy={correctionOf[entry.id]}
                 authorName={authorName(entry)}
                 onTogglePin={togglePin}
-                onCorrect={openCorrection}
+                onEdit={openEdit}
                 onRetry={retryPending}
                 onDiscard={discardPending}
                 canManage={canManage}
@@ -151,10 +145,9 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList, canMan
                 key={entry.id}
                 entry={entry}
                 childrenById={childrenById}
-                correctedBy={correctionOf[entry.id]}
                 authorName={authorName(entry)}
                 onTogglePin={togglePin}
-                onCorrect={openCorrection}
+                onEdit={openEdit}
                 onRetry={retryPending}
                 onDiscard={discardPending}
                 canManage={canManage}
@@ -171,7 +164,8 @@ export default function FosterFamilyTimelineTab({ familyId, childrenList, canMan
           form={form}
           setForm={setForm}
           childrenList={childrenList}
-          correctingEntry={correctingEntry}
+          editingEntry={editingEntry}
+          submitting={editSubmitting}
           onClose={() => setDialogOpen(false)}
           onSubmit={submitEntry}
         />

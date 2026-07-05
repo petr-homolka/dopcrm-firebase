@@ -249,13 +249,18 @@ service cloud.firestore {
       }
 
       // Timeline (docs/domain/timeline.md, 2026-07-03) — chronologický deník
-      // rodiny, důkazní hodnota. Immutabilní: create ano, update JEN pole
-      // `pinned` (max 3, hlídá klient — rules počítání nativně nepodporují),
-      // delete nikdy. Zápis/pin: jen přiřazená KO nebo org_admin téže
-      // organizace — superadmin NE (nepracuje s klientskými daty rodin,
-      // jen se systémem). Čtení: superadmin vždy; jinak stejně jako u
-      // foster_families/children — sameOrg (vč. nadřízených a kolegů KO
-      // kvůli přehledu/zastupitelnosti) nebo přímo přiřazená KO.
+      // rodiny, důkazní hodnota. PRAVIDLO IMMUTABILITY POZASTAVENO 2026-07-05
+      // na žádost produktového vlastníka (do odvolání) — zápis v terénu
+      // vzniká po částech a musí se dát upravit, dokud se nedomluví
+      // pravidla per typ záznamu (docs/INVENTAR.md). Update teď smí i
+      // obsahová pole (`body`/`title`/`occurredAt`/`subjectRefs`), ne jen
+      // `pinned` — `type`/`source`/`correctsEntryId`/`createdBy`/`createdAt`
+      // (provenience záznamu) se stále NESMÍ měnit. Delete nikdy. Zápis/pin:
+      // jen přiřazená KO nebo org_admin téže organizace — superadmin NE
+      // (nepracuje s klientskými daty rodin, jen se systémem). Čtení:
+      // superadmin vždy; jinak stejně jako u foster_families/children —
+      // sameOrg (vč. nadřízených a kolegů KO kvůli přehledu/zastupitelnosti)
+      // nebo přímo přiřazená KO.
       match /timeline/{entryId} {
         function parentFamilyTimeline() {
           return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
@@ -269,7 +274,8 @@ service cloud.firestore {
                        || parentFamilyTimeline().assignedTo == request.auth.uid;
         allow create: if canWriteTimeline();
         allow update: if canWriteTimeline()
-                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pinned', 'updatedAt', 'updatedBy']);
+                         && request.resource.data.diff(resource.data).affectedKeys()
+                            .hasOnly(['pinned', 'body', 'title', 'occurredAt', 'subjectRefs', 'updatedAt', 'updatedBy']);
         allow delete: if false;
       }
     }

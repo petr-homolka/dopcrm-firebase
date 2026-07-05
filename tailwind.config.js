@@ -97,6 +97,22 @@ export default {
           methodics: '#6B4EA0',
           education: '#2A8FA0',
         },
+
+        // ── Mobilní PWA — "Connecteam Native Feel" (2026-07-05) ───────
+        // ÚPLNĚ SAMOSTATNÁ paleta pro src/mobile/ — nikdy nepoužívat v
+        // src/modules/ (desktop). Žádné responsivní sdílení tokenů mezi
+        // mobilem a desktopem, viz zadání "STRICT UI/UX DESIGN MANDATE".
+        native: {
+          bg: '#F2F2F7',        // pozadí appky mimo karty (iOS systémová šedá)
+          surface: '#FFFFFF',   // karty, listy, sheets
+          primary: '#007A87',   // tlumená modro-zelená, VŠECHNA primární CTA
+          success: '#34C759',   // iOS green
+          warning: '#FF9500',   // iOS orange
+          danger: '#FF3B30',    // iOS red
+          text: '#1C1C1E',      // téměř černá — nadpisy, důležitá data
+          textMuted: '#8E8E93', // popisky, časy, neaktivní tab ikony
+          separator: '#E5E5EA', // 1px linky (nikdy skutečný border-box stín)
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

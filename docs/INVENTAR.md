@@ -196,11 +196,19 @@ Ověřeno proti `CLAUDE.md` §„Pravidla datového modelu" — prošlé soubory
 
 Podkolekce `foster_families/{familyId}/timeline` (`src/services/org/timeline.js`), hlavní/výchozí
 tab detailu rodiny (`FosterFamilyTimelineTab.jsx` + `useFamilyTimeline.js` + `TimelineEntryCard.jsx`
-+ `TimelineEntryForm.jsx` + `timelineShared.js`). Immutabilní (create ano, update jen `pinned`,
-delete nikdy — `firestore.rules`), oprava = nový záznam s `correctsEntryId`. Systémové záznamy
-(změna svěření z Kroku 2) zapisuje `setChildCustody` (`org/children.js`) přes
-`createSystemTimelineEntry`. Composite indexy: `firestore.indexes.json` (4× — type, subjectRefs,
-subjectRefs+type, pinned — všechny + `occurredAt` desc).
++ `TimelineEntryForm.jsx` + `timelineShared.js`). Systémové záznamy (změna svěření z Kroku 2)
+zapisuje `setChildCustody` (`org/children.js`) přes `createSystemTimelineEntry`. Composite indexy:
+`firestore.indexes.json` (4× — type, subjectRefs, subjectRefs+type, pinned — všechny + `occurredAt` desc).
+
+**IMMUTABILITA POZASTAVENA 2026-07-05 (do odvolání, `docs/domain/timeline.md` hlavička):**
+záznam JDE editovat (`updateTimelineEntry` — `body`/`title`/`occurredAt`/`subjectRefs`),
+firestore.rules `update` na timeline rozšířeno o tato pole (dřív jen `pinned`). Celá karta
+(mimo pin ikonu) je klikací a otevře formulář předvyplněný AKTUÁLNÍM obsahem
+(`TimelineEntryCard.jsx`/`useFamilyTimeline.js openEdit`) — nahrazuje dřívější „⋯ → Napsat
+opravu" (create-only correction), ta byla odstraněna (`createTimelineCorrection` smazáno jako
+mrtvý kód). `delete` stále `false` — mazání záznamů zůstává mimo rozsah této změny. Až vznikne
+finální sada pravidel per typ záznamu, `docs/domain/timeline.md` se přepíše a tahle poznámka
+zmizí i odsud.
 
 **Živě ověřeno všech 8 akceptačních kritérií (`docs/domain/timeline.md` §6):**
 1. ✅ Seskupení podle dne („DNES"), nejnovější nahoře.
@@ -208,9 +216,8 @@ subjectRefs+type, pinned — všechny + `occurredAt` desc).
    (Eliška → nalezeno, Vojtěch → prázdný stav).
 3. ✅ Systémový záznam („Změna svěření") vznikl automaticky při `setChildCustody`, vizuálně
    tišší (bez stínu, bez pin/⋯ tlačítek).
-4. ✅ Přímý `updateDoc`/`deleteDoc` mimo `pinned` odmítnut rules (`permission-denied`); oprava
-   přes „⋯ → Napsat opravu" vytvoří nový záznam a originál dostane štítek „opraveno novějším
-   záznamem".
+4. ⚠️ PŮVODNÍ kritérium (immutabilita, oprava = nový záznam) neplatí od 2026-07-05 — viz
+   poznámka „IMMUTABILITA POZASTAVENA" výše. `deleteDoc` je stále rules odmítnut vždy.
 5. ✅ Pin/unpin funguje; 4. pokus vrátí „Lze připnout maximálně 3 záznamy — nejprve jeden
    odepněte."
 6. ✅ Prázdná rodina ukazuje empty state s funkčním tlačítkem „Přidat poznámku".

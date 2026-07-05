@@ -5,6 +5,15 @@ Timeline je SRDCE aplikace: chronologický příběh rodiny. Vše, co se v rodin
 (návštěvy, poznámky, fotky, dokumenty, změny svěření), se zapisuje sem a odsud čtou
 ostatní moduly (obrazovka Dnes, AI generování zpráv, mobilní appka).
 
+> **POZASTAVENO 2026-07-05 (do odvolání):** Immutabilita popsaná níže (§1, §2, §4,
+> §6 bod 4) NEPLATÍ — na žádost produktového vlastníka se dokud nevznikne sada
+> pravidel per typ záznamu (dokončené vs. rozpracované/plánované) může KAŽDÝ
+> záznam rozkliknout a upravit (`updateTimelineEntry`, `body`/`title`/`occurredAt`/
+> `subjectRefs`). Původní text sekcí zůstává jako referenční popis PŮVODNÍHO
+> (a budoucího cílového) chování — implementace teď odpovídá tomuto pozastavení,
+> ne textu níže. Až vznikne finální sada pravidel, tento dokument se přepíše
+> a poznámka zmizí.
+
 ## 1) Datový model
 
 Podkolekce `foster_families/{familyId}/timeline/{entryId}`:
