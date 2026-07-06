@@ -1,34 +1,55 @@
 /**
- * MobileEventSheet.jsx — založení kalendářní události z mobilu (2026-07-05,
- * Connecteam vzor „bottom sheet jako standard pro mobilní formuláře").
- * Do této chvíle mobilní kalendář uměl jen číst — plánovalo se pouze
- * z Detailu rodiny. Typ z EVENT_TYPES, rodina volitelná (org-wide události
- * jako porada rodinu nemají), přiřazeno vždy aktuálnímu uživateli — matici
- * přiřazování jiným koordinátorkám řeší desktop týdenní grid.
+ * MobileEventSheet.jsx — založení A ÚPRAVA kalendářní události z mobilu
+ * (2026-07-05/06, Connecteam vzor „bottom sheet jako standard pro mobilní
+ * formuláře"). Bez `event` propu zakládá (datum z klepnutého dne), s ním
+ * edituje existující událost (updateEvent). Typ z EVENT_TYPES, rodina
+ * volitelná (org-wide události jako porada rodinu nemají), přiřazeno vždy
+ * aktuálnímu uživateli — matici přiřazování jiným koordinátorkám řeší
+ * desktop týdenní grid. `location` se přepisuje adresou rodiny jen když se
+ * rodina ZMĚNILA — ručně nastavené místo z desktopu jinak zůstává.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../store/authStore.js';
-import { createEvent, listFostersAssignedTo, listFostersByOrg } from '../../../services/orgService.js';
+import { createEvent, updateEvent, listFostersAssignedTo, listFostersByOrg } from '../../../services/orgService.js';
 import { EVENT_TYPES } from '../../../shared/domainConstants.js';
 import { toDateInputValue } from '../../../shared/rcUtils.js';
+import { toJsDate } from '../../../modules/calendar/calendarShared.js';
 import { toast } from '../../../store/toastStore.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
 import { NativeFormGroup, NativeFormRow, RowInput, RowSelect } from '../../ui/NativeFormRow.jsx';
 
-export default function MobileEventSheet({ defaultDate, onClose, onCreated }) {
+function toTimeInputValue(date) {
+  return date.toTimeString().slice(0, 5);
+}
+
+export default function MobileEventSheet({ defaultDate, event = null, onClose, onCreated }) {
   const { role, currentUser, organizationId } = useAuthStore();
   const [families, setFamilies] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState(() => ({
-    title: '',
-    type: 'visit',
-    familyId: '',
-    date: toDateInputValue(defaultDate ?? new Date()),
-    from: '09:00',
-    to: '10:00',
-  }));
+  const [form, setForm] = useState(() => {
+    if (event) {
+      const start = toJsDate(event.start);
+      const end = toJsDate(event.end ?? event.start);
+      return {
+        title: event.title ?? '',
+        type: event.type ?? 'other',
+        familyId: event.fosterFamilyId ?? '',
+        date: toDateInputValue(start),
+        from: toTimeInputValue(start),
+        to: toTimeInputValue(end),
+      };
+    }
+    return {
+      title: '',
+      type: 'visit',
+      familyId: '',
+      date: toDateInputValue(defaultDate ?? new Date()),
+      from: '09:00',
+      to: '10:00',
+    };
+  });
 
   useEffect(() => {
     if (!organizationId) return;
@@ -48,37 +69,44 @@ export default function MobileEventSheet({ defaultDate, onClose, onCreated }) {
   const effectiveTitle = form.title.trim()
     || (form.type === 'visit' && selectedFamily ? `Návštěva — ${selectedFamily.name}` : EVENT_TYPES[form.type]);
 
-  async function handleCreate() {
+  async function handleSubmit() {
     setSubmitting(true);
     try {
       const start = new Date(`${form.date}T${form.from}`);
       const end = new Date(`${form.date}T${form.to || form.from}`);
-      await createEvent(organizationId, {
-        title: effectiveTitle,
-        type: form.type,
-        start,
-        end,
-        assignedTo: currentUser.uid,
-        fosterFamilyId: form.familyId || null,
-        location: selectedFamily?.address ?? '',
-      });
-      toast.info(`Událost naplánována na ${start.toLocaleDateString('cs-CZ')} v ${form.from}.`);
+      if (event) {
+        const patch = { title: effectiveTitle, type: form.type, start, end, fosterFamilyId: form.familyId || null };
+        if ((event.fosterFamilyId ?? '') !== form.familyId) patch.location = selectedFamily?.address ?? '';
+        await updateEvent(organizationId, event.id, patch);
+        toast.info('Událost upravena.');
+      } else {
+        await createEvent(organizationId, {
+          title: effectiveTitle,
+          type: form.type,
+          start,
+          end,
+          assignedTo: currentUser.uid,
+          fosterFamilyId: form.familyId || null,
+          location: selectedFamily?.address ?? '',
+        });
+        toast.info(`Událost naplánována na ${start.toLocaleDateString('cs-CZ')} v ${form.from}.`);
+      }
       onCreated();
     } catch (err) {
-      console.error('[MobileEventSheet] Založení události selhalo:', err);
-      toast.error(err.message ?? 'Založení se nezdařilo.');
+      console.error('[MobileEventSheet] Uložení události selhalo:', err);
+      toast.error(err.message ?? 'Uložení se nezdařilo.');
       setSubmitting(false);
     }
   }
 
   return (
     <NativeSheet
-      title="Nová událost"
+      title={event ? 'Upravit událost' : 'Nová událost'}
       onClose={() => !submitting && onClose()}
       submitting={submitting}
       footer={
-        <NativeButton onClick={handleCreate} disabled={submitting || !form.date || !form.from}>
-          {submitting ? 'Ukládám…' : 'Naplánovat'}
+        <NativeButton onClick={handleSubmit} disabled={submitting || !form.date || !form.from}>
+          {submitting ? 'Ukládám…' : event ? 'Uložit změny' : 'Naplánovat'}
         </NativeButton>
       }
     >

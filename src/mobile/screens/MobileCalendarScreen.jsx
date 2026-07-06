@@ -4,8 +4,10 @@
  * agenda CELÉHO týdne seskupená po dnech s datum-railem vlevo (velké číslo
  * dne + zkratka). Klepnutí na den v pásu sroluje na jeho skupinu; prázdný
  * den nabízí čárkovaný „+ Přidat" řádek. Události se nově dají ZAKLÁDAT
- * (MobileEventSheet) — dřív mobilní kalendář uměl jen číst. Data ze
- * sdíleného hooku useCalendarWeek (žádná sdílená JSX s desktopem).
+ * (MobileEventSheet) — dřív mobilní kalendář uměl jen číst. Klepnutí na
+ * kartu otevírá MobileEventDetailSheet (akce, úprava, smazání — Connecteam
+ * vzor „ťuk na směnu"). Data ze sdíleného hooku useCalendarWeek (žádná
+ * sdílená JSX s desktopem).
  */
 
 import React, { useState } from 'react';
@@ -17,12 +19,16 @@ import useCalendarWeek, { UNASSIGNED_ROW } from '../../modules/calendar/useCalen
 import MobileTopNav from '../ui/MobileTopNav.jsx';
 import { NATIVE_EVENT_BORDER } from '../ui/NativeBits.jsx';
 import MobileEventSheet from './calendar/MobileEventSheet.jsx';
+import MobileEventDetailSheet from './calendar/MobileEventDetailSheet.jsx';
 
-function EventCard({ ev }) {
+function EventCard({ ev, onOpen }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onOpen}
       className={cn(
-        'rounded-native-card border-l-4 bg-native-surface px-4 py-3',
+        'rounded-native-card border-l-4 bg-native-surface px-4 py-3 text-left',
+        'transition-transform duration-100 active:scale-[0.98]',
         NATIVE_EVENT_BORDER[ev.type] ?? EVENT_BORDER_CLASS[ev.type] ?? EVENT_BORDER_CLASS.other
       )}
     >
@@ -34,7 +40,7 @@ function EventCard({ ev }) {
       </div>
       <p className="mt-0.5 truncate text-[15px] text-native-text">{ev.title}</p>
       {ev.location && <p className="truncate text-[13px] text-native-textMuted">{ev.location}</p>}
-    </div>
+    </button>
   );
 }
 
@@ -45,6 +51,8 @@ export default function MobileCalendarScreen() {
     return todayIdx >= 0 ? todayIdx : 0;
   });
   const [sheetDayIdx, setSheetDayIdx] = useState(null); // null = zavřeno
+  const [detailEvent, setDetailEvent] = useState(null); // událost otevřená v detailu
+  const [editEvent, setEditEvent] = useState(null); // událost otevřená v edit sheetu
 
   if (week.loading) {
     return (
@@ -125,7 +133,7 @@ export default function MobileCalendarScreen() {
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 {events.length > 0 ? (
-                  events.map((ev) => <EventCard key={ev.id} ev={ev} />)
+                  events.map((ev) => <EventCard key={ev.id} ev={ev} onOpen={() => setDetailEvent(ev)} />)
                 ) : (
                   <button
                     type="button"
@@ -155,6 +163,23 @@ export default function MobileCalendarScreen() {
           defaultDate={week.days[sheetDayIdx]}
           onClose={() => setSheetDayIdx(null)}
           onCreated={() => { setSheetDayIdx(null); week.reload(); }}
+        />
+      )}
+
+      {detailEvent && (
+        <MobileEventDetailSheet
+          event={detailEvent}
+          onClose={() => setDetailEvent(null)}
+          onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
+          onChanged={() => { setDetailEvent(null); week.reload(); }}
+        />
+      )}
+
+      {editEvent && (
+        <MobileEventSheet
+          event={editEvent}
+          onClose={() => setEditEvent(null)}
+          onCreated={() => { setEditEvent(null); week.reload(); }}
         />
       )}
     </div>

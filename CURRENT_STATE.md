@@ -19,9 +19,17 @@ dle svého uvážení"):
   „Ukončit návštěvu" už nezapisuje hned — otevře sheet se souhrnem (rodina, trvání,
   poloha) a polem „Poznámka z návštěvy" → zápis vzniká na místě v terénu. Zavření sheetu
   = návštěva dál běží. Poznámka se ukládá do `body` timeline záznamu.
+- **Detail události** (`calendar/MobileEventDetailSheet.jsx`, Connecteam „ťuk na směnu"):
+  klepnutí na kartu v agendě → sheet se souhrnem (typ, den, čas, místo, chip Koncept
+  u nepublikované) a akcemi Zahájit návštěvu / Otevřít kartu rodiny / Upravit / Smazat
+  (dvoukrokové potvrzení na tlačítku, žádný window.confirm). Upravit/Smazat dle
+  `canEditEvent` (calendarShared.js — zrcadlí firestore.rules: KO svoje, management vše).
+  `MobileEventSheet` umí edit mode (prop `event` → updateEvent; `location` se přepisuje
+  jen při ZMĚNĚ rodiny, ruční místo z desktopu zůstává). Nový sdílený `toJsDate()`.
 - Ověřeno end-to-end na 390×844 (agenda → + Přidat út → sheet s rodinou → karta 14:00
-  v agendě + přepočet souhrnu; FAB speed-dial → timer → Ukončit → souhrn 00:19 + poznámka
-  → záznam na Ose s textem i odznakem trvání). Lint+build čisté, nasazeno na doprovazeni-dev.
+  v agendě + přepočet souhrnu; karta → detail → Upravit 16:00 → Smazat → den zase prázdný;
+  FAB speed-dial → timer → Ukončit → souhrn 00:19 + poznámka → záznam na Ose s textem
+  i odznakem trvání). Lint+build čisté, nasazeno na doprovazeni-dev.
   Pozn. k ověřování: timeout `preview_screenshot` po startu čerstvého serveru bývá přechodný
   (první Vite dep-optimalizace) — `preview_snapshot` projde a druhý screenshot už také.
 

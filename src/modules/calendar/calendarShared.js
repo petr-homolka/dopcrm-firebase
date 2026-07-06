@@ -15,8 +15,13 @@ export const EVENT_SHIFT_CLASS = {
   other: 'bg-ink-400',
 };
 
+/** Firestore Timestamp | Date | string → Date (jediné místo pro tuhle konverzi). */
+export function toJsDate(value) {
+  return typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+}
+
 export function formatTime(value) {
-  const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+  const date = toJsDate(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
 }
@@ -60,6 +65,10 @@ export function canPublishEvent(role, uid, event) {
   if (role === 'klicova_osoba') return event.assignedTo === uid;
   return EVENT_MANAGEMENT_ROLES.includes(role);
 }
+
+// Kdo smí událost upravit/smazat — stejná matice jako publikování;
+// firestore.rules mají pro events jediné `update, delete` pravidlo.
+export const canEditEvent = canPublishEvent;
 
 /**
  * Krok 4d (DESIGN.md §6.4 „Přidat otevřenou návštěvu") — otevřená návštěva
