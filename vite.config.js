@@ -22,12 +22,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
 
-      // Branding dle DESIGN.md (primary-600 #1A6B64), název sjednocen na Doprovázení.com
+      // Branding dle DESIGN.md §12 (native.primary #007AFF — stavový pruh
+      // instalované PWA; stará teal #1A6B64 byla přesně ta „zelená", která
+      // se měla z appky zmizet). Název sjednocen na Doprovázení.com.
       manifest: {
         name: 'Doprovázení.com',
         short_name: 'Doprovázení',
         description: 'CRM pro doprovázení pěstounských rodin',
-        theme_color: '#1A6B64',
+        theme_color: '#007AFF',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

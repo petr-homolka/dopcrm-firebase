@@ -26,6 +26,12 @@ dle svého uvážení"):
   `canEditEvent` (calendarShared.js — zrcadlí firestore.rules: KO svoje, management vše).
   `MobileEventSheet` umí edit mode (prop `event` → updateEvent; `location` se přepisuje
   jen při ZMĚNĚ rodiny, ruční místo z desktopu zůstává). Nový sdílený `toJsDate()`.
+- **PWA: poslední zbytek teal + auto-aktualizace** — manifest a index.html měly pořád
+  `theme_color #1A6B64` (stavový pruh INSTALOVANÉ appky svítil tou „zelenou" i po celém
+  redesignu) → `#007AFF`. `main.jsx` nově registruje SW s kontrolou aktualizace při návratu
+  appky do popředí + každou hodinu — nový build se natáhne bez úplného zabití appky
+  (dřív bylo nutné PWA zavřít a otevřít). Ikona (žlutá s „D") ponechána — branding
+  je rozhodnutí uživatele, viz `crm-settings-branding-todo`.
 - **Dnes = ranní vstupní bod KO** (Connecteam „home → směna → clock-in"): klepnutí na
   událost v Dnešním programu otevírá stejný detail sheet (Zahájit návštěvu přímo z Dnes);
   mrtvá stub dlaždice „Přidat rodinu" (KO rodiny zakládat nesmí — firestore.rules) nahrazena

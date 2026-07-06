@@ -11,11 +11,28 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import './index.css';
 import './i18n.js';
 import { initPersistence } from './services/firebase.js';
 import { bootstrapAuthStore } from './store/authStore.js';
 import App from './App.js';
+
+// PWA auto-aktualizace (2026-07-06): instalovaná appka se z launcheru jen
+// probouzí — bez explicitní kontroly by nový build natáhla až po úplném
+// zabití. Proto kontrola aktualizace SW při každém návratu do popředí
+// a jednou za hodinu; registerType 'autoUpdate' pak novou verzi aktivuje
+// a stránku sám obnoví.
+registerSW({
+  onRegisteredSW(_url, registration) {
+    if (!registration) return;
+    const check = () => registration.update().catch(() => {});
+    setInterval(check, 60 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check();
+    });
+  },
+});
 
 async function bootstrap() {
   // Zapnout IndexedDB offline cache — chyby se logují, nepadá
