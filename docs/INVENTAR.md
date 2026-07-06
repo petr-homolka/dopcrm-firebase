@@ -141,6 +141,7 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 | Funkce | Popis | Kde popsáno | Stav |
 |---|---|---|---|
 | PWA (manifest, service worker, instalovatelnost) | — | `docs/history.md` | ✅ (přes vite-plugin-pwa, viz Krok 5 úklidu) |
+| Mobilní PWA obrazovky (src/mobile/) | Dnes, Rodiny, Detail rodiny+dítěte, Kalendář (týdenní agenda + zakládání/úprava/smazání událostí), Giant Timer s GPS bodem a rekapitulací, FAB speed-dial | `DESIGN.md` §12, `docs/design/connecteam-analyza-2026-07-05.md` | ✅ (2026-07-05/06, Connecteam blok 1) |
 | Nativní mobilní appka (Expo/React Native) | Samostatný repo `pestouni-crm-mobile`, role `klicova_osoba` | `crm-mobil-nativni-app` (paměť) | 🟡 pozastaveno (SDK kompatibilita zařízení) |
 | Gesta (swipe-back, pull-to-refresh) | Jen vanilla prototyp, mobilní web appka to neřeší (nativní appka ano) | `docs/history-claude-md.md` §5 | 🟡 (řeší nativní mobilní repo) |
 | Detail-first navigace + terénní akční dok | Timer návštěvy, hlas→osa, rychlý zápis, sken | `crm-mobil-detail-first` (paměť) | 🟡 (nativní mobilní repo) |
@@ -386,8 +387,8 @@ vlastní řádky výše (sekce 1 a 9) — zde jen odkázáno, ne duplikováno.
 | ★★★★☆ Vlastní pole | Rozšíření profilu rodiny/dítěte/dokumentu o organizací specifické atributy | `DESIGN.md` §9 | ⬜ |
 | ★★★★☆ Onboarding koordinátorek | Strukturovaný nástup nové KO — checklist, přiřazené kurzy, dokumenty k podpisu | `DESIGN.md` §9 | ⬜ |
 | ★★★★☆ Google Calendar / Outlook sync | Synchronizace návštěv do osobního kalendáře koordinátorky | `DESIGN.md` §9 | ⬜ |
-| ★★★☆☆ Docházka / Check-in u rodiny | „Zahájit návštěvu" tlačítko při příchodu, čas začátku/konce propojený s reportem | `DESIGN.md` §9 | ⬜ |
-| ★★★☆☆ Ověření místa návštěvy (GPS) | Volitelné GPS ověření adresy; MUSÍ být GDPR-compliant, opt-in, transparentní vůči pěstounům | `DESIGN.md` §9 | ⬜ |
+| ★★★☆☆ Docházka / Check-in u rodiny | „Zahájit návštěvu" tlačítko při příchodu, čas začátku/konce propojený s reportem | `DESIGN.md` §9 | ✅ (Giant Timer + rekapitulace s poznámkou, mobilní PWA 2026-07-05/06; z Dnes, Osy i kalendáře) |
+| ★★★☆☆ Ověření místa návštěvy (GPS) | Volitelné GPS ověření adresy; MUSÍ být GDPR-compliant, opt-in, transparentní vůči pěstounům | `DESIGN.md` §9 | 🟡 (jeden GPS bod při zahájení + reverzní geokódování, 2026-07-05; opt-in/transparence vůči pěstounům ⬜) |
 | ★★★☆☆ Otevřené návštěvy | Při nemoci KO se návštěva nabídne kolegům jako „otevřená" k převzetí | `DESIGN.md` §9, §6.4 (kalendář) | ⬜ |
 | ★★★☆☆ Výkazy hodin | Souhrn hodin per koordinátorka za období — základ pro mzdy a vykazování MPSV | `DESIGN.md` §9 | ⬜ |
 | ★★★☆☆ Zpětná vazba a ankety | Anonymní zpětná vazba od pěstounů, evaluace vzdělávacích akcí, spokojenost | `DESIGN.md` §9 | ⬜ |
