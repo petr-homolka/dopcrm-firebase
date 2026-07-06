@@ -15,6 +15,7 @@ import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 import EmptyState from '../../components/ui/EmptyState.jsx';
 import SlugField from '../../components/ui/SlugField.jsx';
+import EventTypesPanel from './EventTypesPanel.jsx';
 
 export default function SettingsPage() {
   const { role, organizationId } = useAuthStore();
@@ -90,6 +91,7 @@ export default function SettingsPage() {
       {!loading && error && <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>}
 
       {!loading && !error && (
+        <div className="flex flex-col gap-6">
         <Card className="max-w-md">
           <h2 className="mb-1 text-sm font-semibold text-ink-800">Adresa organizace</h2>
           <p className="mb-4 text-xs text-ink-500">
@@ -111,6 +113,8 @@ export default function SettingsPage() {
             </Button>
           </form>
         </Card>
+        <EventTypesPanel />
+        </div>
       )}
     </div>
   );

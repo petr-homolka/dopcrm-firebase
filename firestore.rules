@@ -125,6 +125,14 @@ service cloud.firestore {
           || (isManagement() && sameOrg(orgId))
           || (isKlicovaOsoba() && sameOrg(orgId) && resource.data.assignedTo == request.auth.uid);
       }
+
+      // Číselníky organizace (2026-07-06, Lidl v4 bod 3 — vlastní typy
+      // událostí apod.). Čtení: celá organizace (selecty). Zápis: management
+      // — položky číselníků definuje administrace, ne terén.
+      match /codelists/{listId} {
+        allow read: if isSuperadmin() || sameOrg(orgId);
+        allow write: if isSuperadmin() || (isManagement() && sameOrg(orgId));
+      }
     }
 
     // ── org_slugs (rezervace unikátní adresy organizace) ─────────

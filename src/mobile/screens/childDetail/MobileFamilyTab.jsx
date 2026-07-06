@@ -1,20 +1,23 @@
 /**
- * MobileFamilyTab.jsx — "Biologická rodina" v mobilním Detailu dítěte
- * (STRICT UI/UX DESIGN MANDATE, 2026-07-05 dodatek): pěstouni/svěření,
- * evidovaní příbuzní (REL_TYPES) a historie předchozích pěstounských rodin.
- * Formulář "Přidat příbuzného" používá skutečný systémový <select> (RowSelect)
- * — nad ním iOS/Android vykreslí svůj nativní picker. Žádná sdílená JSX s
- * desktop ChildFamilyTab.jsx/AddRelativeModal.jsx.
+ * MobileFamilyTab.jsx — "Biologická rodina" v mobilním Detailu dítěte.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): údaje osob NEJSOU
+ * nahusto v jednom řádku — každý pěstoun/příbuzný/předchozí rodina je karta
+ * se jménem (17px semibold) nahoře a tabulkou název vlevo / hodnota vpravo
+ * (NativeInfoRow), viz MobileFostersTab.jsx. Formulář "Přidat příbuzného"
+ * používá skutečný systémový <select> (RowSelect) — nad ním iOS/Android
+ * vykreslí svůj nativní picker. Žádná sdílená JSX s desktop verzí.
  */
 
 import React from 'react';
-import { UserPlus, Plus } from 'lucide-react';
+import { UserPlus, Plus, User, Users } from 'lucide-react';
 import { cn } from '../../../components/ui/cn.js';
 import { REL_TYPES, legalWeightLabel, legalWeightTone } from '../../../shared/domainConstants.js';
 import { parseRc } from '../../../shared/rcUtils.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput, RowTextarea, RowSelect } from '../../ui/NativeFormRow.jsx';
+import { SectionLabel } from '../../ui/NativeBits.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput, RowTextarea, RowSelect } from '../../ui/NativeFormRow.jsx';
 
 const TONE_CLASS = {
   family: 'bg-native-primary/15 text-native-primary',
@@ -30,6 +33,37 @@ function WeightChip({ weight }) {
   );
 }
 
+/** Hlavička karty osoby/rodiny — kruhová ikona, jméno 17px semibold, vpravo chip. */
+function CardHeader({ icon: Icon, name, chip }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-native-separator py-3.5">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-native-primary/10 text-native-primary">
+        <Icon size={22} strokeWidth={1.75} />
+      </span>
+      <p className="min-w-0 flex-1 truncate text-[17px] font-semibold text-native-text">{name}</p>
+      {chip}
+    </div>
+  );
+}
+
+/** Telefon/e-mail jako proklikávací hodnota v NativeInfoRow; prázdné → pomlčka. */
+function phoneValue(phone) {
+  return phone ? <a href={`tel:${phone.replace(/\s/g, '')}`} className="text-native-primary">{phone}</a> : '';
+}
+
+function emailValue(email) {
+  return email ? <a href={`mailto:${email}`} className="break-all text-native-primary">{email}</a> : '';
+}
+
+/** Odkaz "Přidat" vpravo vedle sekčního nadpisu. */
+function AddLink({ icon: Icon, onClick, children }) {
+  return (
+    <button type="button" onClick={onClick} className="flex items-center gap-1 text-[13px] font-medium text-native-primary">
+      <Icon size={15} strokeWidth={2} /> {children}
+    </button>
+  );
+}
+
 export default function MobileFamilyTab({
   child, family, previousFosters, hasMorePreviousFosters, onLoadMorePreviousFosters, relGroupsData,
   relDialogOpen, relForm, setRelForm, onOpenRel, onCloseRel, onAddRelative,
@@ -42,78 +76,63 @@ export default function MobileFamilyTab({
   const relRc = parseRc(relForm.rc);
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
-      <div className="rounded-native-card bg-native-surface p-4">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Pěstouni a svěření ({fosters.length})</p>
-        <p className="mt-0.5 text-[13px] text-native-textMuted">
-          {child.custody
-            ? `${child.custody.type === 'spolecne' ? 'Společné svěření' : 'Individuální svěření'}${child.custody.caseNumber ? ` · sp. zn. ${child.custody.caseNumber}` : ''}`
-            : 'Svěření nevyplněno.'}
-        </p>
-        {fosters.length === 0 && <p className="py-2 text-[15px] text-native-textMuted">Žádní pěstouni.</p>}
-        <div className="flex flex-col">
-          {fosters.map((p) => (
-            <div key={p.id} className="flex items-start justify-between gap-3 border-t border-native-separator py-2.5 first:border-t-0">
-              <div className="min-w-0">
-                <p className="text-[15px] font-medium text-native-text">{p.name}</p>
-                <p className="text-[13px] text-native-textMuted">{[p.rc && `RČ ${p.rc}`, p.phone, p.email].filter(Boolean).join(' · ')}</p>
-              </div>
-              <WeightChip weight={caregiverIds.includes(p.id) ? 'pecujici' : 'bez_prav'} />
-            </div>
-          ))}
+    <div className="flex flex-col px-4 pb-6 pt-1">
+      <SectionLabel>Pěstouni a svěření ({fosters.length})</SectionLabel>
+      <div className="flex flex-col gap-3">
+        <div className="rounded-native-card bg-native-surface px-4">
+          <NativeInfoRow label="Svěření" value={child.custody ? (child.custody.type === 'spolecne' ? 'Společné' : 'Individuální') : ''} />
+          <NativeInfoRow label="Spisová značka" value={child.custody?.caseNumber} isLast />
         </div>
+        {fosters.length === 0 && <p className="text-[15px] text-native-textMuted">Žádní pěstouni.</p>}
+        {fosters.map((p) => (
+          <div key={p.id} className="rounded-native-card bg-native-surface px-4">
+            <CardHeader icon={User} name={p.name} chip={<WeightChip weight={caregiverIds.includes(p.id) ? 'pecujici' : 'bez_prav'} />} />
+            <NativeInfoRow label="Rodné číslo" value={p.rc} />
+            <NativeInfoRow label="Telefon" value={phoneValue(p.phone)} />
+            <NativeInfoRow label="E-mail" value={emailValue(p.email)} isLast />
+          </div>
+        ))}
       </div>
 
-      <div className="rounded-native-card bg-native-surface p-4">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Příbuzní ({relatives.length})</p>
-          {canManage && (
-            <button type="button" onClick={onOpenRel} className="flex items-center gap-1 text-[14px] font-medium text-native-primary">
-              <UserPlus size={15} strokeWidth={2} /> Přidat
-            </button>
-          )}
-        </div>
-        {relatives.length === 0 && <p className="py-2 text-[15px] text-native-textMuted">Žádní evidovaní příbuzní.</p>}
-        <div className="flex flex-col">
-          {relatives.map((rel, idx) => {
-            const relType = REL_TYPES.find((r) => r.key === rel.rel);
-            return (
-              <div key={rel.id ?? idx} className="flex items-start justify-between gap-3 border-t border-native-separator py-2.5 first:border-t-0">
-                <div className="min-w-0">
-                  <p className="text-[15px] font-medium text-native-text">{rel.name}</p>
-                  <p className="text-[13px] text-native-textMuted">
-                    {[relType?.label ?? rel.rel, rel.rc && `RČ ${rel.rc}`, rel.phone, rel.email, rel.note].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-                <WeightChip weight={relType?.legalWeight} />
-              </div>
-            );
-          })}
-        </div>
+      <div className="flex items-center justify-between">
+        <SectionLabel>Příbuzní ({relatives.length})</SectionLabel>
+        {canManage && <AddLink icon={UserPlus} onClick={onOpenRel}>Přidat</AddLink>}
+      </div>
+      {relatives.length === 0 && <p className="text-[15px] text-native-textMuted">Žádní evidovaní příbuzní.</p>}
+      <div className="flex flex-col gap-3">
+        {relatives.map((rel, idx) => {
+          const relType = REL_TYPES.find((r) => r.key === rel.rel);
+          return (
+            <div key={rel.id ?? idx} className="rounded-native-card bg-native-surface px-4">
+              <CardHeader icon={User} name={rel.name} chip={<WeightChip weight={relType?.legalWeight} />} />
+              <NativeInfoRow label="Vztah" value={relType?.label ?? rel.rel} />
+              <NativeInfoRow label="Rodné číslo" value={rel.rc} />
+              <NativeInfoRow label="Telefon" value={phoneValue(rel.phone)} />
+              <NativeInfoRow label="E-mail" value={emailValue(rel.email)} isLast={!rel.note} />
+              {rel.note && <NativeInfoRow label="Poznámka" value={rel.note} isLast />}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="rounded-native-card bg-native-surface p-4">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Předchozí pěstounské rodiny ({previousFosters.length})</p>
-          {canManage && (
-            <button type="button" onClick={onOpenFosterHist} className="flex items-center gap-1 text-[14px] font-medium text-native-primary">
-              <Plus size={14} strokeWidth={2} /> Přidat
-            </button>
-          )}
-        </div>
-        {previousFosters.length === 0 && <p className="py-2 text-[15px] text-native-textMuted">Žádné předchozí umístění v evidenci.</p>}
-        <div className="flex flex-col">
-          {previousFosters.map((pf) => (
-            <div key={pf.id} className="border-t border-native-separator py-2.5 first:border-t-0">
-              <p className="text-[15px] font-medium text-native-text">{pf.name}</p>
-              <p className="text-[13px] text-native-textMuted">{[pf.from && `od ${pf.from}`, pf.to && `do ${pf.to}`, pf.note].filter(Boolean).join(' · ')}</p>
-            </div>
-          ))}
-        </div>
-        {hasMorePreviousFosters && (
-          <NativeButton variant="secondary" className="mt-2 h-11" onClick={onLoadMorePreviousFosters}>Načíst další</NativeButton>
-        )}
+      <div className="flex items-center justify-between">
+        <SectionLabel>Předchozí pěstounské rodiny ({previousFosters.length})</SectionLabel>
+        {canManage && <AddLink icon={Plus} onClick={onOpenFosterHist}>Přidat</AddLink>}
       </div>
+      {previousFosters.length === 0 && <p className="text-[15px] text-native-textMuted">Žádné předchozí umístění v evidenci.</p>}
+      <div className="flex flex-col gap-3">
+        {previousFosters.map((pf) => (
+          <div key={pf.id} className="rounded-native-card bg-native-surface px-4">
+            <CardHeader icon={Users} name={pf.name} />
+            <NativeInfoRow label="Od" value={pf.from} />
+            <NativeInfoRow label="Do" value={pf.to} isLast={!pf.note} />
+            {pf.note && <NativeInfoRow label="Poznámka" value={pf.note} isLast />}
+          </div>
+        ))}
+      </div>
+      {hasMorePreviousFosters && (
+        <NativeButton variant="secondary" className="mt-3 h-11" onClick={onLoadMorePreviousFosters}>Načíst další</NativeButton>
+      )}
 
       {relDialogOpen && (
         <NativeSheet
@@ -122,7 +141,7 @@ export default function MobileFamilyTab({
           submitting={submitting}
           footer={<NativeButton onClick={() => onAddRelative({ preventDefault: () => {} })} disabled={submitting || !relForm.name.trim() || !!relRc.error}>{submitting ? 'Ukládám…' : 'Přidat'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Jméno a příjmení">
               <RowInput value={relForm.name} onChange={(e) => setRelForm((f) => ({ ...f, name: e.target.value }))} autoFocus />
@@ -149,7 +168,7 @@ export default function MobileFamilyTab({
             <NativeFormRow label="E-mail">
               <RowInput type="email" value={relForm.email} onChange={(e) => setRelForm((f) => ({ ...f, email: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Poznámka" isLast>
+            <NativeFormRow label="Poznámka" isLast stacked>
               <RowTextarea rows={2} placeholder="např. styk 1× měsíčně" value={relForm.note} onChange={(e) => setRelForm((f) => ({ ...f, note: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>
@@ -163,7 +182,7 @@ export default function MobileFamilyTab({
           submitting={submitting}
           footer={<NativeButton onClick={() => onAddFosterHist({ preventDefault: () => {} })} disabled={submitting || !fosterHistForm.name.trim()}>{submitting ? 'Ukládám…' : 'Přidat'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Rodina / pěstoun">
               <RowInput value={fosterHistForm.name} onChange={(e) => setFosterHistForm((f) => ({ ...f, name: e.target.value }))} autoFocus />
@@ -174,7 +193,7 @@ export default function MobileFamilyTab({
             <NativeFormRow label="Do">
               <RowInput type="date" value={fosterHistForm.to} onChange={(e) => setFosterHistForm((f) => ({ ...f, to: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Poznámka" isLast>
+            <NativeFormRow label="Poznámka" isLast stacked>
               <RowTextarea rows={2} value={fosterHistForm.note} onChange={(e) => setFosterHistForm((f) => ({ ...f, note: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>

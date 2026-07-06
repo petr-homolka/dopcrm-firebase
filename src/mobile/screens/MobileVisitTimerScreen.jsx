@@ -176,7 +176,8 @@ export default function MobileVisitTimerScreen() {
             </p>
           </div>
           <NativeFormGroup>
-            <NativeFormRow label="Poznámka z návštěvy" isLast hint="Můžete doplnit hned, nebo později rozkliknutím záznamu na Ose.">
+            {/* Textarea se do horizontálního řádku (v4) nevejde → stacked */}
+            <NativeFormRow label="Poznámka z návštěvy" isLast stacked hint="Můžete doplnit hned, nebo později rozkliknutím záznamu na Ose.">
               <RowTextarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} autoFocus placeholder="Co se při návštěvě dělo…" />
             </NativeFormRow>
           </NativeFormGroup>

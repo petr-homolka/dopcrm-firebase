@@ -1,33 +1,48 @@
 /**
  * MobileEventSheet.jsx — založení A ÚPRAVA kalendářní události z mobilu
- * (2026-07-05/06, Connecteam vzor „bottom sheet jako standard pro mobilní
- * formuláře"). Bez `event` propu zakládá (datum z klepnutého dne), s ním
- * edituje existující událost (updateEvent). Typ z EVENT_TYPES, rodina
- * volitelná (org-wide události jako porada rodinu nemají), přiřazeno vždy
- * aktuálnímu uživateli — matici přiřazování jiným koordinátorkám řeší
- * desktop týdenní grid. `location` se přepisuje adresou rodiny jen když se
+ * (2026-07-05/06, Connecteam + Lidl v4). Bez `event` propu zakládá (datum
+ * a čas z klepnutého dne/hodiny), s ním edituje (updateEvent). Typ se čte
+ * z číselníku organizace (vestavěné EVENT_TYPES + vlastní z
+ * `codelists/eventTypes` — Lidl v4 bod 3: výčet nesmí být konečný);
+ * management může přidat nový typ přímo ze selectu („+ Nový typ…").
+ * U vlastních typů se do události denormalizuje `typeLabel` (karty pak
+ * nemusí číst číselník). `location` se přepisuje adresou rodiny jen když se
  * rodina ZMĚNILA — ručně nastavené místo z desktopu jinak zůstává.
  */
 
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../store/authStore.js';
-import { createEvent, updateEvent, listFostersAssignedTo, listFostersByOrg } from '../../../services/orgService.js';
+import {
+  createEvent, updateEvent, listFostersAssignedTo, listFostersByOrg,
+  getEventTypes, addEventType,
+} from '../../../services/orgService.js';
 import { EVENT_TYPES } from '../../../shared/domainConstants.js';
 import { toDateInputValue } from '../../../shared/rcUtils.js';
-import { toJsDate } from '../../../modules/calendar/calendarShared.js';
+import { toJsDate, EVENT_MANAGEMENT_ROLES } from '../../../modules/calendar/calendarShared.js';
 import { toast } from '../../../store/toastStore.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
 import { NativeFormGroup, NativeFormRow, RowInput, RowSelect } from '../../ui/NativeFormRow.jsx';
 
+const ADD_TYPE = '__add__';
+
+/** `HH:MM` + n hodin (přetečení dne nechává 23:00 — konec pracovního dne). */
+function hourPlus(time, n) {
+  const h = Math.min(23, Number(time.slice(0, 2)) + n);
+  return `${String(h).padStart(2, '0')}${time.slice(2)}`;
+}
+
 function toTimeInputValue(date) {
   return date.toTimeString().slice(0, 5);
 }
 
-export default function MobileEventSheet({ defaultDate, event = null, onClose, onCreated }) {
+export default function MobileEventSheet({ defaultDate, defaultFrom, event = null, onClose, onCreated }) {
   const { role, currentUser, organizationId } = useAuthStore();
   const [families, setFamilies] = useState([]);
+  const [types, setTypes] = useState(EVENT_TYPES);
+  const [newTypeLabel, setNewTypeLabel] = useState(null); // null = zavřeno
   const [submitting, setSubmitting] = useState(false);
+  const canAddType = EVENT_MANAGEMENT_ROLES.includes(role);
   const [form, setForm] = useState(() => {
     if (event) {
       const start = toJsDate(event.start);
@@ -41,13 +56,11 @@ export default function MobileEventSheet({ defaultDate, event = null, onClose, o
         to: toTimeInputValue(end),
       };
     }
+    const from = defaultFrom ?? '09:00';
     return {
-      title: '',
-      type: 'visit',
-      familyId: '',
+      title: '', type: 'visit', familyId: '',
       date: toDateInputValue(defaultDate ?? new Date()),
-      from: '09:00',
-      to: '10:00',
+      from, to: hourPlus(from, 1),
     };
   });
 
@@ -56,35 +69,54 @@ export default function MobileEventSheet({ defaultDate, event = null, onClose, o
     const loader = role === 'klicova_osoba'
       ? listFostersAssignedTo(currentUser.uid, organizationId)
       : listFostersByOrg(organizationId);
-    loader.then(setFamilies).catch((err) => {
-      console.error('[MobileEventSheet] Načtení rodin selhalo:', err);
-    });
+    loader.then(setFamilies).catch((err) => console.error('[MobileEventSheet] Načtení rodin selhalo:', err));
+    getEventTypes(organizationId).then(setTypes).catch((err) => console.error('[MobileEventSheet] Číselník typů selhal:', err));
   }, [role, currentUser, organizationId]);
 
   function set(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
+  function handleTypeChange(e) {
+    const value = e.target.value;
+    if (value === ADD_TYPE) {
+      setNewTypeLabel('');
+      return;
+    }
+    setForm((f) => ({ ...f, type: value }));
+  }
+
+  async function handleAddType() {
+    try {
+      const key = await addEventType(organizationId, newTypeLabel);
+      const fresh = await getEventTypes(organizationId);
+      setTypes(fresh);
+      setForm((f) => ({ ...f, type: key }));
+      setNewTypeLabel(null);
+    } catch (err) {
+      toast.error(err.message ?? 'Typ se nepodařilo přidat.');
+    }
+  }
+
   const selectedFamily = families.find((f) => f.id === form.familyId);
   const effectiveTitle = form.title.trim()
-    || (form.type === 'visit' && selectedFamily ? `Návštěva — ${selectedFamily.name}` : EVENT_TYPES[form.type]);
+    || (form.type === 'visit' && selectedFamily ? `Návštěva — ${selectedFamily.name}` : types[form.type] ?? 'Událost');
 
   async function handleSubmit() {
     setSubmitting(true);
     try {
       const start = new Date(`${form.date}T${form.from}`);
       const end = new Date(`${form.date}T${form.to || form.from}`);
+      // Vlastní typ (mimo vestavěné) → denormalizovaný label do události.
+      const typeLabel = EVENT_TYPES[form.type] ? null : types[form.type] ?? null;
       if (event) {
-        const patch = { title: effectiveTitle, type: form.type, start, end, fosterFamilyId: form.familyId || null };
+        const patch = { title: effectiveTitle, type: form.type, typeLabel, start, end, fosterFamilyId: form.familyId || null };
         if ((event.fosterFamilyId ?? '') !== form.familyId) patch.location = selectedFamily?.address ?? '';
         await updateEvent(organizationId, event.id, patch);
         toast.info('Událost upravena.');
       } else {
         await createEvent(organizationId, {
-          title: effectiveTitle,
-          type: form.type,
-          start,
-          end,
+          title: effectiveTitle, type: form.type, typeLabel, start, end,
           assignedTo: currentUser.uid,
           fosterFamilyId: form.familyId || null,
           location: selectedFamily?.address ?? '',
@@ -112,13 +144,14 @@ export default function MobileEventSheet({ defaultDate, event = null, onClose, o
     >
       <NativeFormGroup>
         <NativeFormRow label="Typ">
-          <RowSelect value={form.type} onChange={set('type')}>
-            {Object.entries(EVENT_TYPES).map(([key, label]) => (
+          <RowSelect value={form.type} onChange={handleTypeChange}>
+            {Object.entries(types).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
+            {canAddType && <option value={ADD_TYPE}>+ Nový typ…</option>}
           </RowSelect>
         </NativeFormRow>
-        <NativeFormRow label="Rodina (volitelné)">
+        <NativeFormRow label="Rodina">
           <RowSelect value={form.familyId} onChange={set('familyId')}>
             <option value="">Bez rodiny</option>
             {families.map((f) => (
@@ -139,6 +172,23 @@ export default function MobileEventSheet({ defaultDate, event = null, onClose, o
           <RowInput type="time" value={form.to} onChange={set('to')} />
         </NativeFormRow>
       </NativeFormGroup>
+
+      {newTypeLabel !== null && (
+        <NativeFormGroup>
+          <NativeFormRow label="Nový typ" isLast hint="Uloží se do číselníku organizace — uvidí ho všichni.">
+            <RowInput
+              value={newTypeLabel}
+              onChange={(e) => setNewTypeLabel(e.target.value)}
+              placeholder="Např. Supervize"
+              autoFocus
+            />
+          </NativeFormRow>
+          <div className="flex gap-2 pb-3">
+            <NativeButton variant="secondary" className="h-11" onClick={() => setNewTypeLabel(null)}>Zrušit</NativeButton>
+            <NativeButton className="h-11" onClick={handleAddType} disabled={!newTypeLabel.trim()}>Přidat typ</NativeButton>
+          </div>
+        </NativeFormGroup>
+      )}
     </NativeSheet>
   );
 }

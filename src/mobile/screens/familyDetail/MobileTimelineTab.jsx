@@ -243,7 +243,8 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
             <NativeFormRow label="Nadpis">
               <RowInput value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Poznámka" />
             </NativeFormRow>
-            <NativeFormRow label="Text">
+            {/* Textarea se do horizontálního řádku (v4) nevejde → stacked */}
+            <NativeFormRow label="Text" stacked>
               <RowTextarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} autoFocus />
             </NativeFormRow>
             <NativeFormRow label="Datum" isLast>

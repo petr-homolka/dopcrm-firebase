@@ -62,7 +62,7 @@ export default function MobileEventDetailSheet({ event, onClose, onEdit, onChang
       <div className="rounded-native-card bg-native-bg p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">
-            {eventTypeLabel(event.type)}
+            {event.typeLabel ?? eventTypeLabel(event.type)}
           </p>
           {event.published === false && <NativeChip tone="warning">Koncept</NativeChip>}
         </div>

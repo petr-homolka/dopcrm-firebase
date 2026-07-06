@@ -1,15 +1,33 @@
 /**
- * MobileIdentityTab.jsx — "Identita" v mobilním Detailu dítěte (STRICT UI/UX
- * DESIGN MANDATE, 2026-07-05 dodatek). Native karty, NativeSheet formuláře.
- * Žádná sdílená JSX s desktop ChildIdentityTab.jsx.
+ * MobileIdentityTab.jsx — "Identita" v mobilním Detailu dítěte.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): údaje se NEZOBRAZUJÍ
+ * nahusto v jednom řádku — každá karta je tabulka název vlevo / hodnota
+ * vpravo (NativeInfoRow). Adresy jsou při oprávnění tapnutelné hodnoty
+ * (otevřou stejný NativeSheet jako dřív).
  */
 
 import React from 'react';
-import { BadgeCheck, Cake } from 'lucide-react';
 import { formatDate, addressLabel } from '../../../modules/admin/childDetailShared.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
+
+/** Popisek dokladu: číslo + platnost; bez dokladu "nevydán" (doménový stav, ne chybějící údaj). */
+function docLabel(doc) {
+  if (!doc) return 'nevydán';
+  return `${doc.number}${doc.validUntil ? ` (do ${doc.validUntil})` : ''}`;
+}
+
+/** Hodnota adresního řádku — při oprávnění tapnutelná (modrá) hodnota otevírající sheet. */
+function addressValue(text, canManage, onEdit) {
+  if (!canManage) return text;
+  return (
+    <button type="button" onClick={onEdit} className="text-right text-native-primary">
+      {text ?? 'Doplnit'}
+    </button>
+  );
+}
 
 export default function MobileIdentityTab({
   child, addressDialogFor, addressForm, setAddressForm, onOpenAddress, onCloseAddress, onSaveAddress,
@@ -18,51 +36,34 @@ export default function MobileIdentityTab({
 }) {
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
-      <div className="rounded-native-card bg-native-surface p-4">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Základní identita</p>
-        <div className="mt-1.5 flex items-center gap-2 text-native-textMuted">
-          <BadgeCheck size={16} strokeWidth={1.75} />
-          <p className="text-[15px]">{child.rc ? `RČ ${child.rc}` : 'RČ nevyplněno'}</p>
+      <div className="rounded-native-card bg-native-surface px-4">
+        <div className="flex items-center border-b border-native-separator py-3">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Základní identita</p>
         </div>
-        <div className="mt-1 flex items-center gap-2 text-native-textMuted">
-          <Cake size={16} strokeWidth={1.75} />
-          <p className="text-[15px]">Narození {formatDate(child.birthDate)}</p>
-        </div>
-        <div className="my-2.5 h-px bg-native-separator" />
-        <p className="text-[15px] text-native-text">
-          Občanský průkaz: {child.idCard ? `${child.idCard.number}${child.idCard.validUntil ? ` (do ${child.idCard.validUntil})` : ''}` : 'nevydán'}
-        </p>
-        <p className="text-[15px] text-native-text">
-          Cestovní pas: {child.passport ? `${child.passport.number}${child.passport.validUntil ? ` (do ${child.passport.validUntil})` : ''}` : 'nevydán'}
-        </p>
+        <NativeInfoRow label="Rodné číslo" value={child.rc} />
+        <NativeInfoRow label="Datum narození" value={formatDate(child.birthDate)} />
+        <NativeInfoRow label="Občanský průkaz" value={docLabel(child.idCard)} />
+        <NativeInfoRow label="Cestovní pas" value={docLabel(child.passport)} isLast={!canManage} />
         {canManage && (
-          <NativeButton variant="secondary" className="mt-3 h-11" onClick={onOpenDocs}>
+          <button type="button" onClick={onOpenDocs} className="flex w-full items-center py-3.5 text-[15px] font-medium text-native-primary">
             {child.idCard || child.passport ? 'Upravit doklady' : 'Doplnit doklady'}
-          </NativeButton>
+          </button>
         )}
       </div>
 
-      <div className="rounded-native-card bg-native-surface p-4">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Adresy</p>
-        <div className="mt-1.5">
-          <p className="text-[15px] font-medium text-native-text">Trvalé bydliště</p>
-          <p className="text-[14px] text-native-textMuted">{addressLabel(child.addressPermanent) ?? 'Nevyplněno'}</p>
-          {canManage && (
-            <button type="button" onClick={() => onOpenAddress('addressPermanent', child.addressPermanent)} className="mt-0.5 text-[14px] font-medium text-native-primary">
-              Upravit
-            </button>
-          )}
+      <div className="rounded-native-card bg-native-surface px-4">
+        <div className="flex items-center border-b border-native-separator py-3">
+          <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Adresy</p>
         </div>
-        <div className="my-2.5 h-px bg-native-separator" />
-        <div>
-          <p className="text-[15px] font-medium text-native-text">Adresa pobytu (pokud jiná)</p>
-          <p className="text-[14px] text-native-textMuted">{addressLabel(child.addressResidence) ?? 'Stejná jako trvalé bydliště'}</p>
-          {canManage && (
-            <button type="button" onClick={() => onOpenAddress('addressResidence', child.addressResidence)} className="mt-0.5 text-[14px] font-medium text-native-primary">
-              Upravit
-            </button>
-          )}
-        </div>
+        <NativeInfoRow
+          label="Trvalé bydliště"
+          value={addressValue(addressLabel(child.addressPermanent), canManage, () => onOpenAddress('addressPermanent', child.addressPermanent))}
+        />
+        <NativeInfoRow
+          label="Adresa pobytu"
+          value={addressValue(addressLabel(child.addressResidence) ?? 'Stejná jako trvalé bydliště', canManage, () => onOpenAddress('addressResidence', child.addressResidence))}
+          isLast
+        />
       </div>
 
       {addressDialogFor && (
@@ -72,7 +73,7 @@ export default function MobileIdentityTab({
           submitting={submitting}
           footer={<NativeButton onClick={() => onSaveAddress({ preventDefault: () => {} })} disabled={submitting}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Ulice">
               <RowInput value={addressForm.street} onChange={(e) => setAddressForm((f) => ({ ...f, street: e.target.value }))} autoFocus />
@@ -94,7 +95,7 @@ export default function MobileIdentityTab({
           submitting={submitting}
           footer={<NativeButton onClick={() => onSaveDocs({ preventDefault: () => {} })} disabled={submitting}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Číslo OP">
               <RowInput value={docsForm.idCardNumber} onChange={(e) => setDocsForm((f) => ({ ...f, idCardNumber: e.target.value }))} autoFocus />

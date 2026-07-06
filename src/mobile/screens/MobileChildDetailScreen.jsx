@@ -2,8 +2,13 @@
  * MobileChildDetailScreen.jsx — Detail dítěte, čistě mobilní (STRICT UI/UX
  * DESIGN MANDATE, 2026-07-05 dodatek). Reuse `useChildDetailForms`/
  * `useChildDetailLists` hooky (data) — žádná sdílená JSX s desktop
- * ChildDetailPage.jsx/Child*Tab.jsx. Hlavička s jménem/care-type chip,
- * NativeSegmented pro 7 tabů shodných s desktop verzí.
+ * ChildDetailPage.jsx/Child*Tab.jsx. NativeSegmented pro 7 tabů shodných
+ * s desktop verzí.
+ *
+ * v4 (2026-07-06, Lidl Plus vzor — závazná zpětná vazba): modrý hero blok
+ * s velkým jménem dítěte a chipy (věk z data narození, druh péče — jen co
+ * v datech reálně je); obsah najíždí zaoblenou hranou přes spodek modré
+ * (HeroBody), nav bar `variant="hero"`. Shodný vzor jako Detail rodiny.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -16,6 +21,7 @@ import { useChildDetailForms } from '../../modules/admin/useChildDetailForms.js'
 import { useChildDetailLists } from '../../modules/admin/useChildDetailLists.js';
 import { emptyAddressForm, emptySchoolForm, emptyOspodForm, emptyCourtForm } from '../../modules/admin/childDetailShared.js';
 import MobileTopNav from '../ui/MobileTopNav.jsx';
+import NativeHero, { HeroBody } from '../ui/NativeHero.jsx';
 import NativeSegmented from '../ui/NativeSegmented.jsx';
 import MobileIdentityTab from './childDetail/MobileIdentityTab.jsx';
 import MobileSchoolTab from './childDetail/MobileSchoolTab.jsx';
@@ -23,6 +29,31 @@ import MobileOspodCourtTab from './childDetail/MobileOspodCourtTab.jsx';
 import MobileFamilyTab from './childDetail/MobileFamilyTab.jsx';
 import MobileSocialSpaceTab from './childDetail/MobileSocialSpaceTab.jsx';
 import { MobileNotesTab, MobileHistoryTab } from './childDetail/MobileNotesHistoryTab.jsx';
+
+/** Chip na modré ploše hero — bílý tint (Lidl vzor, shodné s MobileFamilyHeader). */
+function HeroChip({ children }) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[12px] font-semibold text-white">
+      {children}
+    </span>
+  );
+}
+
+/** Věk v celých letech z data narození (Firestore Timestamp i string) jako český text; null bez platného data. */
+function ageChipLabel(value) {
+  if (!value) return null;
+  const birth = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+  if (beforeBirthday) age -= 1;
+  if (age < 0) return null;
+  if (age === 1) return '1 rok';
+  if (age >= 2 && age <= 4) return `${age} roky`;
+  return `${age} let`;
+}
 
 const TABS = [
   { value: 'identita', label: 'Identita' },
@@ -66,10 +97,13 @@ export default function MobileChildDetailScreen() {
 
   const forms = useChildDetailForms({ childId, child, reload: load });
 
+  const ageText = ageChipLabel(child?.birthDate);
+
   return (
     <div>
       <MobileTopNav
-        title={loading ? 'Načítám…' : `${child?.firstName ?? ''} ${child?.lastName ?? ''}`.trim()}
+        variant="hero"
+        title={loading ? 'Načítám…' : 'Dítě'}
         onBack={() => navigate(`/admin/terenni/${familyId}`)}
       />
 
@@ -77,13 +111,20 @@ export default function MobileChildDetailScreen() {
 
       {!error && child && (
         <>
-          <div className="px-4 pt-3">
-            <span className="rounded-full bg-native-primary/15 px-2.5 py-1 text-[12px] font-semibold text-native-primary">
-              {careLabel(child.careType)}
-            </span>
-          </div>
+          <NativeHero
+            title={`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim()}
+            subtitle={
+              (ageText || child.careType) ? (
+                <>
+                  {ageText && <HeroChip>{ageText}</HeroChip>}
+                  {child.careType && <HeroChip>{careLabel(child.careType)}</HeroChip>}
+                </>
+              ) : null
+            }
+          />
 
-          <div className="sticky top-11 z-10 mt-2 bg-native-bg">
+          <HeroBody>
+          <div className="sticky top-11 z-10 bg-native-bg pt-1">
             <NativeSegmented items={TABS} value={tab} onChange={setTab} />
           </div>
 
@@ -221,6 +262,7 @@ export default function MobileChildDetailScreen() {
               onLoadMore={() => loadMore('history')}
             />
           )}
+          </HeroBody>
         </>
       )}
     </div>

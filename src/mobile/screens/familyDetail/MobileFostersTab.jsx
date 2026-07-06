@@ -1,15 +1,18 @@
 /**
- * MobileFostersTab.jsx — záložka "Pěstouni" v mobilním Detailu rodiny (STRICT
- * UI/UX DESIGN MANDATE, 2026-07-05/06). Native karty, žádná sdílená JSX s
- * desktop FosterFamilyFostersTab.jsx — jen data (`useFosterFamilyDetail`).
+ * MobileFostersTab.jsx — záložka "Pěstouni" v mobilním Detailu rodiny.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): údaje pěstouna NEJSOU
+ * nahusto v jednom řádku („RČ hned vedle telefonu = hnusné") — každý pěstoun
+ * je karta se jménem nahoře a přehlednou tabulkou název vlevo / hodnota
+ * vpravo (NativeInfoRow). Telefon/e-mail jsou proklikávací hodnoty.
  */
 
 import React, { useState } from 'react';
-import { User, GraduationCap, Plus } from 'lucide-react';
+import { User, Plus } from 'lucide-react';
 import { parseRc } from '../../../shared/rcUtils.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
 
 export default function MobileFostersTab({
   fosters, fosterCourses, requiredHours, onAddFoster, canManage,
@@ -24,10 +27,6 @@ export default function MobileFostersTab({
     setSheet(null);
   }
 
-  function handleAddCourse() {
-    onAddCourse();
-  }
-
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
       {fosters.length === 0 && (
@@ -39,31 +38,41 @@ export default function MobileFostersTab({
         const hours = courses.reduce((sum, c) => sum + (Number(c.hodiny) || 0), 0);
         const meetsHours = hours >= requiredHours;
         return (
-          <div key={foster.id} className="rounded-native-card bg-native-surface p-4">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-native-primary text-white">
-                <User size={20} strokeWidth={1.75} />
+          <div key={foster.id} className="rounded-native-card bg-native-surface px-4">
+            <div className="flex items-center gap-3 border-b border-native-separator py-3.5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-native-primary/10 text-native-primary">
+                <User size={22} strokeWidth={1.75} />
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-semibold text-native-text">{foster.name}</p>
-                <p className="text-[14px] text-native-textMuted">
-                  {[foster.rc && `RČ ${foster.rc}`, foster.phone, foster.email].filter(Boolean).join(' · ') || '—'}
-                </p>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <GraduationCap size={15} strokeWidth={1.75} className={meetsHours ? 'text-native-primary' : 'text-native-warning'} />
-                  <p className="text-[13px] text-native-textMuted">{hours} / {requiredHours} h vzdělávání</p>
-                </div>
-                {canManage && (
-                  <button
-                    type="button"
-                    onClick={() => setCourseDialogFor(foster.id)}
-                    className="mt-2 flex items-center gap-1 text-[13px] font-medium text-native-primary"
-                  >
-                    <Plus size={14} strokeWidth={2} /> Zapsat kurz
-                  </button>
-                )}
-              </div>
+              <p className="min-w-0 flex-1 truncate text-[17px] font-bold text-native-text">{foster.name}</p>
             </div>
+            <NativeInfoRow label="Rodné číslo" value={foster.rc} />
+            <NativeInfoRow
+              label="Telefon"
+              value={foster.phone ? (
+                <a href={`tel:${foster.phone.replace(/\s/g, '')}`} className="text-native-primary">{foster.phone}</a>
+              ) : ''}
+            />
+            <NativeInfoRow
+              label="E-mail"
+              value={foster.email ? (
+                <a href={`mailto:${foster.email}`} className="break-all text-native-primary">{foster.email}</a>
+              ) : ''}
+            />
+            <NativeInfoRow
+              label="Vzdělávání"
+              value={`${hours} / ${requiredHours} h`}
+              tone={meetsHours ? undefined : 'warning'}
+              isLast={!canManage}
+            />
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setCourseDialogFor(foster.id)}
+                className="flex w-full items-center gap-1.5 py-3.5 text-[15px] font-medium text-native-primary"
+              >
+                <Plus size={16} strokeWidth={2} /> Zapsat kurz
+              </button>
+            )}
           </div>
         );
       })}
@@ -108,7 +117,7 @@ export default function MobileFostersTab({
           title="Zapsat kurz"
           onClose={() => setCourseDialogFor(null)}
           submitting={submitting}
-          footer={<NativeButton onClick={handleAddCourse} disabled={submitting || !courseForm.kod.trim()}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
+          footer={<NativeButton onClick={onAddCourse} disabled={submitting || !courseForm.kod.trim()}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
         >
           {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>

@@ -94,10 +94,13 @@ export default function MobileSettingsScreen() {
           <p className="text-[15px] font-semibold text-native-text">{org?.name}</p>
 
           <NativeFormGroup>
-            <NativeFormRow label="Adresa organizace" isLast hint={message} hintTone={HINT_TONE[status]}>
+            {/* Široký vlastní obsah (prefix + input + ikona) se do horizontálního
+                řádku (v4) nevejde → stacked. RowInput je od v4 zarovnaný doprava;
+                slug musí navazovat na prefix, proto !text-left (cn třídy nemerguje). */}
+            <NativeFormRow label="Adresa organizace" isLast stacked hint={message} hintTone={HINT_TONE[status]}>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[16px] text-native-textMuted">doprovazeni.com/</span>
-                <RowInput value={slug} onChange={(e) => setSlug(sanitizeSlugInput(e.target.value))} disabled={saving} placeholder="nazev-organizace" />
+                <RowInput className="!text-left" value={slug} onChange={(e) => setSlug(sanitizeSlugInput(e.target.value))} disabled={saving} placeholder="nazev-organizace" />
                 {STATUS_ICON[status]}
               </div>
             </NativeFormRow>

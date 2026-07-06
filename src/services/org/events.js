@@ -68,12 +68,13 @@ export async function listEventsForAssignee(organizationId, uid, { from, to }) {
 }
 
 export async function createEvent(organizationId, {
-  title, type = 'other', start, end = null, allDay = false,
+  title, type = 'other', typeLabel = null, start, end = null, allDay = false,
   location = '', note = '', assignedTo, fosterFamilyId = null, subjectRefs = [], published = true,
 }) {
   const ref = await addDoc(eventsCol(organizationId), {
     title,
     type,         // viz EVENT_TYPES v shared/domainConstants.js
+    typeLabel,    // denormalizovaný label VLASTNÍHO typu z číselníku (codelists.js); null = vestavěný typ
     start,
     end: end ?? start,
     allDay,

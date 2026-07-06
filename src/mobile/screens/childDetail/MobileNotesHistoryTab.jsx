@@ -3,6 +3,8 @@
  * dítěte (STRICT UI/UX DESIGN MANDATE, 2026-07-05 dodatek). Trvalé poznámky
  * (append-only, nic se nepřepisuje) a historie změn — obě čtecí/append-only,
  * proto v jednom souboru jako desktop ChildNotesHistoryTab.jsx (bez sdílení JSX).
+ * v4 (2026-07-06, Lidl vzor): časová struktura zůstává, typografie srovnána —
+ * primární text zápisu 15px, meta řádek (čas/autor) 13px muted.
  */
 
 import React from 'react';
@@ -24,14 +26,14 @@ export function MobileNotesTab({ notes, hasMoreNotes, onLoadMoreNotes, noteText,
             </NativeButton>
           </div>
         )}
-        {submitError && <p className="mt-2 text-[14px] text-native-danger">{submitError}</p>}
+        {submitError && <p className="mt-2 text-[13px] text-native-danger">{submitError}</p>}
 
         {notes.length === 0 && <p className="mt-3 text-[15px] text-native-textMuted">Žádné poznámky.</p>}
         <div className="mt-1 flex flex-col">
           {notes.map((n) => (
             <div key={n.id} className="border-t border-native-separator py-2.5 first:border-t-0">
               <p className="text-[15px] text-native-text">{n.text}</p>
-              <p className="text-[12px] text-native-textMuted">{n.createdAt ? n.createdAt.toDate().toLocaleString('cs-CZ') : ''}</p>
+              <p className="text-[13px] text-native-textMuted">{n.createdAt ? n.createdAt.toDate().toLocaleString('cs-CZ') : ''}</p>
             </div>
           ))}
         </div>
@@ -53,7 +55,7 @@ export function MobileHistoryTab({ history, hasMore, onLoadMore }) {
           {history.map((h) => (
             <div key={h.id} className="border-t border-native-separator py-2.5 first:border-t-0">
               <p className="text-[15px] text-native-text">{h.field}: {h.from} → {h.to}</p>
-              <p className="text-[12px] text-native-textMuted">{h.by}</p>
+              <p className="text-[13px] text-native-textMuted">{h.by}</p>
             </div>
           ))}
         </div>

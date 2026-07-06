@@ -1,40 +1,59 @@
 /**
- * MobileSocialSpaceTab.jsx — "Sociální prostor" v mobilním Detailu dítěte
- * (STRICT UI/UX DESIGN MANDATE, 2026-07-05 dodatek). Osoby bez biologické
- * vazby (kmotři, rodinní přátelé…). Native karta + NativeSheet.
+ * MobileSocialSpaceTab.jsx — "Sociální prostor" v mobilním Detailu dítěte.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): osoby bez biologické
+ * vazby (kmotři, rodinní přátelé…) NEJSOU nahusto v jednom řádku — každá
+ * osoba je karta se jménem (17px semibold) nahoře a tabulkou název vlevo /
+ * hodnota vpravo (NativeInfoRow), viz MobileFostersTab.jsx.
  */
 
 import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, User } from 'lucide-react';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import { SectionLabel } from '../../ui/NativeBits.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
+
+/** Telefon/e-mail jako proklikávací hodnota v NativeInfoRow; prázdné → pomlčka. */
+function phoneValue(phone) {
+  return phone ? <a href={`tel:${phone.replace(/\s/g, '')}`} className="text-native-primary">{phone}</a> : '';
+}
+
+function emailValue(email) {
+  return email ? <a href={`mailto:${email}`} className="break-all text-native-primary">{email}</a> : '';
+}
 
 export default function MobileSocialSpaceTab({ child, socialDialogOpen, socialForm, setSocialForm, onOpen, onClose, onAdd, submitting, submitError, canManage }) {
   const socialSpace = child.socialSpace ?? [];
 
   return (
-    <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
-      <div className="rounded-native-card bg-native-surface p-4">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Sociální prostor ({socialSpace.length})</p>
-          {canManage && (
-            <button type="button" onClick={onOpen} className="flex items-center gap-1 text-[14px] font-medium text-native-primary">
-              <UserPlus size={15} strokeWidth={2} /> Přidat
-            </button>
-          )}
-        </div>
-        <p className="mb-1 text-[13px] text-native-textMuted">Osoby bez biologické vazby — kmotři, rodinní přátelé a další blízké osoby.</p>
+    <div className="flex flex-col px-4 pb-6 pt-1">
+      <div className="flex items-center justify-between">
+        <SectionLabel>Sociální prostor ({socialSpace.length})</SectionLabel>
+        {canManage && (
+          <button type="button" onClick={onOpen} className="flex items-center gap-1 text-[13px] font-medium text-native-primary">
+            <UserPlus size={15} strokeWidth={2} /> Přidat
+          </button>
+        )}
+      </div>
+      <p className="mb-3 text-[13px] text-native-textMuted">Osoby bez biologické vazby — kmotři, rodinní přátelé a další blízké osoby.</p>
 
-        {socialSpace.length === 0 && <p className="py-2 text-[15px] text-native-textMuted">Zatím nikdo.</p>}
-        <div className="flex flex-col">
-          {socialSpace.map((p) => (
-            <div key={p.id} className="border-t border-native-separator py-2.5 first:border-t-0">
-              <p className="text-[15px] font-medium text-native-text">{p.name}</p>
-              <p className="text-[13px] text-native-textMuted">{[p.vztah, p.phone, p.email, p.note].filter(Boolean).join(' · ')}</p>
+      {socialSpace.length === 0 && <p className="text-[15px] text-native-textMuted">Zatím nikdo.</p>}
+      <div className="flex flex-col gap-3">
+        {socialSpace.map((p) => (
+          <div key={p.id} className="rounded-native-card bg-native-surface px-4">
+            <div className="flex items-center gap-3 border-b border-native-separator py-3.5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-native-primary/10 text-native-primary">
+                <User size={22} strokeWidth={1.75} />
+              </span>
+              <p className="min-w-0 flex-1 truncate text-[17px] font-semibold text-native-text">{p.name}</p>
             </div>
-          ))}
-        </div>
+            <NativeInfoRow label="Vztah k dítěti" value={p.vztah} />
+            <NativeInfoRow label="Telefon" value={phoneValue(p.phone)} />
+            <NativeInfoRow label="E-mail" value={emailValue(p.email)} isLast={!p.note} />
+            {p.note && <NativeInfoRow label="Poznámka" value={p.note} isLast />}
+          </div>
+        ))}
       </div>
 
       {socialDialogOpen && (
@@ -44,7 +63,7 @@ export default function MobileSocialSpaceTab({ child, socialDialogOpen, socialFo
           submitting={submitting}
           footer={<NativeButton onClick={() => onAdd({ preventDefault: () => {} })} disabled={submitting || !socialForm.name.trim()}>{submitting ? 'Ukládám…' : 'Přidat'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Jméno">
               <RowInput value={socialForm.name} onChange={(e) => setSocialForm((f) => ({ ...f, name: e.target.value }))} autoFocus />

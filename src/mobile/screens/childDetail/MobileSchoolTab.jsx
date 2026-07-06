@@ -1,36 +1,55 @@
 /**
- * MobileSchoolTab.jsx — "Škola" v mobilním Detailu dítěte (STRICT UI/UX
- * DESIGN MANDATE, 2026-07-05 dodatek). Native karta + NativeSheet formulář.
+ * MobileSchoolTab.jsx — "Škola" v mobilním Detailu dítěte.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): žádné údaje nahusto
+ * v jednom řádku („telefon · email" zakázáno) — karta má název školy nahoře
+ * a tabulku název vlevo / hodnota vpravo (NativeInfoRow). Telefon/e-mail
+ * jsou proklikávací hodnoty.
  */
 
 import React from 'react';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
 
 export default function MobileSchoolTab({ child, schoolDialogOpen, schoolForm, setSchoolForm, onOpen, onClose, onSave, submitting, submitError, canManage }) {
+  const school = child.school;
+
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
-      <div className="rounded-native-card bg-native-surface p-4">
-        <div className="mb-1 flex items-center justify-between">
+      <div className="rounded-native-card bg-native-surface px-4">
+        <div className="flex items-center justify-between border-b border-native-separator py-3">
           <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Škola</p>
           {canManage && (
-            <button type="button" onClick={onOpen} className="text-[14px] font-medium text-native-primary">
-              {child.school ? 'Upravit' : 'Přidat'}
+            <button type="button" onClick={onOpen} className="text-[15px] font-medium text-native-primary">
+              {school ? 'Upravit' : 'Přidat'}
             </button>
           )}
         </div>
 
-        {child.school ? (
-          <div className="flex flex-col gap-0.5">
-            <p className="text-[16px] font-semibold text-native-text">{child.school.nazev}</p>
-            <p className="text-[14px] text-native-textMuted">{child.school.adresa}</p>
-            <p className="text-[14px] text-native-textMuted">{[child.school.telefon, child.school.email].filter(Boolean).join(' · ')}</p>
-            <p className="mt-1 text-[15px] text-native-text">Třídní učitel: {child.school.tridniUcitel || '—'}</p>
-            <p className="text-[15px] text-native-text">Ročník: {child.school.rocnik || '—'}</p>
-          </div>
+        {school ? (
+          <>
+            <div className="border-b border-native-separator py-3">
+              <p className="text-[17px] font-semibold text-native-text">{school.nazev}</p>
+            </div>
+            <NativeInfoRow label="Adresa" value={school.adresa} />
+            <NativeInfoRow
+              label="Telefon"
+              value={school.telefon ? (
+                <a href={`tel:${school.telefon.replace(/\s/g, '')}`} className="text-native-primary">{school.telefon}</a>
+              ) : ''}
+            />
+            <NativeInfoRow
+              label="E-mail"
+              value={school.email ? (
+                <a href={`mailto:${school.email}`} className="break-all text-native-primary">{school.email}</a>
+              ) : ''}
+            />
+            <NativeInfoRow label="Třídní učitel" value={school.tridniUcitel} />
+            <NativeInfoRow label="Ročník" value={school.rocnik} isLast />
+          </>
         ) : (
-          <p className="text-[15px] text-native-textMuted">Zatím nevyplněno.</p>
+          <p className="py-3.5 text-[15px] text-native-textMuted">Zatím nevyplněno.</p>
         )}
       </div>
 
@@ -41,7 +60,7 @@ export default function MobileSchoolTab({ child, schoolDialogOpen, schoolForm, s
           submitting={submitting}
           footer={<NativeButton onClick={() => onSave({ preventDefault: () => {} })} disabled={submitting || !schoolForm.nazev.trim()}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Název školy">
               <RowInput value={schoolForm.nazev} onChange={(e) => setSchoolForm((f) => ({ ...f, nazev: e.target.value }))} autoFocus />

@@ -876,14 +876,27 @@ Vstupy formulářů vždy 16px (jinak iOS Safari zoomuje) — jediná výjimka z
   (žádný outline border!), danger plná červená; disabled šedá výplň (`native-separator` + muted text).
 - `NativeSegmented` — variant `primary` (hlavní taby: aktivní plná modrá) a `filter`
   (druhotné filtry: aktivní tint /15 — NIKDY dvě řady plných pillů pod sebou).
-- `NativeFormGroup/Row` — formuláře jako jedna karta s vlásečnicemi, label 12px muted nad hodnotou.
+- `NativeFormGroup/Row` — formuláře jako jedna karta s vlásečnicemi. **v4 (Lidl vzor,
+  2026-07-06): řádek je HORIZONTÁLNÍ — label 15px vlevo, hodnota/vstup vpravo zarovnaný
+  doprava (iOS Nastavení).** Textarea a široký vlastní obsah → prop `stacked` (label nad).
+- `NativeInfoRow` — čtecí sourozenec FormRow pro profily: název vlevo muted / hodnota vpravo
+  medium; prázdná hodnota = „—". Údaje osob NIKDY nahusto v jednom řádku („RČ · telefon").
+- `NativeHero` + `HeroAction` + `HeroBody` + `MobileTopNav variant="hero"` — detaily entit
+  (rodina/dítě/kdokoli) mají modrý hero: velké bílé jméno 22px, chipy `bg-white/20`, kruhové
+  akce na modré; obsah najíždí zaoblenou hranou (`HeroBody`). Vzor Lidl Plus účet.
 - `NativeSheet` — bottom sheet s drag-handle; footer s h-14 CTA.
 - `NativeBits`: `SectionLabel`, `NativeChip` (tone primary/warning/danger/muted, tint /15),
   `NativeEmptyState` (ikona 28 + titulek 15 + rada 13 — prázdný stav VŽDY radí co dál), `StatTile`.
 - Klikatelné karty: `active:scale-[0.98] transition-transform duration-100`. Touch cíle ≥ 44px.
+- Seznamy lidí/entit: primární text řádku 17px semibold (velké písmo — Lidl), meta 13px muted.
+- Číselníky (typy událostí…) nejsou konečné: vlastní položky definuje administrace
+  (`organizations/{id}/codelists/*`, služba `codelists.js`); selecty čtou merge vestavěných
+  a vlastních hodnot.
 
 ### 12.5 Zakázané vzory (mobil)
 Raw tailwind barvy (blue-50, stone-*, red-50…) · rounded-lg/xl/2xl · box-shadow · outline
-border na tlačítkách · velikosti mimo §12.2 · prázdný stav bez rady · dvě řady plných pill tabů.
+border na tlačítkách · velikosti mimo §12.2 · prázdný stav bez rady · dvě řady plných pill tabů
+· údaje osoby nahusto v jednom řádku místo NativeInfoRow tabulky · select s pevným výčtem tam,
+kde si organizace má definovat vlastní položky.
 
 Next steps: verifikační pipetta (§10) → aktualizace `tailwind.config.js` → refactor komponentní knihovny → screen-by-screen migrace podle §6 → uživatelské testování s koordinátorkami.

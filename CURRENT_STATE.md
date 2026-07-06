@@ -1,5 +1,36 @@
 # CURRENT_STATE
-**Verze:** 2.1.0 (Connecteam blok 1: kalendář-agenda + rekapitulace návštěvy, 2026-07-06)
+**Verze:** 2.2.0 (Lidl v4: profily s hero + tabulky, hodinový kalendář, číselníky, 2026-07-06)
+
+## 2026-07-06 — Lidl v4: profily, formuláře, kalendář a Rodiny dle Lidl Plus
+
+Šest bodů zpětné vazby uživatele („LIDL APLIKACE JE MOC PĚKNÁ… NECHCEŠ SE INSPIROVAT?"),
+vzor uložen v paměti [[crm-lidl-vzor-profily-formulare]]:
+
+- **Formulářové řádky horizontálně** (bod 4) — `NativeFormRow` je nově label vlevo / hodnota
+  vpravo (iOS Nastavení). Textarea/široký obsah → prop `stacked`. Nový `NativeInfoRow`
+  (čtecí řádek: název vlevo / hodnota vpravo, prázdné = „—").
+- **Modrý hero na detailech** (bod 6) — `NativeHero` + `HeroAction` + `HeroBody` +
+  `MobileTopNav variant="hero"`: detail rodiny i dítěte mají velké bílé jméno na modré,
+  chipy, kruhové akce (Zavolat/E-mail/Mapa/Naplánovat), obsah najíždí zaoblenou hranou.
+  Vzor Lidl Plus účet.
+- **Profily jako tabulky** (bod 6) — Pěstouni, Biologická rodina, Sociální prostor (rodina
+  i dítě), Identita/Škola/OSPOD dítěte, Respit/SPVPP: každá osoba karta se jménem 17px
+  a tabulkou `NativeInfoRow`; konec „RČ · telefon" nahusto. Telefon/e-mail proklikávací.
+- **Kalendář = hodinový den** (body 1+2) — pás dnů swipovatelný prstem (touch → prev/next
+  týden), klepnutí na den → dole rozvrh pracovního dne 7–19 h; událost v řádku své hodiny,
+  prázdná hodina se ťukne → nová událost s předvyplněným časem.
+- **Číselník typů událostí** (bod 3) — `organizations/{id}/codelists/eventTypes`
+  (`codelists.js`, rules `codelists` = management zápis / org čtení). Select typu čte merge
+  vestavěných + vlastních; management má „+ Nový typ…" inline, plná správa v Nastavení
+  (`EventTypesPanel`). Vlastní typ nese denormalizovaný `typeLabel` na události.
+- **Rodiny jako titulní stránka lidí** (bod 5) — segmenty Rodiny / Pěstouni / Děti,
+  seskupování (abecedně / město / druh PP / poslední návštěva, volba se pamatuje), bohatší
+  řádky (město, druh PP, termín poslední návštěvy s varováním po 45 dnech). Session cache
+  (stale-while-revalidate) řeší „stránka se dlouho načítá" při návratu na tab.
+- Sweep tabů provedl workflow (3 agenti hotovo, 2 spadli na session limitu → dodělány ručně:
+  MobileSocialTab). Ověřeno živě 390×844 (hero rodiny i dítěte, info tabulky pěstounů,
+  hodinový kalendář, formulář label/hodnota, segmenty Rodiny/Pěstouni/Děti). Lint+build
+  čisté, všechny soubory < 300 řádků. DESIGN.md §12.4 rozšířeno o Lidl vzor.
 
 ## 2026-07-06 — moje.doprovazeni.com: nový build + oprava env past (KRITICKÉ)
 
@@ -161,100 +192,6 @@ skončí na `/admin/organizace`, ne na obrazovce Dnes. Mobilní viewport (390×8
 nadpis se zalamuje) — `preview_screenshot` v této session opakovaně timeoutoval (nesouvisející s
 kódem), ověření tedy funkční/strukturální, ne vizuální snímek. `npm run build`/`npm run lint`
 čisté po celou dobu.
-
-## 2026-07-03 — Krok 2: i18n základ (react-i18next)
-
-**Zadání:** zavést react-i18next s jediným jazykem (cs), vytáhnout texty existujících obrazovek
-do klíčů, žádný jazykový přepínač zatím. Rozsah: login, registrace, navigace, kalendář, detail
-rodiny/dítěte, timeline.
-
-- `src/i18n.js` — inicializace, `src/locales/cs.json` bundlovaný staticky (žádný
-  i18next-http-backend, zbytečné pro jediný jazyk), `lng`/`fallbackLng: 'cs'`. Import jako
-  side-effect v `main.jsx` PŘED renderem `<App>`.
-- Konvence: `const { t } = useTranslation()` v komponentě/hooku, klíče `modul.podmodul.klic`
-  (`auth.login.*`, `auth.register.*`, `nav.*`, `calendar.*`, `family.detail.*`, `child.detail.*`,
-  `timeline.*`), sdílené ubikvitní řetězce v `common.*` (back/loading/save/saving/cancel/close).
-  Datové konstanty MIMO komponenty (`MVP_NAV` v router.jsx, `TIMELINE_FILTERS` v
-  timelineShared.js) nesou `labelKey` misto `label` — `t()` volá až konzument v render, protože
-  konstanta samotná není komponenta/hook a nemůže si `useTranslation()` zavolat sama; podobně
-  `formatDayHeading(date, t)` bere `t` jako parametr (plain funkce, ne hook).
-- **Rozsah vytažení:** login/registrace/nav/kalendář vlastnoručně; detail rodiny (kontejner +
-  Osa/timeline) vlastnoručně; zbylé taby detailu rodiny (Pěstouni/Respit/Sociální
-  prostor/Svěřené děti + `useFosterFamilyDetail.js`) a celý detail dítěte (7 tabů +
-  `useChildDetailForms.js`) přes 2 paralelní subagenty (mechanická extrakce, stejná
-  konvence) — výsledné JSON fragmenty ručně sloučeny do `cs.json`, `ChildFormModal.jsx`
-  (sdílený modál obou) udělán zvlášť aby nedošlo ke konfliktu.
-- **Vědomě MIMO rozsah:** popisky odvozené z `domainConstants.js` (REL_TYPES, CARE_TYPES,
-  `careLabel()`, `odmenaStatusLabel()`, `relGroups()` apod.) — samostatný budoucí úkol „i18n přes
-  translation_keys" (V8 blueprint, `docs/INVENTAR.md` sekce 10). Jde o datový slovník, ne
-  obrazovkový text.
-- Pravidlo pro nové obrazovky (POVINNĚ `t()`) zapsáno do `CLAUDE.md` → Stack.
-- **Poučení (past incident v této session, oprava hned při psaní):** regex na odstranění
-  diakritiky psaný jako `/[̀-ͯ]/` se v editačním pipeline dvakrát proměnil na doslovné
-  kombinující Unicode znaky v character-class (vizuálně nerozeznatelné od správného zápisu, jiný
-  byte obsah) — v `slugUtils.js` i v `CURRENT_STATE.md` samotném. Oprava: `new
-  RegExp('[\\u0300-\\u036f]', 'g')` (string, ne regex literál) je bezpečná forma zápisu.
-
-**Ověřeno živě v Preview** (`demo.ko.jih.1`): login → dashboard → Rodina Kučerová (Osa, Pěstouni,
-Respit a SPVPP se všemi interpolacemi `{{count}}`/částky, Sociální prostor, Svěřené děti) → karta
-dítěte Eliška (7 tabů: Identita/Škola/OSPOD a soud/Biologická rodina/Sociální prostor/Poznámky/
-Historie) → Kalendář (agenda + formulář nové události). Žádný chybějící klíč, žádná chyba v
-konzoli nesouvisející se změnou. `npm run build`/`npm run lint` čisté po každém dílčím kroku i po
-finálním sloučení. Nezávislý skript zkontroloval všech 319 klíčů v `cs.json` proti všem `t()`
-voláním v `src/` — 0 chybějících (2 falešně nahlášené byly správná i18next pluralizace
-`_one/_few/_other`, 2 dynamické klíče v Login/RegisterPage ověřeny ručně).
-
-## 2026-07-03 — Krok 1: Slug organizace
-
-**Zadání:** unikátní adresa organizace (`{slug}`), zatím jen ukládat/zobrazovat — veřejná
-stránka (`doprovazeni.com/{slug}`) přijde později (viz INVENTAR.md "Veřejný profil organizace").
-
-- `src/shared/slugUtils.js` (nové) — `sanitizeSlugInput`/`slugify`/`validateSlugFormat`,
-  `RESERVED_SLUGS` (admin/api/www/app/registrace/login/superadmin/…). Diakritika se odstraňuje
-  přes `normalize('NFD')` + odstranění kombinujících znaků v rozsahu Unicode U+0300 až U+036F
-  (poučení: regex na tenhle rozsah psát jako `new RegExp('[\\u0300-\\u036f]', 'g')`, NIKDY
-  vepsat doslovné kombinující znaky přímo do regex literálu — vizuálně nerozeznatelné od
-  správného zápisu, ale jiný byte obsah, matoucí k údržbě).
-- `src/components/ui/SlugField.jsx` (nové, sdílené) — debounced (400 ms) kontrola dostupnosti,
-  vizuální stavy idle/checking/ok/taken/invalid, `onStatusChange` callback pro gating submit
-  tlačítka v rodiči.
-- **Uniqueness bez transakce na klientovi:** `org_slugs/{slug}` (doc ID == slug) — Firestore
-  vyhodnotí zápis na JIŽ EXISTUJÍCÍ doc jako `update`, ne `create`; `allow update: if false`
-  proto fakticky brání komukoli slug "ukrást", i při souběžném zápisu dvou uživatelů ve stejný
-  okamžik (Firestore serializuje zápisy na stejný dokument). `src/services/org/organizations.js`
-  — `isSlugAvailable`, `reserveOrgSlug(orgId, slug, uid)` (první rezervace, explicitní `uid`
-  kvůli stejnému race jako u `registrationService.js` — store ještě nemusí mít session),
-  `changeOrganizationSlug(orgId, newSlug)` (transakce: ověří volnost nového, zapíše, přepne
-  `organizations.slug`, uvolní starý — vzor `reassignFoster`).
-- `registrationService.js` — slug se ukládá na `organizations` rovnou při založení; rezervace
-  (`reserveOrgSlug`) běží AŽ PO zápisu `users/{uid}` (ne dřív), protože `org_slugs` create rule
-  vyžaduje `isOrgAdmin() && myOrgId()==orgId`, což platí až jakmile vlastní zaměstnanecký profil
-  existuje — vyhnuli jsme se tak závislosti na `get()` nad ještě neexistujícím uživatelem.
-  Selhání rezervace (vzácný race) NEBLOKUJE registraci — org_admin si slug opraví v Nastavení.
-- `RegisterPage.jsx` — pole "Adresa URL organizace" s auto-návrhem ze jména organizace (dokud
-  uživatel slug ručně needitoval), submit uzamčen dokud `slugStatus !== 'ok'`.
-- `SettingsPage.jsx` — PRVNÍ reálný obsah (dřív 8řádkový stub s inline styly): editace slugu
-  pro `org_admin`, ostatní role vidí `EmptyState` "může upravovat jen administrátor organizace".
-- `firestore.rules` — nová top-level kolekce `org_slugs` (čtení veřejné — slug se má stát
-  veřejnou URL), `scripts/dev-seed.mjs` — `DEMO_ORGS[].slug` + rezervace při seedu,
-  `wipeAllData` nově maže i `org_slugs` (jinak by druhý `npm run seed` narazil na "already
-  taken" ze starého běhu).
-- Nasazeno na **dev** (`firebase deploy --only firestore:rules`, `npm run seed` 2× pro ověření
-  idempotence — druhý běh správně smazal a znovu založil 2 rezervace).
-
-**Ověřeno živě v Preview:** auto-návrh slugu z názvu s diakritikou (`Testovací Organizace Ř` →
-`testovaci-organizace-r`), kolize s obsazeným (`demo-organizace-sever` → "obsazená"), rezervované
-slovo (`admin` → odmítnuto), celá registrace end-to-end (org+user+rezervace založeny, dashboard
-funkční), změna slugu v Nastavení (nový rezervován, starý se ihned uvolnil — ověřeno opětovným
-zadáním starého slugu, ukázal "volná"). Testovací organizace po ověření smazána (`npm run seed`).
-
-## 2026-07-03 — Krok 0: Inventář rozšířen o 7 položek
-
-Do `docs/INVENTAR.md` doplněno (všechny ⬜, specifikace budou dodány později): break-glass režim
-podpory pro superadmina, editovatelné systémové texty (`system_texts`), časově platné sazebníky
-(`tariffs`), evidence výplaty dávek MPSV, branding organizace (rozšířen existující řádek),
-veřejný profil organizace, lokalizace legislativy jako zásada (+ krátká poznámka
-`docs/domain/lokalizace-legislativy.md`).
 
 ## 2026-07-02 — Velký úklid repozitáře (podle UKLID-PROMPT.md)
 

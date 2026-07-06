@@ -17,6 +17,7 @@ import useFosterFamilyDetail from '../../modules/admin/useFosterFamilyDetail.js'
 import { useAuthStore } from '../../store/authStore.js';
 import { isReadOnlyManager } from '../../services/orgAuth.js';
 import MobileTopNav from '../ui/MobileTopNav.jsx';
+import { HeroBody } from '../ui/NativeHero.jsx';
 import NativeSegmented from '../ui/NativeSegmented.jsx';
 import NativeSheet from '../ui/NativeSheet.jsx';
 import NativeButton from '../ui/NativeButton.jsx';
@@ -78,7 +79,7 @@ export default function MobileFamilyDetailScreen() {
 
   return (
     <div>
-      <MobileTopNav title={loading ? 'Načítám…' : (family?.name ?? 'Rodina')} onBack={() => navigate(-1)} />
+      <MobileTopNav variant="hero" title={loading ? 'Načítám…' : 'Rodina'} onBack={() => navigate(-1)} />
 
       {error && <p className="px-4 py-6 text-center text-[15px] text-native-danger">{error}</p>}
 
@@ -86,7 +87,8 @@ export default function MobileFamilyDetailScreen() {
         <>
           <MobileFamilyHeader family={family} familyId={familyId} canManage={canManage} />
 
-          <div className="sticky top-11 z-10 mt-1 bg-native-bg">
+          <HeroBody>
+          <div className="sticky top-11 z-10 bg-native-bg pt-1">
             <NativeSegmented items={tabItems} value={tab} onChange={setTab} />
           </div>
 
@@ -147,6 +149,7 @@ export default function MobileFamilyDetailScreen() {
               onAddChild={() => setChildDialogOpen(true)}
             />
           )}
+          </HeroBody>
         </>
       )}
 

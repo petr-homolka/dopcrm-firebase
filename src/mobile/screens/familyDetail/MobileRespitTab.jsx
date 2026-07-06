@@ -1,7 +1,11 @@
 /**
- * MobileRespitTab.jsx — záložka "Respit a SPVPP" v mobilním Detailu rodiny
- * (STRICT UI/UX DESIGN MANDATE, 2026-07-05/06). Native stat karty + seznam
- * čerpání + SPVPP peněženky dětí. Žádná sdílená JSX s desktop verzí.
+ * MobileRespitTab.jsx — záložka "Respit a SPVPP" v mobilním Detailu rodiny.
+ *
+ * v4 (2026-07-06, Lidl vzor — závazná zpětná vazba): StatTile dlaždice
+ * zůstávají, zbytek už nejsou volné odstavce nahusto — odměna je řádek
+ * NativeInfoRow, čerpání jedna karta se srovnanými řádky (název 15px
+ * semibold, datum 13px muted, částka vpravo) a SPVPP peněženka dítěte je
+ * karta se jménem 17px a tabulkou název vlevo / hodnota vpravo.
  */
 
 import React, { useState } from 'react';
@@ -10,8 +14,8 @@ import { respitTypeLabel, respitEventDays } from '../../../shared/domainConstant
 import { cn } from '../../../components/ui/cn.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput } from '../../ui/NativeFormRow.jsx';
-import { StatTile } from '../../ui/NativeBits.jsx';
+import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import { StatTile, SectionLabel } from '../../ui/NativeBits.jsx';
 
 export default function MobileRespitTab({
   vykazano, limit, realny, eligible, odmenaStatus, childrenList, respitEvents,
@@ -30,12 +34,13 @@ export default function MobileRespitTab({
         <StatTile label="Vykázáno" value={`${vykazano}/${limit}`} sub="dní" tone={vykazano > limit ? 'danger' : 'primary'} />
         <StatTile label="Reálně" value={realny} sub="dětodní" tone={realny < vykazano ? 'warning' : 'text'} />
       </div>
-      <div className="rounded-native-card bg-native-surface p-3.5">
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-native-textMuted">Odměna</p>
-        <p className={cn('mt-1 text-[16px] font-semibold', eligible ? 'text-native-primary' : 'text-native-textMuted')}>
-          {eligible ? 'Nárok vzniká' : 'Bez nároku'}
-        </p>
-        <p className="text-[13px] text-native-textMuted">{odmenaStatus}</p>
+
+      <div className="rounded-native-card bg-native-surface px-4">
+        <NativeInfoRow
+          label="Odměna"
+          value={<span className={eligible ? 'text-native-primary' : 'text-native-textMuted'}>{odmenaStatus}</span>}
+          isLast
+        />
       </div>
 
       {canManage && (
@@ -44,35 +49,54 @@ export default function MobileRespitTab({
         </NativeButton>
       )}
 
-      <div className="flex flex-col gap-2">
-        {respitEvents.length === 0 && <p className="py-4 text-center text-[15px] text-native-textMuted">Zatím žádné čerpání respitu.</p>}
-        {respitEvents.map((ev) => (
-          <div key={ev.id} className="rounded-native-card bg-native-surface px-4 py-3">
-            <p className="text-[15px] font-medium text-native-text">
-              {respitTypeLabel(ev.typ)} — {respitEventDays(ev)} dní
-            </p>
-            <p className="text-[13px] text-native-textMuted">
-              {[ev.from === ev.to ? ev.from : `${ev.from} – ${ev.to}`, ev.kc ? `${ev.kc} Kč` : null].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-        ))}
-      </div>
+      <SectionLabel>Čerpání respitu</SectionLabel>
+      {respitEvents.length === 0 && (
+        <p className="py-2 text-center text-[15px] text-native-textMuted">Zatím žádné čerpání respitu.</p>
+      )}
+      {respitEvents.length > 0 && (
+        <div className="rounded-native-card bg-native-surface px-4">
+          {respitEvents.map((ev, i) => (
+            <div
+              key={ev.id}
+              className={cn('flex items-center justify-between gap-4 py-3', i < respitEvents.length - 1 && 'border-b border-native-separator')}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold text-native-text">
+                  {respitTypeLabel(ev.typ)} — {respitEventDays(ev)} dní
+                </p>
+                <p className="text-[13px] text-native-textMuted">{ev.from === ev.to ? ev.from : `${ev.from} – ${ev.to}`}</p>
+              </div>
+              {ev.kc ? <p className="shrink-0 text-[15px] font-medium tabular-nums text-native-text">{ev.kc} Kč</p> : null}
+            </div>
+          ))}
+        </div>
+      )}
 
       {childrenList.length > 0 && (
         <>
-          <p className="mt-2 text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">SPVPP peněženky</p>
+          <SectionLabel>SPVPP peněženky</SectionLabel>
           {childrenList.map((child) => {
             const wallet = child.spvpp ?? { rozpocet: 48000, vycerpano: 0 };
             const zustatek = wallet.rozpocet - wallet.vycerpano;
             return (
-              <div key={child.id} className="rounded-native-card bg-native-surface px-4 py-3">
-                <p className="text-[15px] font-medium text-native-text">{child.firstName} {child.lastName}</p>
-                <p className="text-[13px] text-native-textMuted">
-                  Čerpáno {wallet.vycerpano.toLocaleString('cs-CZ')} / {wallet.rozpocet.toLocaleString('cs-CZ')} Kč
-                </p>
-                <p className={cn('text-[13px] font-semibold', zustatek < 0 ? 'text-native-danger' : 'text-native-primary')}>
-                  Zůstatek {zustatek.toLocaleString('cs-CZ')} Kč
-                </p>
+              <div key={child.id} className="rounded-native-card bg-native-surface px-4">
+                <div className="border-b border-native-separator py-3.5">
+                  <p className="truncate text-[17px] font-semibold text-native-text">{child.firstName} {child.lastName}</p>
+                </div>
+                <NativeInfoRow
+                  label="Čerpáno"
+                  value={`${wallet.vycerpano.toLocaleString('cs-CZ')} / ${wallet.rozpocet.toLocaleString('cs-CZ')} Kč`}
+                />
+                <NativeInfoRow
+                  label="Zůstatek"
+                  value={
+                    zustatek < 0
+                      ? `${zustatek.toLocaleString('cs-CZ')} Kč`
+                      : <span className="text-native-primary">{zustatek.toLocaleString('cs-CZ')} Kč</span>
+                  }
+                  tone={zustatek < 0 ? 'danger' : undefined}
+                  isLast
+                />
               </div>
             );
           })}
@@ -86,7 +110,7 @@ export default function MobileRespitTab({
           submitting={submitting}
           footer={<NativeButton onClick={handleAdd} disabled={submitting || !respitForm.from}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
         >
-          {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
+          {submitError && <p className="text-[13px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
             <NativeFormRow label="Od">
               <RowInput type="date" value={respitForm.from} onChange={(e) => setRespitForm((f) => ({ ...f, from: e.target.value }))} />
