@@ -5,19 +5,26 @@
  * screenshotu: pozdrav bez karty (avatar 56px + text, plátno `native.bg`
  * prosvítá skrz), dvě rounded-native-card dlaždice vedle sebe (NE pill — to je
  * tvar tlačítek, ne dlaždic), pak ploché sekce s native kartami.
+ *
+ * 2026-07-06 (Connecteam „home → směna → clock-in"): klepnutí na událost
+ * otevírá MobileEventDetailSheet (Zahájit návštěvu přímo z Dnes), dlaždice
+ * „Přidat rodinu" (stub; KO rodiny zakládat nesmí — firestore.rules) nahrazena
+ * výběrem rodiny pro okamžité zahájení návštěvy.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarPlus, UserPlus, ClipboardCheck } from 'lucide-react';
+import { CalendarPlus, Timer, ClipboardCheck, ChevronRight } from 'lucide-react';
 import Avatar from '../../components/ui/Avatar.jsx';
 import { cn } from '../../components/ui/cn.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { EVENT_BORDER_CLASS } from '../../shared/domainConstants.js';
-import { toast } from '../../store/toastStore.js';
 import useTodayPage, { toDate } from '../../modules/admin/useTodayPage.js';
 import { SectionLabel, NativeEmptyState, NATIVE_EVENT_BORDER } from '../ui/NativeBits.jsx';
+import NativeSheet from '../ui/NativeSheet.jsx';
+import MobileEventSheet from './calendar/MobileEventSheet.jsx';
+import MobileEventDetailSheet from './calendar/MobileEventDetailSheet.jsx';
 
 function greetingFor(hour) {
   if (hour < 12) return 'Dobré ráno';
@@ -48,10 +55,9 @@ function EventRow({ event, familyName, onOpen }) {
   return (
     <button
       type="button"
-      onClick={() => event.fosterFamilyId && onOpen(event.fosterFamilyId)}
-      disabled={!event.fosterFamilyId}
+      onClick={onOpen}
       className={cn(
-        'flex w-full items-center gap-3 border-l-4 bg-native-surface px-4 py-3 text-left transition-transform duration-100 active:scale-[0.98] disabled:active:scale-100',
+        'flex w-full items-center gap-3 border-l-4 bg-native-surface px-4 py-3 text-left transition-transform duration-100 active:scale-[0.98]',
         NATIVE_EVENT_BORDER[event.type] ?? EVENT_BORDER_CLASS[event.type] ?? EVENT_BORDER_CLASS.other
       )}
     >
@@ -70,10 +76,14 @@ export default function MobileHomeScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
-  const { loading, error, todayEvents, waitingShown, familiesById } = useTodayPage();
+  const { loading, error, todayEvents, waitingShown, familiesById, reload } = useTodayPage();
+  const [detailEvent, setDetailEvent] = useState(null);
+  const [editEvent, setEditEvent] = useState(null);
+  const [visitPickerOpen, setVisitPickerOpen] = useState(false);
 
   const firstName = (profile?.displayName ?? profile?.email?.split('@')[0] ?? '').split(' ')[0];
   const now = new Date();
+  const families = Object.values(familiesById).sort((a, b) => a.name.localeCompare(b.name, 'cs'));
 
   function openFamily(familyId) {
     navigate(`/admin/terenni/${familyId}`);
@@ -97,16 +107,16 @@ export default function MobileHomeScreen() {
 
       <div className="mt-5 flex gap-3 px-4">
         <HomeTile
+          icon={Timer}
+          label="Zahájit návštěvu"
+          tintClass="bg-native-primary/10 text-native-primary"
+          onClick={() => setVisitPickerOpen(true)}
+        />
+        <HomeTile
           icon={CalendarPlus}
           label="Naplánovat návštěvu"
           tintClass="bg-native-primary/10 text-native-primary"
           onClick={() => navigate('/kalendar')}
-        />
-        <HomeTile
-          icon={UserPlus}
-          label="Přidat rodinu"
-          tintClass="bg-native-warning/10 text-native-warning"
-          onClick={() => toast.info(t('today.quickActions.notAvailable'))}
         />
       </div>
 
@@ -117,7 +127,11 @@ export default function MobileHomeScreen() {
         <div className="flex flex-col gap-2 px-4">
           {todayEvents.map((ev) => (
             <div key={ev.id} className="overflow-hidden rounded-native-card">
-              <EventRow event={ev} familyName={familiesById[ev.fosterFamilyId]?.name} onOpen={openFamily} />
+              <EventRow
+                event={ev}
+                familyName={familiesById[ev.fosterFamilyId]?.name}
+                onOpen={() => setDetailEvent(ev)}
+              />
             </div>
           ))}
         </div>
@@ -152,6 +166,51 @@ export default function MobileHomeScreen() {
             description="Až budou čekat naplánované návštěvy nebo rodiny bez nedávného kontaktu, objeví se tady."
           />
         </div>
+      )}
+
+      {visitPickerOpen && (
+        <NativeSheet title="U koho jste na návštěvě?" onClose={() => setVisitPickerOpen(false)}>
+          {families.length === 0 ? (
+            <p className="py-4 text-center text-[15px] text-native-textMuted">Nemáte přiřazené žádné rodiny.</p>
+          ) : (
+            <div className="overflow-hidden rounded-native-card bg-native-bg">
+              {families.map((f, i) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => navigate(`/admin/terenni/${f.id}/navsteva`, { state: { familyName: f.name } })}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left active:bg-native-separator/40',
+                    i > 0 && 'border-t border-native-separator'
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-medium text-native-text">{f.name}</p>
+                    {f.address && <p className="truncate text-[13px] text-native-textMuted">{f.address}</p>}
+                  </div>
+                  <ChevronRight size={17} strokeWidth={2} className="shrink-0 text-native-textMuted" />
+                </button>
+              ))}
+            </div>
+          )}
+        </NativeSheet>
+      )}
+
+      {detailEvent && (
+        <MobileEventDetailSheet
+          event={detailEvent}
+          onClose={() => setDetailEvent(null)}
+          onEdit={() => { setEditEvent(detailEvent); setDetailEvent(null); }}
+          onChanged={() => { setDetailEvent(null); reload(); }}
+        />
+      )}
+
+      {editEvent && (
+        <MobileEventSheet
+          event={editEvent}
+          onClose={() => setEditEvent(null)}
+          onCreated={() => { setEditEvent(null); reload(); }}
+        />
       )}
     </div>
   );

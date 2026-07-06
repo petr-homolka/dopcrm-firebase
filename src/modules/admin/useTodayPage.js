@@ -113,5 +113,7 @@ export default function useTodayPage() {
     loading, error, todayEvents, upcomingByDay, familiesById, visitsThisWeek,
     waitingTotal: waitingFamilies.length,
     waitingShown: waitingFamilies.slice(0, MAX_WAITING_SHOWN),
+    // Refetch po úpravě/smazání události z detail sheetu (MobileHomeScreen).
+    reload: load,
   };
 }

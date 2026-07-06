@@ -26,10 +26,16 @@ dle svého uvážení"):
   `canEditEvent` (calendarShared.js — zrcadlí firestore.rules: KO svoje, management vše).
   `MobileEventSheet` umí edit mode (prop `event` → updateEvent; `location` se přepisuje
   jen při ZMĚNĚ rodiny, ruční místo z desktopu zůstává). Nový sdílený `toJsDate()`.
+- **Dnes = ranní vstupní bod KO** (Connecteam „home → směna → clock-in"): klepnutí na
+  událost v Dnešním programu otevírá stejný detail sheet (Zahájit návštěvu přímo z Dnes);
+  mrtvá stub dlaždice „Přidat rodinu" (KO rodiny zakládat nesmí — firestore.rules) nahrazena
+  dlaždicí „Zahájit návštěvu" → sheet „U koho jste na návštěvě?" se seznamem rodin KO
+  (z familiesById, žádný další dotaz) → rovnou Giant Timer. `useTodayPage` má `reload`.
 - Ověřeno end-to-end na 390×844 (agenda → + Přidat út → sheet s rodinou → karta 14:00
   v agendě + přepočet souhrnu; karta → detail → Upravit 16:00 → Smazat → den zase prázdný;
   FAB speed-dial → timer → Ukončit → souhrn 00:19 + poznámka → záznam na Ose s textem
-  i odznakem trvání). Lint+build čisté, nasazeno na doprovazeni-dev.
+  i odznakem trvání; Dnes → událost → detail; Dnes → dlaždice → výběr rodiny → timer).
+  Lint+build čisté, nasazeno na doprovazeni-dev.
   Pozn. k ověřování: timeout `preview_screenshot` po startu čerstvého serveru bývá přechodný
   (první Vite dep-optimalizace) — `preview_snapshot` projde a druhý screenshot už také.
 
