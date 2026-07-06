@@ -62,10 +62,12 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
   reálných dat). Bez `-P`/`--project` flagu VŽDY cílíš sem — `npm run dev`, `npm run seed`,
   `firebase deploy --only firestore:rules` i všechny migrační skripty (`.env.local` ukazuje
   na dev projekt).
-- **Produkce = alias `prod`** (`opportune-cairn-500111-b-b2bea`, reálná data organizací).
-  Credentials jsou v `.env.production.local` (gitignored, nikdy se automaticky nenačítá).
-  Zásah do prod vyžaduje VŽDY explicitní `-P prod`/`--project opportune-cairn-500111-b-b2bea`
-  NEBO dočasné přepnutí `.env.local` na produkční hodnoty — nikdy omylem.
+- **Produkce = alias `prod`** (`opportune-cairn-500111-b-b2bea`; je na něm i doména
+  moje.doprovazeni.com — hosting). Credentials jsou v `.env.prod.credentials.local`
+  (gitignored). ⚠️ NIKDY je nedávej do `.env.production.local` — Vite tento soubor při
+  `npm run build` AUTOMATICKY načítá (priorita nad `.env.local`) a produkční config se
+  tiše zapeče do bundle (stalo se 2026-07-06). Zásah do prod backendu vyžaduje VŽDY
+  explicitní `-P prod` NEBO vědomé dočasné přejmenování credentials souboru — nikdy omylem.
 - Dev projekt má vlastní seed (`npm run seed`, `scripts/seed-permission-test-accounts.mjs`,
   `scripts/seed-calendar-events.mjs`) a vlastního bootstrap superadmina
   (`dev-admin@doprovazeni.dev`, heslo v `.env.local`) — nezávislé na produkčním superadminovi.

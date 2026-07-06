@@ -1,6 +1,25 @@
 # CURRENT_STATE
 **Verze:** 2.1.0 (Connecteam blok 1: kalendář-agenda + rekapitulace návštěvy, 2026-07-06)
 
+## 2026-07-06 — moje.doprovazeni.com: nový build + oprava env past (KRITICKÉ)
+
+Uživatel na mobilu viděl starou zelenou appku a chybu „query requires an index" z PROD
+projektu. Dvě příčiny:
+
+- **Doména moje.doprovazeni.com je připojená k HOSTINGU PROD projektu**
+  (`opportune-cairn-500111-b-b2bea`), ne k doprovazeni-dev.web.app, kam šly deploye.
+  Vyřešeno: `firebase deploy --only hosting -P prod` (se souhlasem uživatele) — doména teď
+  servíruje aktuální build.
+- **Vite past: `.env.production.local` se při `npm run build` AUTOMATICKY načítá**
+  (priorita nad `.env.local`) — všechny buildy tiše pekly PROD Firebase config do bundle,
+  zatímco `npm run dev` běžel proti dev (proto lokální ověření prošlo a nasazená appka
+  padala na chybějícím prod indexu). Soubor přejmenován na `.env.prod.credentials.local`
+  (Vite ho nenačítá, gitignore `.env.*.local` platí dál), CLAUDE.md opraven — tvrdil
+  „nikdy se automaticky nenačítá".
+- Ověřeno: bundle na moje.doprovazeni.com obsahuje jen `doprovazeni-dev` (0× opportune-cairn),
+  theme_color #007AFF. Přihlášení = dev demo účty (demo.ko.sever.2@doprovazeni.dev funguje —
+  dev-seed ho zakládá). Prod Firestore/Auth zůstaly nedotčené (deploy jen statického hostingu).
+
 ## 2026-07-06 — Kalendář jako týdenní agenda + rekapitulace návštěvy (autonomní blok)
 
 První dva přenosy z `docs/design/connecteam-analyza-2026-07-05.md` (uživatel: „postupuj
