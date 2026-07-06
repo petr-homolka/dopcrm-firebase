@@ -85,27 +85,27 @@ export default function ChildDetailPage() {
           type="button"
           onClick={() => navigate(`/admin/terenni/${familyId}`)}
           aria-label={t('child.detail.backToFamily')}
-          className="mt-0.5 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+          className="mt-0.5 rounded-lg p-1.5 text-ink-500 hover:bg-surface-muted"
         >
           <ArrowLeft size={20} strokeWidth={1.75} />
         </button>
-        <h1 className="min-w-0 flex-1 break-words text-lg font-semibold text-stone-800 sm:text-xl">
+        <h1 className="min-w-0 flex-1 break-words text-lg font-semibold text-ink-800 sm:text-xl">
           {loading ? t('common.loading') : `${child?.firstName ?? ''} ${child?.lastName ?? ''}`.trim()}
         </h1>
         {child && <Badge tone="family" className="mt-0.5">{careLabel(child.careType)}</Badge>}
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-14 text-stone-500">
+        <div className="flex items-center justify-center gap-2 py-14 text-ink-500">
           <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
         </div>
       )}
 
-      {!loading && error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {!loading && error && <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>}
 
       {!loading && !error && child && (
         <>
-          <div className="mb-5 flex flex-nowrap gap-2 overflow-x-auto border-b border-stone-100">
+          <div className="mb-5 flex flex-nowrap gap-2 overflow-x-auto border-b border-border-subtle">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -114,8 +114,8 @@ export default function ChildDetailPage() {
                 className={cn(
                   'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition duration-150',
                   tab === t.key
-                    ? 'border-primary-600 text-primary-700'
-                    : 'border-transparent text-stone-500 hover:text-stone-700'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-ink-500 hover:text-ink-700'
                 )}
               >
                 {t.label}

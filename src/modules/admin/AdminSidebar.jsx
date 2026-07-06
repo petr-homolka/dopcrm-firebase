@@ -5,9 +5,10 @@
  * layout, ne funkční rozsah (dlaždice pro Osu/Dokumenty/Čerpání jako
  * samostatné moduly čekají na `docs/INVENTAR.md` §12 roadmapu).
  *
- * DESKTOP POUZE (lg+) — mobil má od redesignu dle skutečných Connecteam
- * screenshotů (DESIGN.md §11.1) `MobileTabBar.jsx` dole, ne hamburger +
- * tento sidebar jako výsuvný drawer.
+ * DESKTOP POUZE — mobil má od STRICT UI/UX DESIGN MANDATE (2026-07-05)
+ * úplně samostatný layout `src/mobile/MobileShell.jsx` (spodní tab bar),
+ * ne hamburger + tento sidebar jako výsuvný drawer. `AdminLayout.jsx`
+ * rozhoduje, který z těch dvou layoutů se vykreslí.
  */
 
 import React from 'react';

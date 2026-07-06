@@ -8,9 +8,11 @@
 import React from 'react';
 import { cn } from '../../components/ui/cn.js';
 
+// Secondary = měkká tintová výplň (Connecteam --ct-color-surface-brand-soft
+// vzor), NE outline border — 2px rámeček působil tvrdě/zastarale (v3, §12.4).
 const VARIANTS = {
   primary: 'bg-native-primary text-white',
-  secondary: 'bg-transparent text-native-primary border-2 border-native-primary',
+  secondary: 'bg-native-primary/10 text-native-primary',
   danger: 'bg-native-danger text-white',
 };
 
@@ -20,7 +22,8 @@ export default function NativeButton({ variant = 'primary', className, type = 'b
       type={type}
       className={cn(
         'flex h-14 w-full items-center justify-center gap-2 rounded-full px-6 text-[17px] font-semibold',
-        'transition-opacity active:opacity-70 disabled:opacity-40',
+        'transition-transform duration-100 active:scale-[0.97] disabled:active:scale-100',
+        'disabled:border-native-separator disabled:bg-native-separator disabled:text-native-textMuted',
         VARIANTS[variant],
         className
       )}

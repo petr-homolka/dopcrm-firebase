@@ -58,15 +58,15 @@ export default function OrganizationDetailPage() {
           type="button"
           onClick={() => navigate('/admin/superadmin')}
           aria-label="Zpět na organizace"
-          className="mt-0.5 rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+          className="mt-0.5 rounded-lg p-1.5 text-ink-500 hover:bg-surface-muted"
         >
           <ArrowLeft size={20} strokeWidth={1.75} />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="break-words text-xl font-semibold text-stone-800">
+          <h1 className="break-words text-xl font-semibold text-ink-800">
             {loading ? 'Načítám…' : (org?.name ?? 'Organizace')}
           </h1>
-          {org?.ico && <p className="text-sm text-stone-500">IČO {org.ico}</p>}
+          {org?.ico && <p className="text-sm text-ink-500">IČO {org.ico}</p>}
         </div>
         {org && (
           <Badge tone={STATUS_TONE[org.status] ?? 'neutral'} className="mt-0.5">
@@ -76,18 +76,18 @@ export default function OrganizationDetailPage() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-16 text-stone-400">
+        <div className="flex items-center justify-center gap-2 py-16 text-ink-400">
           <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>
       )}
 
       {!loading && !error && org && (
         <>
-          <div className="mb-5 flex gap-1 overflow-x-auto border-b border-stone-100">
+          <div className="mb-5 flex gap-1 overflow-x-auto border-b border-border-subtle">
             {TABS.map((t) => (
               <button
                 key={t.value}
@@ -96,8 +96,8 @@ export default function OrganizationDetailPage() {
                 className={cn(
                   'shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition',
                   tab === t.value
-                    ? 'border-primary-600 text-primary-700'
-                    : 'border-transparent text-stone-500 hover:text-stone-700'
+                    ? 'border-brand-600 text-brand-700'
+                    : 'border-transparent text-ink-500 hover:text-ink-700'
                 )}
               >
                 {t.label}

@@ -128,6 +128,9 @@ export default function useCalendarWeek(enabled = true) {
   return {
     loading, error, employees, days, weekStart, rows, unassignedCount, dayTotals, weekTotals,
     draftCount: draftEvents.length, publishableCount: publishableDraftIds.length, publishing, publish,
+    // Refetch beze změny týdne — po založení události z mobilního sheetu
+    // (MobileEventSheet.jsx, 2026-07-05); desktop grid reload nepotřebuje.
+    reload: load,
     goPrevWeek: () => setWeekStart((w) => addDays(w, -7)),
     goNextWeek: () => setWeekStart((w) => addDays(w, 7)),
     goToday: () => setWeekStart(startOfWeek(new Date())),

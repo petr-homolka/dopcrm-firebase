@@ -34,7 +34,7 @@ const ERROR_KEY_MAP = {
 };
 
 const fieldBaseClass =
-  'w-full rounded-xl bg-stone-100 py-2.5 pl-10 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
+  'w-full rounded-xl bg-surface-muted py-2.5 pl-10 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50';
 const emailFieldClass = `${fieldBaseClass} pr-4`;
 const passwordFieldClass = `${fieldBaseClass} pr-10`;
 
@@ -126,15 +126,15 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 py-8">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-muted px-4 py-8">
       <div className="w-full max-w-sm">
         <Card className="p-6 sm:p-8">
           <div className="mb-6 flex flex-col items-center">
-            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-2xl font-semibold text-white">
+            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-semibold text-white">
               D
             </span>
-            <h1 className="text-center text-lg font-semibold text-stone-800">{t('auth.login.title')}</h1>
-            <p className="mt-1 text-center text-sm text-stone-500">
+            <h1 className="text-center text-lg font-semibold text-ink-800">{t('auth.login.title')}</h1>
+            <p className="mt-1 text-center text-sm text-ink-500">
               {t('auth.login.subtitle')}
             </p>
           </div>
@@ -142,7 +142,7 @@ export default function Login() {
           {error && (
             <div
               role="alert"
-              className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+              className="mb-4 flex items-start gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700"
             >
               <AlertCircle size={18} strokeWidth={1.75} className="mt-0.5 shrink-0" />
               <span>{error}</span>
@@ -151,14 +151,14 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <div>
-              <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-stone-700">
+              <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-ink-700">
                 {t('auth.login.emailLabel')}
               </label>
               <div className="relative">
                 <Mail
                   size={18}
                   strokeWidth={1.75}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
                 />
                 <input
                   id="login-email"
@@ -172,18 +172,18 @@ export default function Login() {
                   className={emailFieldClass}
                 />
               </div>
-              <p className="mt-1 min-h-[1rem] text-xs text-red-600">{fieldErrors.email || ' '}</p>
+              <p className="mt-1 min-h-[1rem] text-xs text-danger-600">{fieldErrors.email || ' '}</p>
             </div>
 
             <div>
-              <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-stone-700">
+              <label htmlFor="login-password" className="mb-1.5 block text-sm font-medium text-ink-700">
                 {t('auth.login.passwordLabel')}
               </label>
               <div className="relative">
                 <Lock
                   size={18}
                   strokeWidth={1.75}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
                 />
                 <input
                   id="login-password"
@@ -201,7 +201,7 @@ export default function Login() {
                   aria-label={showPass ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
                   tabIndex={-1}
                   disabled={loading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-50"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-500 hover:bg-border-default disabled:opacity-50"
                 >
                   {showPass ? (
                     <EyeOff size={18} strokeWidth={1.75} />
@@ -210,7 +210,7 @@ export default function Login() {
                   )}
                 </button>
               </div>
-              <p className="mt-1 min-h-[1rem] text-xs text-red-600">{fieldErrors.password || ' '}</p>
+              <p className="mt-1 min-h-[1rem] text-xs text-danger-600">{fieldErrors.password || ' '}</p>
             </div>
 
             <Button type="submit" variant="primary" size="lg" disabled={loading} className="mt-1 w-full">
@@ -219,12 +219,12 @@ export default function Login() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-stone-500">
+          <p className="mt-6 text-center text-xs text-ink-500">
             {t('auth.login.forgotPassword')}
           </p>
-          <p className="mt-2 text-center text-sm text-stone-700">
+          <p className="mt-2 text-center text-sm text-ink-700">
             {t('auth.login.noOrgPrompt')}{' '}
-            <a href="/registrace" className="font-semibold text-primary-600 hover:text-primary-700">
+            <a href="/registrace" className="font-semibold text-brand-600 hover:text-brand-700">
               {t('auth.login.noOrgCta')}
             </a>
           </p>

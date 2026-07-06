@@ -1,20 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
-import { sanitizeSlugInput, validateSlugFormat } from '../../shared/slugUtils.js';
+import { sanitizeSlugInput } from '../../shared/slugUtils.js';
+import useSlugStatus from '../../shared/useSlugStatus.js';
 
 const STATUS_ICON = {
-  checking: <Loader2 size={16} className="animate-spin text-stone-400" />,
-  ok: <Check size={16} className="text-green-600" />,
-  taken: <X size={16} className="text-red-600" />,
-  invalid: <X size={16} className="text-red-600" />,
+  checking: <Loader2 size={16} className="animate-spin text-ink-400" />,
+  ok: <Check size={16} className="text-success-600" />,
+  taken: <X size={16} className="text-danger-600" />,
+  invalid: <X size={16} className="text-danger-600" />,
 };
 
 const MESSAGE_CLASS = {
-  ok: 'text-green-600',
-  taken: 'text-red-600',
-  invalid: 'text-red-600',
-  checking: 'text-stone-400',
-  idle: 'text-stone-400',
+  ok: 'text-success-600',
+  taken: 'text-danger-600',
+  invalid: 'text-danger-600',
+  checking: 'text-ink-400',
+  idle: 'text-ink-400',
 };
 
 /**
@@ -26,57 +27,17 @@ const MESSAGE_CLASS = {
  * @param {(status:'idle'|'checking'|'ok'|'taken'|'invalid')=>void} [onStatusChange] — pro gating submit tlačítka v rodiči
  */
 export default function SlugField({ value, onChange, checkAvailable, currentSlug = '', disabled, label = 'Adresa URL organizace', onStatusChange }) {
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('');
-  const timerRef = useRef(null);
+  const { status, message } = useSlugStatus(value, currentSlug, checkAvailable);
 
-  function report(next, msg) {
-    setStatus(next);
-    setMessage(msg);
-    onStatusChange?.(next);
-  }
-
-  useEffect(() => {
-    clearTimeout(timerRef.current);
-
-    if (!value) {
-      report('idle', '');
-      return undefined;
-    }
-
-    const formatError = validateSlugFormat(value);
-    if (formatError) {
-      report('invalid', formatError);
-      return undefined;
-    }
-
-    if (value === currentSlug) {
-      report('ok', 'Stávající adresa organizace.');
-      return undefined;
-    }
-
-    report('checking', '');
-    timerRef.current = setTimeout(async () => {
-      try {
-        const available = await checkAvailable(value);
-        report(available ? 'ok' : 'taken', available ? 'Tato adresa je volná.' : 'Tato adresa je již obsazená.');
-      } catch (err) {
-        console.error('[SlugField] kontrola dostupnosti selhala:', err);
-        report('invalid', 'Nepodařilo se ověřit dostupnost, zkuste to znovu.');
-      }
-    }, 400);
-
-    return () => clearTimeout(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, currentSlug, checkAvailable]);
+  useEffect(() => { onStatusChange?.(status); }, [status, onStatusChange]);
 
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-stone-500">{label}</span>
-      <div className="flex items-center gap-2 rounded-xl bg-stone-100 px-4 py-2.5 focus-within:ring-2 focus-within:ring-primary-600">
-        <span className="text-sm text-stone-400">doprovazeni.com/</span>
+      <span className="mb-1 block text-xs font-medium text-ink-500">{label}</span>
+      <div className="flex items-center gap-2 rounded-xl bg-surface-muted px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand-600">
+        <span className="text-sm text-ink-400">doprovazeni.com/</span>
         <input
-          className="min-w-0 flex-1 bg-transparent text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none"
           value={value}
           onChange={(e) => onChange(sanitizeSlugInput(e.target.value))}
           disabled={disabled}

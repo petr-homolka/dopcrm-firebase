@@ -17,9 +17,9 @@ export function addressLabel(a) {
 }
 
 export const fieldClass =
-  'w-full rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 ' +
-  'focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
-export const labelClass = 'mb-1.5 block text-sm font-medium text-stone-700';
+  'w-full rounded-xl bg-surface-muted px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 ' +
+  'focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50';
+export const labelClass = 'mb-1.5 block text-sm font-medium text-ink-700';
 
 export const emptyRelForm = { name: '', rc: '', rel: '', phone: '', email: '', note: '' };
 export const emptySocialForm = { name: '', vztah: '', phone: '', email: '', note: '' };

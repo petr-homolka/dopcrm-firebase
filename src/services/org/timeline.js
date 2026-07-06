@@ -5,6 +5,13 @@
  * `title`/`occurredAt`/`subjectRefs` se teď smí editovat přes
  * `updateTimelineEntry`, ne jen `pinned` (max 3, hlídáno tady i v rules).
  * Delete stále nikdy — mazání záznamů zůstává mimo rozsah této změny.
+ *
+ * Měření času návštěvy + GPS (2026-07-06): `type: 'visit'` záznam smí navíc
+ * nést `startedAt`/`endedAt`/`durationSeconds`/`location` — nastavují se
+ * VÝHRADNĚ při vzniku (create), nikdy přes `updateTimelineEntry` (mimo
+ * povolený `hasOnly` seznam v rules — provenience, ne obsah k editaci).
+ * Rozjetá (ne dokončená) návštěva žije jen v `visitTimerStorage.js`
+ * (localStorage), do Firestore se zapisuje jednorázově až při ukončení.
  */
 
 import {
@@ -45,6 +52,9 @@ export async function listPinnedTimelineEntries(familyId) {
 
 export async function createTimelineEntry(familyId, {
   type, title, body, subjectRefs = [], occurredAt, attachments = [], source = 'web', correctsEntryId = null,
+  // Měření času návštěvy + jednorázová GPS poloha při zahájení (2026-07-06,
+  // docs/domain/timeline.md) — jen pro type 'visit', jinde se nezapisují.
+  startedAt = null, endedAt = null, durationSeconds = null, location = null,
 }) {
   const ref = doc(timelineCol(familyId));
   const payload = {
@@ -53,6 +63,12 @@ export async function createTimelineEntry(familyId, {
     correctsEntryId,
     ...createMeta(),
   };
+  if (type === 'visit') {
+    if (startedAt) payload.startedAt = startedAt;
+    if (endedAt) payload.endedAt = endedAt;
+    if (durationSeconds != null) payload.durationSeconds = durationSeconds;
+    if (location) payload.location = location;
+  }
 
   if (type === 'visit') {
     // `lastVisitAt` je denormalizované pole na rodině (obrazovka Dnes, sekce

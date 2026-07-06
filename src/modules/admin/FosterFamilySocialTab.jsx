@@ -62,7 +62,7 @@ export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddC
             <p className="py-1.5 text-sm text-ink-500">{t('family.detail.social.noneFemale')}</p>
           )}
           {biologicalChildren.map((c, i) => (
-            <div key={i} className="py-1.5">
+            <div key={c.id ?? i} className="py-1.5">
               <p className="text-sm text-ink-800">{c.name}</p>
               <p className="text-sm text-ink-500">
                 {[c.rc && t('family.detail.social.rcPrefix', { rc: c.rc }), c.birthDate].filter(Boolean).join(' · ')}
@@ -80,7 +80,7 @@ export default function FosterFamilySocialTab({ socialForm, onAddPartner, onAddC
         <div className="mt-2 flex flex-col divide-y divide-border-subtle">
           {parents.length === 0 && <p className="py-1.5 text-sm text-ink-500">{t('family.detail.social.noneMale')}</p>}
           {parents.map((p, i) => (
-            <div key={i} className="py-1.5">
+            <div key={p.id ?? i} className="py-1.5">
               <p className="text-sm text-ink-800">{p.name}</p>
               <p className="text-sm text-ink-500">
                 {[p.rc && t('family.detail.social.rcPrefix', { rc: p.rc }), p.phone].filter(Boolean).join(' · ')}

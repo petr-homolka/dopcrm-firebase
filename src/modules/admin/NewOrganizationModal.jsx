@@ -11,15 +11,15 @@ import Card from '../../components/ui/Card.jsx';
 import Button from '../../components/ui/Button.jsx';
 
 const fieldClass =
-  'w-full rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 ' +
-  'focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
+  'w-full rounded-xl bg-surface-muted px-3.5 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 ' +
+  'focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50';
 
 function Field({ label, hint, ...props }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-stone-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
       <input className={fieldClass} {...props} />
-      {hint && <span className="mt-1 block text-xs text-stone-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-ink-400">{hint}</span>}
     </label>
   );
 }
@@ -36,25 +36,25 @@ export default function NewOrganizationModal({ form, submitting, submitError, on
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="text-lg font-semibold text-stone-800">Nová doprovázející organizace</h2>
+            <h2 className="text-lg font-semibold text-ink-800">Nová doprovázející organizace</h2>
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
               aria-label="Zavřít"
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 disabled:opacity-50"
+              className="rounded-lg p-1.5 text-ink-400 hover:bg-surface-muted disabled:opacity-50"
             >
               <X size={18} strokeWidth={1.75} />
             </button>
           </div>
 
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-ink-500">
             Založí novou organizaci a rovnou i jejího prvního administrátora (Org. Admin),
             který si dál sám přidá zaměstnance.
           </p>
 
           {submitError && (
-            <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{submitError}</div>
+            <div className="rounded-xl bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">{submitError}</div>
           )}
 
           <Field label="Název organizace" value={form.orgName} onChange={onChange('orgName')} required disabled={submitting} autoFocus />

@@ -25,11 +25,11 @@ function StatCard({ icon, label, value }) {
   return (
     <Card>
       <div className="flex flex-col gap-1">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
           {icon}
         </div>
-        <p className="mt-1 text-3xl font-semibold leading-tight text-stone-800 tabular-nums">{value}</p>
-        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
+        <p className="mt-1 text-3xl font-semibold leading-tight text-ink-800 tabular-nums">{value}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-ink-400">{label}</p>
       </div>
     </Card>
   );
@@ -123,14 +123,14 @@ export default function OrgEmployeesPanel({ organizationId }) {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-14 text-stone-500">
+        <div className="flex items-center justify-center gap-2 py-14 text-ink-500">
           <Loader2 size={20} strokeWidth={1.75} className="animate-spin" />
           <span className="text-sm">Načítám zaměstnance…</span>
         </div>
       )}
 
       {!loading && error && (
-        <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-5 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>
       )}
 
       {!loading && !error && (
@@ -141,17 +141,17 @@ export default function OrgEmployeesPanel({ organizationId }) {
           </div>
 
           <Card>
-            <h2 className="mb-3 text-base font-semibold text-stone-800">Zaměstnanci</h2>
+            <h2 className="mb-3 text-base font-semibold text-ink-800">Zaměstnanci</h2>
 
             {users.length === 0 ? (
-              <p className="py-8 text-center text-sm text-stone-500">
+              <p className="py-8 text-center text-sm text-ink-500">
                 Zatím žádní zaměstnanci — přidejte prvního přes tlačítko výše.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="text-xs uppercase tracking-wide text-stone-400">
+                    <tr className="text-xs uppercase tracking-wide text-ink-400">
                       <th className="px-3 py-2 font-medium">Jméno</th>
                       <th className="px-3 py-2 font-medium">Funkce / Role</th>
                       <th className="px-3 py-2 font-medium">Nadřízený</th>
@@ -161,21 +161,21 @@ export default function OrgEmployeesPanel({ organizationId }) {
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-stone-50">
-                        <td className="px-3 py-3 font-semibold text-stone-800">{u.displayName}</td>
+                      <tr key={u.id} className="hover:bg-surface-muted">
+                        <td className="px-3 py-3 font-semibold text-ink-800">{u.displayName}</td>
                         <td className="px-3 py-3">
                           <div className="flex flex-col items-start gap-1">
-                            {u.funkce && <span className="text-sm text-stone-700">{u.funkce}</span>}
+                            {u.funkce && <span className="text-sm text-ink-700">{u.funkce}</span>}
                             <Badge tone="neutral">{employeeRoleLabel(u.role)}</Badge>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-stone-500">
+                        <td className="px-3 py-3 text-ink-500">
                           {u.nadrizeny ? nadrizenyName(u.nadrizeny) : '—'}
                         </td>
-                        <td className="px-3 py-3 text-stone-500">
+                        <td className="px-3 py-3 text-ink-500">
                           <div className="flex flex-col">
                             <span>{u.email}</span>
-                            {u.phone && <span className="text-xs text-stone-400">{u.phone}</span>}
+                            {u.phone && <span className="text-xs text-ink-400">{u.phone}</span>}
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -185,8 +185,8 @@ export default function OrgEmployeesPanel({ organizationId }) {
                               onClick={() => toggleActive(u)}
                               aria-label={u.active ? 'Deaktivovat' : 'Aktivovat'}
                               className={
-                                'rounded-lg p-1.5 transition hover:bg-stone-100 ' +
-                                (u.active ? 'text-primary-600' : 'text-stone-400')
+                                'rounded-lg p-1.5 transition hover:bg-surface-muted ' +
+                                (u.active ? 'text-brand-600' : 'text-ink-400')
                               }
                             >
                               {u.active

@@ -16,6 +16,8 @@ import {
   addressLabel, emptyRelForm, emptySocialForm, emptyAddressForm, emptySchoolForm,
   emptyOspodForm, emptyCourtForm, emptyVerdictForm, emptyDocsForm, emptyFosterHistForm,
 } from './childDetailShared.js';
+import { parseRc } from '../../shared/rcUtils.js';
+import { generateLocalId } from '../../shared/idUtils.js';
 
 export function useChildDetailForms({ childId, child, reload }) {
   const { t } = useTranslation();
@@ -61,10 +63,14 @@ export function useChildDetailForms({ childId, child, reload }) {
 
   const handleAddRelative = withSubmit(async () => {
     if (!relForm.name.trim()) throw new Error(t('child.detail.errors.relativeNameRequired'));
+    const rcParsed = parseRc(relForm.rc);
+    if (relForm.rc.trim() && rcParsed.error) throw new Error(rcParsed.error);
     const relType = REL_TYPES.find((r) => r.key === relForm.rel);
     const relatives = [
       ...(child.relatives ?? []),
-      { id: `${Date.now().toString(36)}`, name: relForm.name.trim(), rc: relForm.rc.trim(), rel: relForm.rel, legal: relType?.legal ?? false, phone: relForm.phone.trim(), email: relForm.email.trim(), note: relForm.note.trim() },
+      // Bez RČ nesmí být identita opřená o jméno (může se shodovat s jinou
+      // osobou) — vlastní interní id, ne odvozené jen z časové známky.
+      { id: generateLocalId(), name: relForm.name.trim(), rc: relForm.rc.trim(), rel: relForm.rel, legal: relType?.legal ?? false, phone: relForm.phone.trim(), email: relForm.email.trim(), note: relForm.note.trim() },
     ];
     await setChildRelatives(childId, relatives);
     setRelDialogOpen(false);
@@ -73,7 +79,7 @@ export function useChildDetailForms({ childId, child, reload }) {
 
   const handleAddSocial = withSubmit(async () => {
     if (!socialForm.name.trim()) throw new Error(t('child.detail.errors.nameRequired'));
-    const socialSpace = [...(child.socialSpace ?? []), { id: `${Date.now().toString(36)}`, ...socialForm }];
+    const socialSpace = [...(child.socialSpace ?? []), { id: generateLocalId(), ...socialForm }];
     await setChildSocialSpace(childId, socialSpace);
     setSocialDialogOpen(false);
     setSocialForm(emptySocialForm);

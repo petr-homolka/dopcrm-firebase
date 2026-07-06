@@ -23,9 +23,9 @@ export default function OrgAdminDashboard() {
 
   return (
     <div>
-      <h1 className="mb-3 text-lg font-semibold text-stone-800 sm:text-xl">Naše organizace</h1>
+      <h1 className="mb-3 text-lg font-semibold text-ink-800 sm:text-xl">Naše organizace</h1>
 
-      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-stone-100">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-border-subtle">
         {TABS.map((t) => (
           <button
             key={t.value}
@@ -34,8 +34,8 @@ export default function OrgAdminDashboard() {
             className={cn(
               'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition duration-150',
               tab === t.value
-                ? 'border-primary-600 text-primary-700'
-                : 'border-transparent text-stone-500 hover:text-stone-700'
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-ink-500 hover:text-ink-700'
             )}
           >
             {t.label}

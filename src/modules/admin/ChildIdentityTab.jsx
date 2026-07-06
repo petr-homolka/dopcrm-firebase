@@ -35,20 +35,20 @@ export default function ChildIdentityTab({
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Card>
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t('child.detail.identity.basicIdentity')}</p>
-          <div className="flex items-center gap-2 text-stone-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t('child.detail.identity.basicIdentity')}</p>
+          <div className="flex items-center gap-2 text-ink-500">
             <BadgeCheck size={16} strokeWidth={1.75} />
             <p className="text-sm">{child.rc ? t('child.detail.identity.rcValue', { rc: child.rc }) : t('child.detail.identity.rcMissing')}</p>
           </div>
-          <div className="flex items-center gap-2 text-stone-500">
+          <div className="flex items-center gap-2 text-ink-500">
             <Cake size={16} strokeWidth={1.75} />
             <p className="text-sm">{t('child.detail.identity.birthDate', { date: formatDate(child.birthDate) })}</p>
           </div>
-          <div className="my-1 h-px bg-stone-100" />
-          <p className="text-sm text-stone-800">
+          <div className="my-1 h-px bg-surface-muted" />
+          <p className="text-sm text-ink-800">
             {t('child.detail.identity.idCardLabel')} {child.idCard ? `${child.idCard.number}${child.idCard.validUntil ? ` ${t('child.detail.identity.validUntil', { date: child.idCard.validUntil })}` : ''}` : t('child.detail.identity.notIssued')}
           </p>
-          <p className="text-sm text-stone-800">
+          <p className="text-sm text-ink-800">
             {t('child.detail.identity.passportLabel')} {child.passport ? `${child.passport.number}${child.passport.validUntil ? ` ${t('child.detail.identity.validUntil', { date: child.passport.validUntil })}` : ''}` : t('child.detail.identity.notIssued')}
           </p>
           {canManage && (
@@ -61,20 +61,20 @@ export default function ChildIdentityTab({
 
       <Card>
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t('child.detail.identity.addresses')}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t('child.detail.identity.addresses')}</p>
           <div>
-            <p className="text-sm font-semibold text-stone-800">{t('child.detail.identity.permanentAddress')}</p>
-            <p className="text-sm text-stone-500">{addressLabel(child.addressPermanent) ?? t('child.detail.identity.notFilled')}</p>
+            <p className="text-sm font-semibold text-ink-800">{t('child.detail.identity.permanentAddress')}</p>
+            <p className="text-sm text-ink-500">{addressLabel(child.addressPermanent) ?? t('child.detail.identity.notFilled')}</p>
             {canManage && (
               <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressPermanent', child.addressPermanent)}>
                 {t('child.detail.identity.edit')}
               </Button>
             )}
           </div>
-          <div className="h-px bg-stone-100" />
+          <div className="h-px bg-surface-muted" />
           <div>
-            <p className="text-sm font-semibold text-stone-800">{t('child.detail.identity.residenceAddress')}</p>
-            <p className="text-sm text-stone-500">{addressLabel(child.addressResidence) ?? t('child.detail.identity.sameAsPermanent')}</p>
+            <p className="text-sm font-semibold text-ink-800">{t('child.detail.identity.residenceAddress')}</p>
+            <p className="text-sm text-ink-500">{addressLabel(child.addressResidence) ?? t('child.detail.identity.sameAsPermanent')}</p>
             {canManage && (
               <Button variant="ghost" size="sm" className="-ml-3 mt-0.5" onClick={() => onOpenAddress('addressResidence', child.addressResidence)}>
                 {t('child.detail.identity.edit')}

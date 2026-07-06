@@ -47,7 +47,7 @@ export default function ChildOspodCourtTab({
     <div className="flex flex-col gap-4">
       <Card>
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{t('child.detail.ospodCourt.ospodTitle')}</h2>
+          <h2 className="text-base font-semibold text-ink-800">{t('child.detail.ospodCourt.ospodTitle')}</h2>
           {canManage && (
             <Button variant="secondary" size="sm" onClick={onOpenOspod}>
               {child.ospod ? t('child.detail.ospodCourt.edit') : t('child.detail.ospodCourt.add')}
@@ -55,15 +55,15 @@ export default function ChildOspodCourtTab({
           )}
         </div>
         {child.ospod ? (
-          <p className="text-sm text-stone-800">{t('child.detail.ospodCourt.ospodSummary', { name: child.ospod.nazev, contact: child.ospod.osoba || '—' })}</p>
+          <p className="text-sm text-ink-800">{t('child.detail.ospodCourt.ospodSummary', { name: child.ospod.nazev, contact: child.ospod.osoba || '—' })}</p>
         ) : (
-          <p className="text-sm text-stone-500">{t('child.detail.ospodCourt.empty')}</p>
+          <p className="text-sm text-ink-500">{t('child.detail.ospodCourt.empty')}</p>
         )}
       </Card>
 
       <Card>
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{t('child.detail.ospodCourt.courtTitle')}</h2>
+          <h2 className="text-base font-semibold text-ink-800">{t('child.detail.ospodCourt.courtTitle')}</h2>
           {canManage && (
             <Button variant="secondary" size="sm" onClick={onOpenCourt}>
               {child.courtCase ? t('child.detail.ospodCourt.edit') : t('child.detail.ospodCourt.add')}
@@ -72,17 +72,17 @@ export default function ChildOspodCourtTab({
         </div>
         {child.courtCase ? (
           <div className="mb-4 flex flex-col gap-0.5">
-            <p className="text-sm text-stone-800">{t('child.detail.ospodCourt.caseNumberLabel')} <span className="font-semibold">{child.courtCase.spisZnacka || '—'}</span></p>
-            <p className="text-sm text-stone-800">{child.courtCase.soudNazev}</p>
-            <p className="text-sm text-stone-500">{child.courtCase.soudAdresa}</p>
-            <p className="text-sm text-stone-800">{t('child.detail.ospodCourt.contactPersonLabel')} {child.courtCase.kontaktniOsoba || '—'}</p>
+            <p className="text-sm text-ink-800">{t('child.detail.ospodCourt.caseNumberLabel')} <span className="font-semibold">{child.courtCase.spisZnacka || '—'}</span></p>
+            <p className="text-sm text-ink-800">{child.courtCase.soudNazev}</p>
+            <p className="text-sm text-ink-500">{child.courtCase.soudAdresa}</p>
+            <p className="text-sm text-ink-800">{t('child.detail.ospodCourt.contactPersonLabel')} {child.courtCase.kontaktniOsoba || '—'}</p>
           </div>
         ) : (
-          <p className="mb-4 text-sm text-stone-500">{t('child.detail.ospodCourt.empty')}</p>
+          <p className="mb-4 text-sm text-ink-500">{t('child.detail.ospodCourt.empty')}</p>
         )}
 
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-stone-800">{t('child.detail.ospodCourt.verdictsTitle')}</h3>
+          <h3 className="text-sm font-semibold text-ink-800">{t('child.detail.ospodCourt.verdictsTitle')}</h3>
           {canManage && (
             <Button variant="ghost" size="sm" onClick={onOpenVerdict}>
               <Plus size={16} strokeWidth={1.75} />
@@ -90,12 +90,12 @@ export default function ChildOspodCourtTab({
             </Button>
           )}
         </div>
-        {rozsudky.length === 0 && <p className="py-1 text-sm text-stone-500">{t('child.detail.ospodCourt.noRecords')}</p>}
+        {rozsudky.length === 0 && <p className="py-1 text-sm text-ink-500">{t('child.detail.ospodCourt.noRecords')}</p>}
         <ul>
           {rozsudky.map((v) => (
-            <li key={v.id} className="border-t border-stone-100 py-2.5 first:border-t-0">
-              <p className="text-sm text-stone-800">{v.popis}</p>
-              <p className="text-xs text-stone-400">{v.datum}</p>
+            <li key={v.id} className="border-t border-border-subtle py-2.5 first:border-t-0">
+              <p className="text-sm text-ink-800">{v.popis}</p>
+              <p className="text-xs text-ink-400">{v.datum}</p>
             </li>
           ))}
         </ul>

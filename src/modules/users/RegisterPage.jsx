@@ -20,9 +20,9 @@ import Card from '../../components/ui/Card.jsx';
 import SlugField from '../../components/ui/SlugField.jsx';
 
 const inputClass =
-  'w-full rounded-xl bg-stone-100 px-4 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50';
-const labelClass = 'mb-1 block text-xs font-medium text-stone-500';
-const sectionLabelClass = 'text-xs font-semibold uppercase tracking-wide text-stone-400';
+  'w-full rounded-xl bg-surface-muted px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50';
+const labelClass = 'mb-1 block text-xs font-medium text-ink-500';
+const sectionLabelClass = 'text-xs font-semibold uppercase tracking-wide text-ink-400';
 
 const ERROR_KEY_MAP = {
   'auth/email-already-in-use': 'emailInUse',
@@ -111,21 +111,21 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-stone-50 px-4 py-8">
+    <div className="flex min-h-dvh items-center justify-center bg-surface-muted px-4 py-8">
       <div className="w-full max-w-lg">
         <Card className="p-6 sm:p-8">
           <div className="mb-6 flex flex-col items-center gap-2">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-600 text-2xl font-semibold text-white">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-600 text-2xl font-semibold text-white">
               D
             </span>
-            <h1 className="text-center text-lg font-semibold text-stone-800">{t('auth.register.title')}</h1>
-            <p className="text-center text-sm text-stone-500">
+            <h1 className="text-center text-lg font-semibold text-ink-800">{t('auth.register.title')}</h1>
+            <p className="text-center text-sm text-ink-500">
               {t('auth.register.subtitle')}
             </p>
           </div>
 
           {error && (
-            <div role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div role="alert" className="mb-4 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">
               {error}
             </div>
           )}
@@ -145,7 +145,7 @@ export default function RegisterPage() {
               <Field label={t('auth.register.dataBoxId')} value={form.dataBoxId} onChange={updateForm('dataBoxId')} disabled={submitting} />
             </div>
 
-            <div className="h-px bg-stone-100" />
+            <div className="h-px bg-surface-muted" />
             <p className={sectionLabelClass}>{t('auth.register.sectionSidlo')}</p>
             <Field label={t('auth.register.street')} value={form.sidloStreet} onChange={updateForm('sidloStreet')} disabled={submitting} />
             <div className="grid grid-cols-3 gap-3">
@@ -153,13 +153,13 @@ export default function RegisterPage() {
               <Field label={t('auth.register.zip')} value={form.sidloZip} onChange={updateForm('sidloZip')} disabled={submitting} />
             </div>
 
-            <label className="flex items-center gap-2.5 text-sm text-stone-700">
+            <label className="flex items-center gap-2.5 text-sm text-ink-700">
               <input
                 type="checkbox"
                 checked={form.sameAsSidlo}
                 onChange={(e) => setForm((f) => ({ ...f, sameAsSidlo: e.target.checked }))}
                 disabled={submitting}
-                className="h-4 w-4 rounded border-0 bg-stone-100 text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600"
+                className="h-4 w-4 rounded border-0 bg-surface-muted text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600"
               />
               {t('auth.register.sameAsSidlo')}
             </label>
@@ -175,7 +175,7 @@ export default function RegisterPage() {
               </>
             )}
 
-            <div className="h-px bg-stone-100" />
+            <div className="h-px bg-surface-muted" />
             <p className={sectionLabelClass}>{t('auth.register.sectionZastupce')}</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t('auth.register.firstName')} value={form.zFirstName} onChange={updateForm('zFirstName')} required disabled={submitting} />
@@ -189,7 +189,7 @@ export default function RegisterPage() {
             <Field label={t('auth.register.email')} type="email" value={form.email} onChange={updateForm('email')} required disabled={submitting} />
             <div>
               <Field label={t('auth.register.password')} type="password" value={form.password} onChange={updateForm('password')} required disabled={submitting} />
-              <p className="mt-1 text-xs text-stone-400">{t('auth.register.passwordHint')}</p>
+              <p className="mt-1 text-xs text-ink-400">{t('auth.register.passwordHint')}</p>
             </div>
 
             <Button type="submit" size="lg" disabled={submitting || slugStatus !== 'ok'} className="mt-1 w-full">
@@ -198,9 +198,9 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-stone-500">
+          <p className="mt-6 text-center text-xs text-ink-500">
             {t('auth.register.hasAccountPrompt')}{' '}
-            <a href="/login" className="font-semibold text-primary-600 no-underline">
+            <a href="/login" className="font-semibold text-brand-600 no-underline">
               {t('auth.register.loginCta')}
             </a>
           </p>

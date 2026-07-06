@@ -30,7 +30,7 @@ export default function ChildSocialSpaceTab({
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">{t('child.detail.socialSpace.title', { count: socialSpace.length })}</h2>
+        <h2 className="text-base font-semibold text-ink-800">{t('child.detail.socialSpace.title', { count: socialSpace.length })}</h2>
         {canManage && (
           <Button variant="secondary" size="sm" onClick={onOpen}>
             <UserPlus size={16} strokeWidth={1.75} />
@@ -38,17 +38,17 @@ export default function ChildSocialSpaceTab({
           </Button>
         )}
       </div>
-      <p className="mb-1 text-sm text-stone-500">
+      <p className="mb-1 text-sm text-ink-500">
         {t('child.detail.socialSpace.description')}
       </p>
 
-      {socialSpace.length === 0 && <p className="py-2 text-sm text-stone-500">{t('child.detail.socialSpace.empty')}</p>}
+      {socialSpace.length === 0 && <p className="py-2 text-sm text-ink-500">{t('child.detail.socialSpace.empty')}</p>}
 
       <ul>
         {socialSpace.map((p) => (
-          <li key={p.id} className="border-t border-stone-100 py-2.5 first:border-t-0">
-            <p className="text-sm font-semibold text-stone-800">{p.name}</p>
-            <p className="text-xs text-stone-500">{[p.vztah, p.phone, p.email, p.note].filter(Boolean).join(' · ')}</p>
+          <li key={p.id} className="border-t border-border-subtle py-2.5 first:border-t-0">
+            <p className="text-sm font-semibold text-ink-800">{p.name}</p>
+            <p className="text-xs text-ink-500">{[p.vztah, p.phone, p.email, p.note].filter(Boolean).join(' · ')}</p>
           </li>
         ))}
       </ul>

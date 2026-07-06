@@ -1,9 +1,9 @@
 /**
  * AdminTopbar.jsx — topbar dle DESIGN.md §4.3 (Connecteam redesign, Krok 2).
- * DESKTOP POUZE (lg+) — na mobilu appka od redesignu dle Connecteam
- * screenshotů (DESIGN.md §11.2) nemá sdílený topbar vůbec: každá obrazovka
- * má vlastní hlavičku (H1 + zpět tlačítko, viz TodayPage/FosterFamily...),
- * avatar dropdown nahrazuje `MobileProfilePage.jsx` (tab „Profil").
+ * DESKTOP POUZE — mobil má od STRICT UI/UX DESIGN MANDATE (2026-07-05)
+ * úplně samostatný layout (`src/mobile/MobileShell.jsx` + `MobileTopNav.jsx`
+ * per obrazovka), avatar dropdown nahrazuje `src/mobile/screens/
+ * MobileProfileScreen.jsx` (tab „Profil").
  *
  * Global search je zatím JEN rodiny (zadání Kroku 2) — přes existující
  * `listFostersByOrg`/`listFostersAssignedTo`, klientský filtr podle jména
@@ -69,7 +69,7 @@ export default function AdminTopbar({ title }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 hidden h-14 items-center gap-3 border-b border-border-default bg-white px-4 lg:flex lg:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border-default bg-white px-4 lg:px-6">
       <div className="relative w-full max-w-[400px]">
         <Search size={16} strokeWidth={1.75} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
         <input

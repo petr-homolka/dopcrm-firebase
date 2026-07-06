@@ -34,11 +34,11 @@ const STATUS_LABEL = { trial: 'Zkušební doba', active: 'Aktivní', suspended: 
 function StatCard({ icon, label, value }) {
   return (
     <Card>
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
         {icon}
       </div>
-      <p className="mt-3 text-3xl font-semibold leading-none text-stone-800 tabular-nums">{value}</p>
-      <p className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">{label}</p>
+      <p className="mt-3 text-3xl font-semibold leading-none text-ink-800 tabular-nums">{value}</p>
+      <p className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-ink-400">{label}</p>
     </Card>
   );
 }
@@ -120,8 +120,8 @@ export default function SuperAdminDashboard() {
     <div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-stone-800 sm:text-xl">SuperAdmin</h1>
-          <p className="mt-0.5 text-sm text-stone-500">Správa doprovázejících organizací (tenantů) a jejich předplatného.</p>
+          <h1 className="text-lg font-semibold text-ink-800 sm:text-xl">SuperAdmin</h1>
+          <p className="mt-0.5 text-sm text-ink-500">Správa doprovázejících organizací (tenantů) a jejich předplatného.</p>
         </div>
         {hasOrgs && (
           <Button size="lg" onClick={() => setDialogOpen(true)}>
@@ -132,14 +132,14 @@ export default function SuperAdminDashboard() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-3 py-16 text-sm text-stone-500">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-200 border-t-primary-600" />
+        <div className="flex items-center justify-center gap-3 py-16 text-sm text-ink-500">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-border-default border-t-brand-600" />
           Načítám organizace…
         </div>
       )}
 
       {!loading && error && (
-        <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-6 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>
       )}
 
       {!loading && !error && !hasOrgs && (
@@ -167,14 +167,14 @@ export default function SuperAdminDashboard() {
           </div>
 
           <Card>
-            <h2 className="text-base font-semibold text-stone-800">Organizace</h2>
-            <p className="mb-3 mt-0.5 text-sm text-stone-500">
+            <h2 className="text-base font-semibold text-ink-800">Organizace</h2>
+            <p className="mb-3 mt-0.5 text-sm text-ink-500">
               Klikněte na řádek pro pěstounské rodiny a zaměstnance dané organizace.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+                  <tr className="text-xs font-semibold uppercase tracking-wide text-ink-400">
                     <th className="py-2 pr-3 font-semibold">Název</th>
                     <th className="py-2 pr-3 font-semibold">IČO</th>
                     <th className="py-2 pr-3 font-semibold">Plán</th>
@@ -188,16 +188,16 @@ export default function SuperAdminDashboard() {
                     <tr
                       key={org.id}
                       onClick={() => navigate(`/admin/superadmin/organizace/${org.id}`)}
-                      className="cursor-pointer border-t border-stone-100 transition duration-150 hover:bg-stone-50"
+                      className="cursor-pointer border-t border-border-subtle transition duration-150 hover:bg-surface-muted"
                     >
-                      <td className="py-3 pr-3 font-medium text-stone-800">{org.name}</td>
-                      <td className="py-3 pr-3 text-stone-500">{org.ico || '—'}</td>
-                      <td className="py-3 pr-3 capitalize text-stone-600">{org.plan ?? '—'}</td>
+                      <td className="py-3 pr-3 font-medium text-ink-800">{org.name}</td>
+                      <td className="py-3 pr-3 text-ink-500">{org.ico || '—'}</td>
+                      <td className="py-3 pr-3 capitalize text-ink-600">{org.plan ?? '—'}</td>
                       <td className="py-3 pr-3">
                         <Badge tone={STATUS_TONE[org.status] ?? 'neutral'}>{STATUS_LABEL[org.status] ?? org.status}</Badge>
                       </td>
-                      <td className="py-3 pr-3 font-mono text-xs text-stone-400">{org.id}</td>
-                      <td className="py-3 text-right text-stone-300">
+                      <td className="py-3 pr-3 font-mono text-xs text-ink-400">{org.id}</td>
+                      <td className="py-3 text-right text-ink-300">
                         <ChevronRight size={18} strokeWidth={1.75} className="ml-auto" />
                       </td>
                     </tr>

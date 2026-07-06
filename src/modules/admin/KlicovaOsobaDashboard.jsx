@@ -23,7 +23,6 @@ import EmptyState from '../../components/ui/EmptyState.jsx';
 import Tabs from '../../components/ui/Tabs.jsx';
 import { Table, TableHead, Th, TableBody, Tr, Td } from '../../components/ui/Table.jsx';
 import FosterFamiliesPanel from './FosterFamiliesPanel.jsx';
-import FamilyListRow from './FamilyListRow.jsx';
 
 const STATUS_LABELS = { active: 'Aktivní', paused: 'Pozastaveno', exited: 'Ukončeno' };
 const STATUS_TONE = { active: 'success', paused: 'warning', exited: 'neutral' };
@@ -86,46 +85,29 @@ function MyFamilies() {
     );
   }
   return (
-    <>
-      <div className="hidden lg:block">
-        <Table>
-          <TableHead>
-            <Th>Rodina</Th>
-            <Th>Typ</Th>
-            <Th>Poslední návštěva</Th>
-            <Th>Status</Th>
-          </TableHead>
-          <TableBody>
-            {families.map((family) => (
-              <Tr key={family.id} onClick={() => navigate(`/admin/terenni/${family.id}`)} className="cursor-pointer">
-                <Td>
-                  <div className="flex items-center gap-3">
-                    <Avatar name={family.name} size="md" />
-                    <span className="font-medium text-ink-800">{family.name || '(bez jména)'}</span>
-                  </div>
-                </Td>
-                <Td><Badge tone="family">{careLabel(family.careType)}</Badge></Td>
-                <Td className="text-ink-500">{toDate(family.lastVisitAt)?.toLocaleDateString('cs-CZ') ?? '—'}</Td>
-                <Td><Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>{STATUS_LABELS[family.status] ?? family.status}</Badge></Td>
-              </Tr>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="rounded-2xl border border-border-subtle bg-white px-4 lg:hidden">
+    <Table>
+      <TableHead>
+        <Th>Rodina</Th>
+        <Th>Typ</Th>
+        <Th>Poslední návštěva</Th>
+        <Th>Status</Th>
+      </TableHead>
+      <TableBody>
         {families.map((family) => (
-          <FamilyListRow
-            key={family.id}
-            family={family}
-            careLabel={`${careLabel(family.careType)} · ${toDate(family.lastVisitAt)?.toLocaleDateString('cs-CZ') ?? '—'}`}
-            statusLabel={STATUS_LABELS[family.status] ?? family.status}
-            statusTone={STATUS_TONE[family.status] ?? 'neutral'}
-            onClick={() => navigate(`/admin/terenni/${family.id}`)}
-          />
+          <Tr key={family.id} onClick={() => navigate(`/admin/terenni/${family.id}`)} className="cursor-pointer">
+            <Td>
+              <div className="flex items-center gap-3">
+                <Avatar name={family.name} size="md" />
+                <span className="font-medium text-ink-800">{family.name || '(bez jména)'}</span>
+              </div>
+            </Td>
+            <Td><Badge tone="family">{careLabel(family.careType)}</Badge></Td>
+            <Td className="text-ink-500">{toDate(family.lastVisitAt)?.toLocaleDateString('cs-CZ') ?? '—'}</Td>
+            <Td><Badge tone={STATUS_TONE[family.status] ?? 'neutral'}>{STATUS_LABELS[family.status] ?? family.status}</Badge></Td>
+          </Tr>
         ))}
-      </div>
-    </>
+      </TableBody>
+    </Table>
   );
 }
 

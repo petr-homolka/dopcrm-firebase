@@ -98,28 +98,39 @@ export default {
           education: '#2A8FA0',
         },
 
-        // ── Mobilní PWA — "Connecteam Native Feel" (2026-07-05) ───────
+        // ── Mobilní PWA — "Connecteam Native Feel" (2026-07-06 v2) ─────
         // ÚPLNĚ SAMOSTATNÁ paleta pro src/mobile/ — nikdy nepoužívat v
-        // src/modules/ (desktop). Žádné responsivní sdílení tokenů mezi
-        // mobilem a desktopem, viz zadání "STRICT UI/UX DESIGN MANDATE".
+        // src/modules/ (desktop). Hodnoty ověřené proti reálnému Connecteam
+        // bookshelf.min.css (--ct-gray-10/-6, --ct-orange-6, --ct-red-6) a
+        // proti skutečné iOS system-blue (#007AFF) — na výslovnou žádost
+        // BEZ zelené (žádné "positive" surface); success zůstává jen jako
+        // token pro budoucí použití, nikde se aktivně nepoužívá.
         native: {
           bg: '#F2F2F7',        // pozadí appky mimo karty (iOS systémová šedá)
           surface: '#FFFFFF',   // karty, listy, sheets
-          primary: '#007A87',   // tlumená modro-zelená, VŠECHNA primární CTA
-          success: '#34C759',   // iOS green
-          warning: '#FF9500',   // iOS orange
-          danger: '#FF3B30',    // iOS red
-          text: '#1C1C1E',      // téměř černá — nadpisy, důležitá data
-          textMuted: '#8E8E93', // popisky, časy, neaktivní tab ikony
+          primary: '#007AFF',   // iOS system blue — VŠECHNA primární CTA i "pozitivní" stavy
+          success: '#007AFF',   // vědomě = primary (žádná zelená v appce, 2026-07-06)
+          warning: '#FF9500',   // = Connecteam --ct-orange-6 (shoduje se s iOS orange)
+          danger: '#F23F3F',    // = Connecteam --ct-red-6
+          text: '#203040',      // = Connecteam --ct-gray-10 (tmavá navy-gray, ne čistá černá)
+          textMuted: '#8B939C', // = Connecteam --ct-gray-6 (téměř identické s dřívějším #8E8E93)
           separator: '#E5E5EA', // 1px linky (nikdy skutečný border-box stín)
         },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Mobilní appka — Connecteam sám používá 'Noto Sans' (bookshelf.min.css,
+        // --ct-font-family-primary), ne Plus Jakarta Sans. Vlastní typografická
+        // identita izolovaná od desktopu stejně jako `native.*` barvy.
+        native: ['Noto Sans Variable', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '12px',
         '2xl': '16px',
+        // Přesné hodnoty z Connecteam bookshelf.min.css: --ct-card-border-radius
+        // (--ct-border-radius-default) a --ct-input-border-radius (nested).
+        'native-card': '18px',
+        'native-input': '10px',
       },
       boxShadow: {
         sm: '0 1px 2px 0 rgb(16 24 40 / 0.05), 0 1px 3px 0 rgb(16 24 40 / 0.06)',

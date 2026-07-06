@@ -9,6 +9,14 @@ function initialsOf(name) {
   return (first + last).toUpperCase();
 }
 
+// `tone` = barevná dvojice pozadí/text. 'family' (výchozí) = desktop entity
+// barva. 'native' = mobilní iOS modrá (2026-07-06, na výslovnou žádost bez
+// zelené v appce) — používat VŽDY, když se Avatar vykresluje v src/mobile/.
+const TONE_CLASS = {
+  family: 'bg-entity-family-bg text-entity-family-text',
+  native: 'bg-native-primary/15 text-native-primary',
+};
+
 // Škála dle DESIGN.md §5.5: sm 24px, md 32px (default), lg 40px, xl 56px, hero 96px.
 const SIZES = {
   sm: 'h-6 w-6 text-[10px]',
@@ -33,13 +41,14 @@ const BADGE_SIZES = {
  * `moduleClassName` = Tailwind bg třída modulu (např. "bg-module-families"),
  * `moduleIcon` = lucide-react ikona komponenta (bílá, uvnitř kroužku).
  */
-export default function Avatar({ name, src, size = 'md', moduleClassName, moduleIcon: ModuleIcon, className }) {
+export default function Avatar({ name, src, size = 'md', tone = 'family', moduleClassName, moduleIcon: ModuleIcon, className }) {
   const core = src ? (
     <img src={src} alt={name ?? ''} className={cn('rounded-full object-cover', SIZES[size], className)} />
   ) : (
     <span
       className={cn(
-        'inline-flex items-center justify-center rounded-full bg-entity-family-bg font-semibold text-entity-family-text',
+        'inline-flex items-center justify-center rounded-full font-semibold',
+        TONE_CLASS[tone],
         SIZES[size],
         className
       )}

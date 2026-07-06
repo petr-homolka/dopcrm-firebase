@@ -47,25 +47,25 @@ export default function ChildFamilyTab({
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <h2 className="mb-1 text-base font-semibold text-stone-800">
+        <h2 className="mb-1 text-base font-semibold text-ink-800">
           {t('child.detail.family.fostersTitle', { count: fosters.length })}
         </h2>
-        <p className="mb-2 text-xs text-stone-500">
+        <p className="mb-2 text-xs text-ink-500">
           {child.custody
             ? `${child.custody.type === 'spolecne' ? t('child.detail.family.custodyJoint') : t('child.detail.family.custodyIndividual')}${child.custody.caseNumber ? ` · ${t('child.detail.family.caseNumberInline', { number: child.custody.caseNumber })}` : ''}${child.custody.court ? ` · ${child.custody.court}` : ''}`
             : t('child.detail.family.custodyEmpty')}
         </p>
 
-        {fosters.length === 0 && <p className="py-2 text-sm text-stone-500">{t('child.detail.family.noFosters')}</p>}
+        {fosters.length === 0 && <p className="py-2 text-sm text-ink-500">{t('child.detail.family.noFosters')}</p>}
 
         <ul>
           {fosters.map((p) => {
             const weight = caregiverIds.includes(p.id) ? 'pecujici' : 'bez_prav';
             return (
-              <li key={p.id} className="flex items-start justify-between gap-3 border-t border-stone-100 py-2.5 first:border-t-0">
+              <li key={p.id} className="flex items-start justify-between gap-3 border-t border-border-subtle py-2.5 first:border-t-0">
                 <div>
-                  <p className="text-sm font-semibold text-stone-800">{p.name}</p>
-                  <p className="text-xs text-stone-500">{[p.rc && t('child.detail.family.rcInline', { rc: p.rc }), p.phone, p.email].filter(Boolean).join(' · ')}</p>
+                  <p className="text-sm font-semibold text-ink-800">{p.name}</p>
+                  <p className="text-xs text-ink-500">{[p.rc && t('child.detail.family.rcInline', { rc: p.rc }), p.phone, p.email].filter(Boolean).join(' · ')}</p>
                 </div>
                 <Badge tone={legalWeightTone(weight)} className="shrink-0">
                   {weight === 'pecujici' ? legalWeightLabel(weight) : t('child.detail.family.noCustodyPartner')}
@@ -78,7 +78,7 @@ export default function ChildFamilyTab({
 
       <Card>
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{t('child.detail.family.relativesTitle', { count: relatives.length })}</h2>
+          <h2 className="text-base font-semibold text-ink-800">{t('child.detail.family.relativesTitle', { count: relatives.length })}</h2>
           {canManage && (
             <Button variant="secondary" size="sm" onClick={onOpenRel}>
               <UserPlus size={16} strokeWidth={1.75} />
@@ -87,16 +87,16 @@ export default function ChildFamilyTab({
           )}
         </div>
 
-        {relatives.length === 0 && <p className="py-2 text-sm text-stone-500">{t('child.detail.family.noRelatives')}</p>}
+        {relatives.length === 0 && <p className="py-2 text-sm text-ink-500">{t('child.detail.family.noRelatives')}</p>}
 
         <ul>
           {relatives.map((rel, idx) => {
             const relType = REL_TYPES.find((r) => r.key === rel.rel);
             return (
-              <li key={rel.id ?? idx} className="flex items-start justify-between gap-3 border-t border-stone-100 py-2.5 first:border-t-0">
+              <li key={rel.id ?? idx} className="flex items-start justify-between gap-3 border-t border-border-subtle py-2.5 first:border-t-0">
                 <div>
-                  <p className="text-sm font-semibold text-stone-800">{rel.name}</p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-sm font-semibold text-ink-800">{rel.name}</p>
+                  <p className="text-xs text-ink-500">
                     {[relType?.label ?? rel.rel, rel.rc && t('child.detail.family.rcInline', { rc: rel.rc }), rel.phone, rel.email, rel.note].filter(Boolean).join(' · ')}
                   </p>
                 </div>
@@ -111,7 +111,7 @@ export default function ChildFamilyTab({
 
       <Card>
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{t('child.detail.family.previousFostersTitle', { count: previousFosters.length })}</h2>
+          <h2 className="text-base font-semibold text-ink-800">{t('child.detail.family.previousFostersTitle', { count: previousFosters.length })}</h2>
           {canManage && (
             <Button variant="ghost" size="sm" onClick={onOpenFosterHist}>
               <Plus size={16} strokeWidth={1.75} />
@@ -120,13 +120,13 @@ export default function ChildFamilyTab({
           )}
         </div>
 
-        {previousFosters.length === 0 && <p className="py-2 text-sm text-stone-500">{t('child.detail.family.noPreviousFosters')}</p>}
+        {previousFosters.length === 0 && <p className="py-2 text-sm text-ink-500">{t('child.detail.family.noPreviousFosters')}</p>}
 
         <ul>
           {previousFosters.map((pf) => (
-            <li key={pf.id} className="border-t border-stone-100 py-2.5 first:border-t-0">
-              <p className="text-sm font-semibold text-stone-800">{pf.name}</p>
-              <p className="text-xs text-stone-500">{[pf.from && t('child.detail.family.fromInline', { date: pf.from }), pf.to && t('child.detail.family.toInline', { date: pf.to }), pf.note].filter(Boolean).join(' · ')}</p>
+            <li key={pf.id} className="border-t border-border-subtle py-2.5 first:border-t-0">
+              <p className="text-sm font-semibold text-ink-800">{pf.name}</p>
+              <p className="text-xs text-ink-500">{[pf.from && t('child.detail.family.fromInline', { date: pf.from }), pf.to && t('child.detail.family.toInline', { date: pf.to }), pf.note].filter(Boolean).join(' · ')}</p>
             </li>
           ))}
         </ul>

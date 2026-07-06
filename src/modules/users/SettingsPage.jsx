@@ -77,22 +77,22 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-stone-800">Nastavení organizace</h1>
-        <p className="text-sm text-stone-500">{org?.name}</p>
+        <h1 className="text-xl font-semibold text-ink-800">Nastavení organizace</h1>
+        <p className="text-sm text-ink-500">{org?.name}</p>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-14 text-stone-500">
+        <div className="flex items-center justify-center gap-2 py-14 text-ink-500">
           <Loader2 size={22} strokeWidth={1.75} className="animate-spin" />
         </div>
       )}
 
-      {!loading && error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {!loading && error && <div className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-700">{error}</div>}
 
       {!loading && !error && (
         <Card className="max-w-md">
-          <h2 className="mb-1 text-sm font-semibold text-stone-800">Adresa organizace</h2>
-          <p className="mb-4 text-xs text-stone-500">
+          <h2 className="mb-1 text-sm font-semibold text-ink-800">Adresa organizace</h2>
+          <p className="mb-4 text-xs text-ink-500">
             Unikátní adresa se v budoucnu použije pro veřejný profil organizace.
           </p>
           <form onSubmit={handleSaveSlug} className="flex flex-col gap-3">
@@ -104,7 +104,7 @@ export default function SettingsPage() {
               currentSlug={org?.slug ?? ''}
               disabled={saving}
             />
-            {saveMessage && <p className="text-xs text-stone-600">{saveMessage}</p>}
+            {saveMessage && <p className="text-xs text-ink-600">{saveMessage}</p>}
             <Button type="submit" disabled={saving || slugStatus !== 'ok' || slug === org?.slug} className="self-start">
               {saving && <Loader2 size={16} className="animate-spin" />}
               {saving ? 'Ukládám…' : 'Uložit adresu'}

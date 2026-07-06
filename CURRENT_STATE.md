@@ -1,5 +1,75 @@
 # CURRENT_STATE
-**Verze:** 1.8.0 (Krok 0+1+2+3 — Inventář, slug organizace, i18n základ, obrazovka Dnes, 2026-07-03)
+**Verze:** 2.1.0 (Connecteam blok 1: kalendář-agenda + rekapitulace návštěvy, 2026-07-06)
+
+## 2026-07-06 — Kalendář jako týdenní agenda + rekapitulace návštěvy (autonomní blok)
+
+První dva přenosy z `docs/design/connecteam-analyza-2026-07-05.md` (uživatel: „postupuj
+dle svého uvážení"):
+
+- **Mobilní Kalendář přepsán na týdenní agendu** (`MobileCalendarScreen.jsx`, Connecteam
+  vzor „agenda s datum-railem"): pás dnů s tečkami u dnů s událostmi, souhrn
+  „Tento týden · X návštěv · Y rodin", agenda celého týdne s velkým číslem dne vlevo,
+  klepnutí na den v pásu = plynulý scroll na jeho skupinu. Prázdný den nabízí čárkovaný
+  „+ Přidat" řádek.
+- **Události jdou nově ZAKLÁDAT z mobilu** (`calendar/MobileEventSheet.jsx`) — do teď
+  kalendář jen četl. Sheet: typ (EVENT_TYPES), rodina volitelně (KO vidí jen své —
+  `listFostersAssignedTo`), chytrý název („Návštěva — Rodina X" jako fallback), datum
+  přednastavené z klepnutého dne. `useCalendarWeek` dostal `reload` pro refresh po založení.
+- **Rekapitulace návštěvy** (`MobileVisitTimerScreen.jsx`, Connecteam „konec směny"):
+  „Ukončit návštěvu" už nezapisuje hned — otevře sheet se souhrnem (rodina, trvání,
+  poloha) a polem „Poznámka z návštěvy" → zápis vzniká na místě v terénu. Zavření sheetu
+  = návštěva dál běží. Poznámka se ukládá do `body` timeline záznamu.
+- Ověřeno end-to-end na 390×844 (agenda → + Přidat út → sheet s rodinou → karta 14:00
+  v agendě + přepočet souhrnu; FAB speed-dial → timer → Ukončit → souhrn 00:19 + poznámka
+  → záznam na Ose s textem i odznakem trvání). Lint+build čisté, nasazeno na doprovazeni-dev.
+  Pozn. k ověřování: timeout `preview_screenshot` po startu čerstvého serveru bývá přechodný
+  (první Vite dep-optimalizace) — `preview_snapshot` projde a druhý screenshot už také.
+
+## 2026-07-05 — Zpětná vazba v2 + Connecteam jako závazný vzor
+
+Pět bodů uživatele k Detailu rodiny + strategické rozhodnutí (bod 6):
+
+- **Naplánovat návštěvu FUNGUJE** — dřívější odskok na /kalendar nikam nevedl; teď sheet
+  přímo v hlavičce rodiny (`MobileFamilyHeader.jsx`) → `createEvent` typu `visit` s vazbou
+  na rodinu, KO a adresou; ověřeno end-to-end (událost viditelná v Kalendáři vč. tečky).
+- **Jedna řada přepínačů** — filtry Osy už nejsou druhá řada pillů; kompaktní pilulka
+  „Filtr" vpravo otevírá sheet (typ záznamu + dítě), aktivní filtr se propisuje do popisku.
+- **Hlavička bez trvalé adresy/telefonu** — místo kontaktní karty kruhové rychlé akce
+  (Zavolat = tel:, E-mail = mailto:, Mapa = adresa v mapách, Naplánovat); chybějící údaj
+  akci ztlumí. Vzor iOS Kontakty/Connecteam.
+- **Zámek polí ZRUŠEN** (rozhodnutí uživatele „jen to zdržuje") — useEditLock.js a
+  LockBanner smazány ze všech sheetů.
+- **Jedno FAB se speed-dial menu** (`NativeFab.jsx`, vzor Things) — scrim + pojmenované
+  akce „Zahájit návštěvu"/„Nový záznam"; dvě FAB nad sebou zrušena.
+- **Connecteam = závazný vzor ~90 %** (PWA i desktop): 56 screenshotů analyzováno 5 agenty,
+  výstup v `docs/design/connecteam-analyza-2026-07-05.md` (top vzory + obrazovka po
+  obrazovce co přenést). Existující kód není překážka.
+
+## 2026-07-05 — UI redesign v3: konec kroužení kolem designu
+
+**Zadání:** „celé to předělej" — UI působilo nekonzistentně (upatlaně) a místy zeleně/teal,
+přestože tokeny říkaly modrá. Příčiny a řešení:
+
+- **Kořenová příčina „zelené":** 25 obrazovek (SuperAdmin, OrgDetail, Login, všechny Child*
+  taby/modály…) stále používalo LEGACY Amie tokeny `primary-600` = **teal #1A6B64** + `stone-*`.
+  Hromadně převedeno na `brand-*/ink-*/danger-*` (Connecteam modrá). Druhá příčina: dlouho
+  běžící Vite dev server drží zastaralou Tailwind JIT cache po změně tokenů — „ověřovací"
+  screenshoty ukazovaly starý teal i po opravě configu. **Po změně tailwind.config.js VŽDY
+  restart dev serveru.**
+- **DESIGN.md §12** — nová ZÁVAZNÁ mobilní spec v3: jediná typo škála (10/12/13/15/17/22/56),
+  radius jen 18/10/pill, barvy jen `native.*` (+ tinty /10 a /15), žádná zelená, žádné stíny,
+  komponenty výhradně ze `src/mobile/ui/`.
+- **`src/mobile/ui/NativeBits.jsx`** — sdílené `SectionLabel`/`NativeChip`/`NativeEmptyState`/
+  `StatTile` (+ `NATIVE_EVENT_BORDER`: návštěva na mobilu modrý proužek, ne zelený shift-visit);
+  lokální kopie z pěti obrazovek smazány. `NativeButton` secondary = tint výplň (ne outline),
+  `NativeSegmented` varianty primary/filter (konec dvou řad plných pillů na Ose).
+- Obrazovky sjednoceny dle §12: Home (tinty místo raw blue/orange-50, empty s radou), Rodiny
+  (vložená grouped karta + zaoblený search), Kalendář (nový header měsíc+rok, šipky po
+  stranách), Detail rodiny (NativeChip stavy, „Naplánovat"), Osa (filtr variant, Připnuté jako
+  sekce, empty s radou), Tým (grouped karta, stavové chipy), Respit (sdílený StatTile 28px).
+- Ověřeno živě na čerstvém serveru (390 px: Rodiny/Detail/Osa/Kalendář/Timer/Home/Login;
+  1280 px: OrgAdmin dashboard) — modrá #007AFF všude, `npm run build`+`lint` čisté, nasazeno
+  na doprovazeni-dev. Pozn.: subagenti nedostupní (session limit), audit proveden v hlavní smyčce.
 
 ## 2026-07-03 — Krok 3: Obrazovka Dnes
 
@@ -155,125 +225,7 @@ Vanilla prototyp přesunut do `/legacy` (zamčený archiv, jen pro člověka). N
 přesunuty do `docs/history.md`. Následuje: extrakce doménové dokumentace do `docs/domain/`,
 `docs/INVENTAR.md`, přechod MUI → Tailwind, sjednocení PWA přes vite-plugin-pwa.
 
-## 2026-07-02 — Fáze 2+3: hloubkové obohacení Pěstouna a Dítěte + kritické opravy routingu a Firestore pravidel
-
-**Zadání:** dokončit zbývající dvě fáze z velkého datového modelu (viz Fáze 1 výše) — Pěstoun
-(adresy, vzdělávání, respit, SPVPP, sociální prostor) a Dítě (doklady, adresy/škola/OSPOD s
-historií, soud, biologická rodina, sociální prostor, trvalé poznámky). Legislativa ověřena přes
-web (MPSV, sancedetem.cz) a `podpora.doprovazeni.com` — dlouhodobá/přechodná (PPPD)/příbuzenská
-péče potvrzeny jako platné 3 kategorie, žádná korekce vůči prototypu nebyla potřeba.
-Respit/SPVPP/CARE_TYPES/REL_TYPES portovány přímo z **živého vanilla prototypu**
-(`claude.doprovazeni.com/app.js`) — **ne** z lokálního `app.js` v tomto repu, který je jen
-odlehčený MVP stub bez těchto dat (viz [[crm-port-prototyp-pred-novym-schematem]]).
-
-**1) REL_TYPES sladěny 1:1 s prototypem** (`domainConstants.js`) — klíče/labely/hinty přesně
-odpovídají `app.js` (otec_rl/otec_soc/biootec_prav/.../matka_rl/biomatka_mimo/matka_fikce/...),
-`legal` přidána hodnota `'na'` pro sourozence/širší rodinu (dřív nesprávně `false`). Přidány
-`otec_nevlastni`/`matka_nevlastni` (prototyp je řešil jen volným textem, tady potřeba formální
-položka pro select).
-
-**2) Pěstoun — `orgService.js`:**
-- `addFosterPerson`/`updateFosterPerson`/`addFosterCourse` — osoby v `fosters[]` mají teď stabilní
-  `id`, adresy (trvalé bydliště/pobyt) a `courses[]` (kód/kde/kdy/forma/pořadatel/hodiny/certifikát).
-- Respit (`RESPIT_LIMIT=14` dní/rok dle §47a zák. 359/1999 Sb.) — `foster_families/{id}/respitEvents`
-  subkolekce (`addRespitEvent`/`listRespitEvents`), `respitNadstandard` pole (IPOD), čisté funkce
-  `respitVykazano`/`respitRealny`/`respitLimitFor` v `domainConstants.js` (1:1 logika z prototypu:
-  vykázaný = součet dní událostí, reálný = průnik dní kdy VŠECHNY děti mimo domov).
-- SPVPP peněženka (`children/{id}.spvpp = {rok,rozpocet,vycerpano}`, default 48 000 Kč/rok) —
-  `chargeSpvpp`; respit s uvedenou částkou ji rozpočítá rovným dílem mezi vybrané děti.
-- Odměna pěstouna (`SPVPP_DOHODA_ROK=59400`, `odmenaEligible`/`odmenaStatusLabel`) — PPPD (temp)
-  má nárok i bez svěřeného dítěte (pohotovost), dlouhodobá/příbuzenská jen s dítětem v péči.
-- Sociální prostor domácnosti (`socialSpace: {partner, biologicalChildren[], parents[]}`).
-- UI: `FosterFamilyDetailPage.jsx` přepracováno na Tabs (Pěstouni / Respit a SPVPP / Sociální
-  prostor / Svěřené děti) — vzdělávání s progress barem proti `CARE_TYPES.requiredHours`, dialog
-  pro zápis respitu s výběrem dětí (checkboxy) a volitelnou částkou.
-
-**3) Dítě — `orgService.js`:**
-- Historie změn (`children/{id}/history` subkolekce, append-only — "nic se nepřepisuje", port
-  `App.histAdd/histList`) — `addChildHistory`/`listChildHistory`, `updateChildTracked()` (obecná
-  pomůcka: upraví pole + zaloguje historii v jednom volání).
-- Doklady (OP/pas — `idCard`/`passport`, doplnitelné později), adresy (`addressPermanent`/
-  `addressResidence`), škola, OSPOD (`ospod: {nazev, osoba}`), soud (`courtCase` + `rozsudky[]`
-  append-only přes `addCourtVerdict`), trvalé poznámky (`permanentNotes[]` append-only přes
-  `addPermanentNote`), předchozí pěstounské rodiny (`previousFosters[]` přes `addPreviousFoster`),
-  sociální prostor (`socialSpace[]`, stejný tvar jako `relatives[]` ale bez biologické vazby).
-- UI: `ChildDetailPage.jsx` přepracováno na 7 tabů (Identita / Škola / OSPOD a soud / Biologická
-  rodina / Sociální prostor / Poznámky / Historie).
-
-**4) KRITICKÁ OPRAVA (objevena při ověřování Fáze 2, ne teoreticky — reálně blokovala appku):**
-- **Routing bug:** index route `/` byl natvrdo `<Navigate to="/prehled">` (legacy MVP) — PRO
-  KAŽDÉHO přihlášeného uživatele, i nového org_admin/klíčovou osobu/superadmina. Po přihlášení
-  appka skončila v legacy shellu s chybou "currentTenantId() je null", ne na `/admin/*` dashboardu
-  dané role. Root cause: `explicitFrom` (deep-link po loginu) bral i holé `/` jako "skutečný"
-  odkaz, protože legacy `RequireAuth` zagarduje index route ještě PŘED vlastním přesměrováním.
-  Oprava: nový `IndexRedirect` (`router.jsx`) rozhoduje dle role z `authStore`; `Login.jsx`
-  ignoruje `/` jako `explicitFrom`. **Tohle byl blokující bug pro VŠECHNY nové role od Fáze 1.**
-- **Firestore "list" dotaz vs. pravidlo:** Firestore zamítne CELÝ list/query, pokud rovnostní
-  pole ve `where()` neodpovídá poli kontrolovanému v security rules (nezávisle na tom, že by
-  jednotlivé dokumenty pravidlu vyhověly) — objeveno na `listChildrenByFamily` (filtr
-  `fosterFamilyId`, pravidlo `organizationId` → "Missing or insufficient permissions" pro
-  KOHOKOLI kromě superadmina). Opraveno: `listChildrenByFamily`/`reassignFoster` teď dotazují
-  i `organizationId` jako druhý rovnostní filtr; `firestore.rules` pro `foster_families`/`children`
-  READ mají nový `assignedTo == request.auth.uid` disjunkt (pokrývá `listFostersAssignedTo` —
-  "Moje rodiny" klíčové osoby); `users` READ rozšířeno ze `isOrgAdmin()` na `sameOrg()` (kdokoli
-  ze stejné organizace vidí zaměstnanecký rozpis — potřeba pro zobrazení jmen KO u rodin).
-  **Bez týhle opravy nefungovalo "Moje rodiny" pro klíčovou osobu ani proklik rodina→děti pro
-  nikoho kromě superadmina — od úplného začátku Fáze 1.**
-
-**Ověřeno end-to-end v Preview** (demo org_admin i klicova_osoba účty): přihlášení → správný
-`/admin/*` dashboard; proklik organizace→rodina→dítě; zápis respitu (8 dní, 2000 Kč → SPVPP
-1000 Kč/dítě, reálný odpočinek 8 dní, odměna "Nárok"); "Celá organizace" pohled klíčové osoby
-se jmény kolegů. `npm run build` čistý.
-
-## 2026-07-02 — Fáze 1: SaaS sebeobsloužení (self-service registrace) + plná hierarchie + kapacitní limit
-
-**Zadání (verbatim, kriticky důležité):** *"Provozovatel systému nebude zakládat do systému
-Organizaci, ale na webu po základní registraci si to bude dělat VŽDY kdokoli sám! ...
-STAVÍME PLNĚ AUTOMATIZOVANÝ SYSTÉM, KTERÝ MÁ POMÁHAT SE SPRÁVOU PRÁCE KLÍČOVÝCH OSOB A NIKOLI
-KOMPLIKOVAT NA KAŽDÉM KROKU."* Otáčí to celý model založení organizace ze
-Superadmin-zakládá na plně self-service (analogie ke Gmailu — registrace a systém se dál řídí sám).
-Toto je **Fáze 1 ze 3** většího zadání (viz paměť), Fáze 2 (Pěstoun) a Fáze 3 (Dítě) hluboké
-obohacení entit ještě zbývají.
-
-**1) Self-service registrace organizace (`/registrace`, veřejná route):**
-- `src/services/registrationService.js` (nové) — `registerOrganization()`: založí Firebase Auth účet,
-  `organizations` dokument (IČO, datová schránka, adresa sídla, adresa provozovny — volitelně stejná
-  jako sídlo, `createdBy: uid`), a `users/{uid}` profil s rolí `org_admin`. Používá PRIMÁRNÍ Auth
-  instanci (na rozdíl od `orgService.createEmployee()`) — uživatel má po registraci zůstat přihlášen
-  jako sám sebe.
-- `src/modules/users/RegisterPage.jsx` (nové) — veřejný formulář (název/IČO/datová schránka, adresa
-  sídla, checkbox „adresa provozovny stejná jako sídlo", údaje zástupce vč. RČ/telefonu, e-mail/heslo).
-- `firestore.rules` — `organizations` create povoleno i nepřihlášenému-nově-registrovanému uživateli,
-  pokud `request.resource.data.createdBy == request.auth.uid`; `users/{uid}` create má novou větev pro
-  sebe-registraci org_admina (ověří přes `get()`, že práv vytvořená organizace patří stejnému uid).
-  Nasazeno (`firebase deploy --only firestore:rules`).
-- `Login.jsx` — odkaz „Nemáte organizaci v systému? Založte si ji zdarma" → `/registrace`.
-- `createOrganization()` v `orgService.js` (Superadmin-cesta) zůstává jako sekundární/fallback nástroj,
-  není už primární cesta založení organizace.
-
-**2) Plná hierarchie zaměstnanců (`EMPLOYEE_ROLES` v `domainConstants.js`):**
-`org_admin` (zástupce/ředitel) → `vedouci_pobocky` → `teamleader` → `klicova_osoba` →
-`asistent_ko`; `zamestnanec` (administrativa, mimo řídicí řetězec). Každý zaměstnanec má
-`nadrizeny` (uid nadřízeného) — tvoří reportovací řetězec. `OrgEmployeesPanel.jsx` přepracován:
-dropdown rolí ze seznamu, select „Nadřízený" (populovaný ze stávajících zaměstnanců organizace),
-pole Funkce/Telefon; sloupec „Oddělení" zrušen (nahrazen granulárními rolemi). `firestore.rules` —
-`isManagement()` (`org_admin`/`vedouci_pobocky`/`teamleader`) nahradilo `isOrgAdmin()` u zápisu
-`foster_families`/`children`.
-
-**3) Limit 25 pěstounských rodin na klíčovou osobu:** `orgService.js` —
-`MAX_FAMILIES_PER_KO=25`, `assertFamilyCapacity()` kontroluje počet rodin přiřazených dané KO
-(`assignedTo`) při `createFoster()` a `reassignFoster()`; nad limit vyhodí chybu s návrhem
-přiřadit jiné klíčové osobě.
-
-**Ověřeno:** `npm run build` čistý; `/registrace` ověřeno v Preview (formulář se vykresluje
-kompletně, žádné blokující chyby — jen pre-existující MUI prop-forwarding warningy nesouvisející
-s touto změnou).
-
-**Další kroky (Fáze 2/3, viz task list):** hloubkové obohacení Pěstouna (adresy, druh péče,
-vzdělávání s certifikáty, respit, sociální prostor — vyžaduje nastudovat legislativní druhy péče
-a respit z vanilla prototypu) a Dítěte (doklady, historie adres/škol/OSPOD, soud, biologická
-rodina s historií, sociální prostor).
-
-*(Starší záznamy — datový model dle vanilla prototypu, UI/UX úklid — přesunuty do docs/history.md.)*
+*(Starší záznamy — Fáze 1 self-service, Fáze 2+3 obohacení entit, datový model dle vanilla
+prototypu, UI/UX úklid — přesunuty do docs/history.md.)*
 
 ---

@@ -15,6 +15,8 @@ import {
   addFosterCourse, listFosterCourses, listRespitEvents, addRespitEvent,
   setRespitNadstandard, setFamilySocialSpace,
 } from '../../services/orgService.js';
+import { parseRc, toDateInputValue } from '../../shared/rcUtils.js';
+import { generateLocalId } from '../../shared/idUtils.js';
 
 const emptyFosterForm = { name: '', rc: '', phone: '', email: '', addressPermanentText: '', addressResidenceText: '' };
 const emptyChildForm = { firstName: '', lastName: '', rc: '', birthDate: '' };
@@ -110,6 +112,11 @@ export default function useFosterFamilyDetail(familyId) {
       setSubmitError(t('family.detail.errors.enterChildName'));
       return;
     }
+    const rcParsed = parseRc(childForm.rc);
+    if (childForm.rc.trim() && rcParsed.error) {
+      setSubmitError(rcParsed.error);
+      return;
+    }
     setSubmitting(true);
     try {
       await createChild({
@@ -117,7 +124,10 @@ export default function useFosterFamilyDetail(familyId) {
         firstName: childForm.firstName.trim(),
         lastName: childForm.lastName.trim(),
         rc: childForm.rc.trim(),
-        birthDate: childForm.birthDate || null,
+        // Datum narození dopočítané z RČ má přednost — KO ho nemusí zadávat
+        // ručně (a nemůže si ho s RČ rozejít); bez platného RČ padá zpět na
+        // ručně zadanou hodnotu.
+        birthDate: (rcParsed.valid ? toDateInputValue(rcParsed.birthDate) : childForm.birthDate) || null,
       });
       setChildDialogOpen(false);
       setChildForm(emptyChildForm);
@@ -184,16 +194,25 @@ export default function useFosterFamilyDetail(familyId) {
 
   async function handleSaveSocial(e) {
     e.preventDefault();
-    setSubmitting(true);
     setSubmitError('');
+    const rcParsed = parseRc(socialEntry.rc);
+    if (socialEntry.rc?.trim() && rcParsed.error) {
+      setSubmitError(rcParsed.error);
+      return;
+    }
+    setSubmitting(true);
     try {
       let next = { ...socialForm };
       if (socialKind === 'partner') {
-        next.partner = { ...socialEntry };
+        // Bez RČ nesmí být identifikátorem jméno (může se shodovat s jinou
+        // osobou) — vlastní interní id přetrvá i případnou pozdější změnu jména.
+        next.partner = { id: socialForm.partner?.id ?? generateLocalId(), ...socialEntry };
       } else if (socialKind === 'child') {
-        next.biologicalChildren = [...(socialForm.biologicalChildren ?? []), { ...socialEntry }];
+        const entry = { id: generateLocalId(), ...socialEntry };
+        if (rcParsed.valid) entry.birthDate = toDateInputValue(rcParsed.birthDate);
+        next.biologicalChildren = [...(socialForm.biologicalChildren ?? []), entry];
       } else {
-        next.parents = [...(socialForm.parents ?? []), { ...socialEntry }];
+        next.parents = [...(socialForm.parents ?? []), { id: generateLocalId(), ...socialEntry }];
       }
       await setFamilySocialSpace(familyId, next);
       setSocialDialogOpen(false);

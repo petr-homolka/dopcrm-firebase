@@ -16,52 +16,28 @@
  *   - Monetizace / FUP
  */
 
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore.js';
 import { homePathForRole } from '../services/orgAuth.js';
+import {
+  LoginPage, RegisterPage, DashboardPage, FamiliesPage, FamilyDetailPage,
+  ChildrenPage, ChildDetailPage, ContactsPage, CalendarPage, UsersPage,
+  SettingsPage, HubPage, Layout, AdminLayout, SuperAdminDashboard,
+  OrgAdminDashboard, KlicovaOsobaDashboard, TeamDashboard, FosterFamilyDetailPage,
+  OrganizationDetailPage, AdminChildDetailPage, TodayPage,
+  Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
+  MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
+  MobileVisitTimerScreen,
+} from './routerPages.js';
 
 // Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
 // ODSTRANĚNO 2026-07-03 — způsobovalo redirect smyčku po přihlášení, protože
 // existovaly DVA nezávislé mechanismy rozhodující o přesměrování z /login
 // (tento kontext + Login.jsx's useAuthStore efekt). Ochrana rout je teď VÝHRADNĚ
 // přes useAuthStore (Zustand) — jediný zdroj pravdy. Původní kód (pro referenci)
-// je v legacy-modules/router-auth-context.jsx.
-
-// ── Lazy-loaded MVP stránky ───────────────────────────────────
-const LoginPage        = lazy(() => import('../modules/users/Login.jsx'));
-const RegisterPage     = lazy(() => import('../modules/users/RegisterPage.jsx'));
-const DashboardPage    = lazy(() => import('../modules/families/DashboardPage'));
-const FamiliesPage     = lazy(() => import('../modules/families/FamiliesPage'));
-const FamilyDetailPage = lazy(() => import('../modules/families/FamilyDetailPage'));
-const ChildrenPage     = lazy(() => import('../modules/children/ChildrenPage'));
-const ChildDetailPage  = lazy(() => import('../modules/children/ChildDetailPage'));
-const ContactsPage     = lazy(() => import('../modules/companies/ContactsPage'));
-const CalendarPage     = lazy(() => import('../modules/calendar/CalendarPage'));
-const UsersPage        = lazy(() => import('../modules/users/UsersPage'));
-const SettingsPage     = lazy(() => import('../modules/users/SettingsPage'));
-const HubPage          = lazy(() => import('../modules/families/HubPage'));
-const Layout           = lazy(() => import('./Layout.jsx'));
-
-// ── Nové B2B SaaS dashboardy (2026-07-01, viz modules/admin) ──
-const AdminLayout            = lazy(() => import('../modules/admin/AdminLayout.jsx'));
-const SuperAdminDashboard    = lazy(() => import('../modules/admin/SuperAdminDashboard.jsx'));
-const OrgAdminDashboard      = lazy(() => import('../modules/admin/OrgAdminDashboard.jsx'));
-const KlicovaOsobaDashboard  = lazy(() => import('../modules/admin/KlicovaOsobaDashboard.jsx'));
-const TeamDashboard          = lazy(() => import('../modules/admin/TeamDashboard.jsx'));
-const MobileProfilePage      = lazy(() => import('../modules/admin/MobileProfilePage.jsx'));
-const FosterFamilyDetailPage = lazy(() => import('../modules/admin/FosterFamilyDetailPage.jsx'));
-const OrganizationDetailPage = lazy(() => import('../modules/admin/OrganizationDetailPage.jsx'));
-const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
-const TodayPage              = lazy(() => import('../modules/admin/TodayPage.jsx'));
-
-// Non-MVP (zakomentováno):
-// const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));
-// const MarketplacePage  = lazy(() => import('../modules/marketplace/MarketplacePage'));
-// const AIAgentsPage     = lazy(() => import('../modules/ai/AIAgentsPage'));
-// const OCRPage          = lazy(() => import('../modules/documents/OCRPage'));
-// const AdvancedReports  = lazy(() => import('../modules/reports/AdvancedReportsPage'));
-// const MonetizationPage = lazy(() => import('../modules/admin/MonetizationPage'));
+// je v legacy-modules/router-auth-context.jsx. Lazy-loaded stránky (MVP i nové
+// B2B SaaS/mobilní) jsou v ./routerPages.js (CLAUDE.md limit 300 řádků).
 
 // ── Navigační definice (odpovídá RAIL v prototypu) ───────────
 
@@ -184,7 +160,6 @@ const router = createBrowserRouter([
       { path: '/vzdelavani',      element: <Suspense fallback={<Loading />}><FamiliesPage /></Suspense> },
       { path: '/hub/:typ/:id',    element: <Suspense fallback={<Loading />}><HubPage /></Suspense> },
       { path: '/uzivatele',       element: <Suspense fallback={<Loading />}><UsersPage /></Suspense> },
-      { path: '/nastaveni',       element: <Suspense fallback={<Loading />}><SettingsPage /></Suspense> },
 
       // Non-MVP cesty (zakomentováno):
       // { path: '/workflow',             element: <WorkflowPage /> },
@@ -207,7 +182,7 @@ const router = createBrowserRouter([
     children: [{
       element: <RequireOrgRole allowed={['klicova_osoba']} />,
       children: [
-        { path: '/', element: <Suspense fallback={<Loading />}><TodayPage /></Suspense> },
+        { path: '/', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileHomeScreen} desktop={TodayPage} /></Suspense> },
       ],
     }],
   },
@@ -226,7 +201,7 @@ const router = createBrowserRouter([
     children: [{
       element: <RequireOrgRole allowed={['org_admin']} />,
       children: [
-        { path: '/admin/organizace', element: <Suspense fallback={<Loading />}><OrgAdminDashboard /></Suspense> },
+        { path: '/admin/organizace', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamiliesScreen} desktop={OrgAdminDashboard} /></Suspense> },
       ],
     }],
   },
@@ -237,7 +212,7 @@ const router = createBrowserRouter([
         // "Moje rodiny" — vlastní scoped dashboard klíčové osoby (org_admin smí nahlédnout).
         element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin']} />,
         children: [
-          { path: '/admin/terenni', element: <Suspense fallback={<Loading />}><KlicovaOsobaDashboard /></Suspense> },
+          { path: '/admin/terenni', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamiliesScreen} desktop={KlicovaOsobaDashboard} /></Suspense> },
         ],
       },
       {
@@ -249,8 +224,11 @@ const router = createBrowserRouter([
         // tady jen povolení routy.
         element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin', 'vedouci_pobocky', 'teamleader']} />,
         children: [
-          { path: '/admin/terenni/:familyId',            element: <Suspense fallback={<Loading />}><FosterFamilyDetailPage /></Suspense> },
-          { path: '/admin/terenni/:familyId/deti/:childId', element: <Suspense fallback={<Loading />}><AdminChildDetailPage /></Suspense> },
+          { path: '/admin/terenni/:familyId',            element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamilyDetailScreen} desktop={FosterFamilyDetailPage} /></Suspense> },
+          { path: '/admin/terenni/:familyId/deti/:childId', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileChildDetailScreen} desktop={AdminChildDetailPage} /></Suspense> },
+          // Měření času návštěvy + GPS (2026-07-06) — čistě terénní/mobilní,
+          // žádný desktop ekvivalent (viz MobileVisitTimerScreen.jsx).
+          { path: '/admin/terenni/:familyId/navsteva',    element: <Suspense fallback={<Loading />}><MobileVisitTimerScreen /></Suspense> },
         ],
       },
     ],
@@ -260,32 +238,42 @@ const router = createBrowserRouter([
     children: [{
       element: <RequireOrgRole allowed={['vedouci_pobocky', 'teamleader']} />,
       children: [
-        { path: '/admin/tym', element: <Suspense fallback={<Loading />}><TeamDashboard /></Suspense> },
+        { path: '/admin/tym', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileTeamScreen} desktop={TeamDashboard} /></Suspense> },
       ],
     }],
   },
   {
-    // Kalendář (Krok 4a redesignu, 2026-07-04) — přesunuto ze staré Sekce A
-    // (RequireAuth/Layout výš) pod AdminLayout, protože CalendarPage.jsx už
-    // dřív přešel na Sekci B data (organizations/{orgId}/events) a
-    // AdminSidebar naň odkazuje pro VŠECHNY Sekce B role (viz PATH_FOR_KEY).
+    // Kalendář — pod AdminLayout pro VŠECHNY Sekce B role (viz PATH_FOR_KEY
+    // v AdminSidebar.jsx a tabsForRole v MobileShell.jsx).
     element: <Suspense fallback={<Loading />}><AdminLayout title="Kalendář" /></Suspense>,
     children: [{
       element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
       children: [
-        { path: '/kalendar', element: <Suspense fallback={<Loading />}><CalendarPage /></Suspense> },
+        { path: '/kalendar', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileCalendarScreen} desktop={CalendarPage} /></Suspense> },
       ],
     }],
   },
   {
-    // Profil (mobilní tab bar, DESIGN.md §11.8) — cíl posledního tlačítka
-    // v MobileTabBar.jsx pro všechny Sekce B role. Na desktopu zatím bez
-    // odkazu ze sidebaru (tam funkci plní avatar dropdown v AdminTopbar).
+    // Profil — cíl tab v MobileShell.jsx (mobil). Desktop bez odkazu (tam
+    // funkci plní avatar dropdown v AdminTopbar).
     element: <Suspense fallback={<Loading />}><AdminLayout title="Profil" /></Suspense>,
     children: [{
       element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
       children: [
-        { path: '/profil', element: <Suspense fallback={<Loading />}><MobileProfilePage /></Suspense> },
+        { path: '/profil', element: <Suspense fallback={<Loading />}><MobileProfileScreen /></Suspense> },
+      ],
+    }],
+  },
+
+  {
+    // Nastavení — dřív mimo AdminLayout (legacy sidebar Sekce A, žádný tab
+    // bar/topbar Sekce B) — opraveno 2026-07-06, viz AdminTopbar/AdminSidebar
+    // odkazy i MobileProfileScreen.jsx.
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Nastavení" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
+      children: [
+        { path: '/nastaveni', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileSettingsScreen} desktop={SettingsPage} /></Suspense> },
       ],
     }],
   },

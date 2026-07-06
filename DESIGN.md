@@ -845,4 +845,45 @@ Tento dokument nahrazuje původní `DESIGN.md` v repozitáři Doprovázení.com.
 
 Zachováno: **sémantické barevné kódování entit** (rodina/OSPOD/soud/bio/krize), **information architecture** (Dnes, Rodiny, Kalendář, Osa, Dokumenty, Čerpání, Tým, Admin), **mobil-first pro terén**, **WCAG AA přístupnost**, **čeština jako primární jazyk**.
 
+---
+
+## §12 Mobilní PWA — ZÁVAZNÁ specifikace v3 (2026-07-05, Fable)
+
+Jediný zdroj pravdy pro `src/mobile/`. Cokoli mimo tuto sekci je na mobilu zakázáno.
+Řeší příčinu „upatlanosti": každá obrazovka si dřív volila vlastní velikosti/poloměry/barvy.
+
+### 12.1 Tokeny (tailwind `native.*` — NIKDY jiné barvy)
+- Plátno `native-bg #F2F2F7` · karty `native-surface #FFF` · primární `native-primary #007AFF` (iOS blue)
+- Text `native-text #203040` · sekundární `native-textMuted #8B939C` · linky `native-separator #E5E5EA`
+- Sémantika: `native-warning #FF9500`, `native-danger #F23F3F`. **Zelená neexistuje.**
+- Tinty výhradně opacity modifikátorem: `/10` měkká výplň (tlačítka secondary, dlaždice), `/15` chipy.
+- Font: `font-native` (Noto Sans Variable) — dědí se ze shellu, nikdy per-komponenta.
+
+### 12.2 Typografická škála (JEDINÉ povolené velikosti)
+`10px` labely tab baru · `12px` chipy, labely formulářových řádků, hinty · `13px` sekundární text
+a sekční nadpisy (uppercase, tracking-wide, semibold, textMuted) · `15px` tělo · `17px` titulky
+řádků/sheetů · `22px` pozdrav/hero · `56px` časomíra. Váhy 400/500/600/700.
+Vstupy formulářů vždy 16px (jinak iOS Safari zoomuje) — jediná výjimka ze škály.
+
+### 12.3 Tvary a hloubka
+- Karty + sheety `rounded-native-card` (18px, Connecteam --ct-card-border-radius).
+- Vstupy/vnitřní boxy `rounded-native-input` (10px). Tlačítka/chipy/avatary `rounded-full`.
+- ŽÁDNÉ stíny (plochý design — hierarchii dělá barva plátna vs. karty). Výjimka: žádná.
+- Rytmus: gutter `px-4`, mezi kartami `gap-3`, padding karet `p-4`, sekční nadpis `mt-6 mb-2`.
+
+### 12.4 Komponenty (POUZE ze `src/mobile/ui/`)
+- `NativeButton` — pill; primary plná modrá, secondary `bg-native-primary/10 text-native-primary`
+  (žádný outline border!), danger plná červená; disabled šedá výplň (`native-separator` + muted text).
+- `NativeSegmented` — variant `primary` (hlavní taby: aktivní plná modrá) a `filter`
+  (druhotné filtry: aktivní tint /15 — NIKDY dvě řady plných pillů pod sebou).
+- `NativeFormGroup/Row` — formuláře jako jedna karta s vlásečnicemi, label 12px muted nad hodnotou.
+- `NativeSheet` — bottom sheet s drag-handle; footer s h-14 CTA.
+- `NativeBits`: `SectionLabel`, `NativeChip` (tone primary/warning/danger/muted, tint /15),
+  `NativeEmptyState` (ikona 28 + titulek 15 + rada 13 — prázdný stav VŽDY radí co dál), `StatTile`.
+- Klikatelné karty: `active:scale-[0.98] transition-transform duration-100`. Touch cíle ≥ 44px.
+
+### 12.5 Zakázané vzory (mobil)
+Raw tailwind barvy (blue-50, stone-*, red-50…) · rounded-lg/xl/2xl · box-shadow · outline
+border na tlačítkách · velikosti mimo §12.2 · prázdný stav bez rady · dvě řady plných pill tabů.
+
 Next steps: verifikační pipetta (§10) → aktualizace `tailwind.config.js` → refactor komponentní knihovny → screen-by-screen migrace podle §6 → uživatelské testování s koordinátorkami.

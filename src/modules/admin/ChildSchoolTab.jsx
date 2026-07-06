@@ -26,7 +26,7 @@ export default function ChildSchoolTab({
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-stone-800">{t('child.detail.school.title')}</h2>
+        <h2 className="text-base font-semibold text-ink-800">{t('child.detail.school.title')}</h2>
         {canManage && (
           <Button variant="secondary" size="sm" onClick={onOpen}>
             {child.school ? t('child.detail.school.edit') : t('child.detail.school.add')}
@@ -36,16 +36,16 @@ export default function ChildSchoolTab({
 
       {child.school ? (
         <div className="flex flex-col gap-0.5">
-          <p className="font-semibold text-stone-800">{child.school.nazev}</p>
-          <p className="text-sm text-stone-500">{child.school.adresa}</p>
-          <p className="text-sm text-stone-500">
+          <p className="font-semibold text-ink-800">{child.school.nazev}</p>
+          <p className="text-sm text-ink-500">{child.school.adresa}</p>
+          <p className="text-sm text-ink-500">
             {[child.school.telefon, child.school.email].filter(Boolean).join(' · ')}
           </p>
-          <p className="text-sm text-stone-800">{t('child.detail.school.classTeacher')} {child.school.tridniUcitel || '—'}</p>
-          <p className="text-sm text-stone-800">{t('child.detail.school.grade')} {child.school.rocnik || '—'}</p>
+          <p className="text-sm text-ink-800">{t('child.detail.school.classTeacher')} {child.school.tridniUcitel || '—'}</p>
+          <p className="text-sm text-ink-800">{t('child.detail.school.grade')} {child.school.rocnik || '—'}</p>
         </div>
       ) : (
-        <p className="text-sm text-stone-500">{t('child.detail.school.empty')}</p>
+        <p className="text-sm text-ink-500">{t('child.detail.school.empty')}</p>
       )}
 
       {schoolDialogOpen && (

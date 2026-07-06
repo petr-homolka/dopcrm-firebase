@@ -20,10 +20,10 @@ export default function NativeCard({ children, accentClass, onClick, className }
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'w-full rounded-2xl border border-native-separator bg-native-surface text-left',
+        'w-full rounded-native-card border border-native-separator bg-native-surface text-left',
         accentClass && 'border-l-4',
         accentClass,
-        onClick && 'active:opacity-70',
+        onClick && 'transition-transform duration-100 active:scale-[0.98]',
         className
       )}
     >

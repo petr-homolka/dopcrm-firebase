@@ -31,12 +31,12 @@ export default function ChildFormModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-stone-800">{title}</h2>
+          <h2 className="text-base font-semibold text-ink-800">{title}</h2>
           <button
             type="button"
             onClick={() => !submitting && onClose()}
             aria-label={t('common.close')}
-            className="rounded-lg p-1.5 text-stone-500 hover:bg-stone-100"
+            className="rounded-lg p-1.5 text-ink-500 hover:bg-surface-muted"
           >
             <X size={18} strokeWidth={1.75} />
           </button>
@@ -44,7 +44,7 @@ export default function ChildFormModal({
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           {submitError && (
-            <div className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{submitError}</div>
+            <div className="rounded-xl bg-danger-50 px-3.5 py-2.5 text-sm text-danger-700">{submitError}</div>
           )}
 
           {children}
