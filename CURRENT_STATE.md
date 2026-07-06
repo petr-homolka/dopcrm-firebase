@@ -31,6 +31,8 @@ vzor uložen v paměti [[crm-lidl-vzor-profily-formulare]]:
   MobileSocialTab). Ověřeno živě 390×844 (hero rodiny i dítěte, info tabulky pěstounů,
   hodinový kalendář, formulář label/hodnota, segmenty Rodiny/Pěstouni/Děti). Lint+build
   čisté, všechny soubory < 300 řádků. DESIGN.md §12.4 rozšířeno o Lidl vzor.
+- **Profil uživatele** dostal stejný modrý hero (jméno + chip role + e-mail řádek), pod ním
+  grouped list Nastavení/Odhlásit. Ověřeno + nasazeno na moje.doprovazeni.com i dev.
 
 ## 2026-07-06 — moje.doprovazeni.com: nový build + oprava env past (KRITICKÉ)
 
