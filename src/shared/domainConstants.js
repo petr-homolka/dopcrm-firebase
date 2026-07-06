@@ -285,3 +285,6 @@ export const EVENT_BORDER_CLASS = {
   education: 'border-entity-bio-text',
   other: 'border-border-default',
 };
+
+// Chat/notifikace konstanty se přesunuly do src/shared/chatConstants.js
+// (2026-07-06, limit 300 řádků) — docs/domain/chat-a-pestounska-appka.md.

@@ -22,6 +22,7 @@ import { useAuthStore } from '../../store/authStore.js';
 import { EVENT_BORDER_CLASS } from '../../shared/domainConstants.js';
 import useTodayPage, { toDate } from '../../modules/admin/useTodayPage.js';
 import { SectionLabel, NativeEmptyState, NATIVE_EVENT_BORDER } from '../ui/NativeBits.jsx';
+import NotificationBell from '../ui/NotificationBell.jsx';
 import NativeSheet from '../ui/NativeSheet.jsx';
 import MobileEventSheet from './calendar/MobileEventSheet.jsx';
 import MobileEventDetailSheet from './calendar/MobileEventDetailSheet.jsx';
@@ -100,9 +101,10 @@ export default function MobileHomeScreen() {
     <div className="pb-6">
       <div className="flex items-center gap-3 px-4 pt-4">
         <Avatar name={profile?.displayName ?? profile?.email} size="xl" tone="native" />
-        <p className="text-[22px] font-bold leading-tight text-native-text">
+        <p className="flex-1 text-[22px] font-bold leading-tight text-native-text">
           {greetingFor(now.getHours())}, {firstName}
         </p>
+        <NotificationBell />
       </div>
 
       <div className="mt-5 flex gap-3 px-4">

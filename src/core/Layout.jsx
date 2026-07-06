@@ -28,7 +28,7 @@ import {
 
 import { signOut } from '../services/orgAuth.js';
 import { useAuthStore } from '../store/authStore.js';
-import { MVP_NAV } from './router.jsx';
+import { MVP_NAV } from './navConfig.js';
 import { cn } from '../components/ui/cn.js';
 
 const ICON_MAP = {

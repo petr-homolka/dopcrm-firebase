@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, Users, Calendar, BarChart3, Building2, UserCircle2 } from 'lucide-react';
+import { Home, Users, Calendar, BarChart3, Building2, UserCircle2, MessageSquare } from 'lucide-react';
 import { cn } from '../components/ui/cn.js';
 import { useAuthStore } from '../store/authStore.js';
 import ActiveVisitBanner from './ui/ActiveVisitBanner.jsx';
@@ -23,6 +23,9 @@ const TAB_META = {
   organization: { label: 'Organizace', icon: Building2, path: '/admin/organizace' },
   admin: { label: 'Organizace', icon: Building2, path: '/admin/superadmin' },
   profile: { label: 'Profil', icon: UserCircle2, path: '/profil' },
+  // Pěstounská appka (2026-07-06) — omezené taby role pestoun.
+  fosterHome: { label: 'Domů', icon: Home, path: '/moje' },
+  fosterChat: { label: 'Chat', icon: MessageSquare, path: '/moje/chat' },
 };
 
 function tabsForRole(role) {
@@ -36,6 +39,8 @@ function tabsForRole(role) {
       return ['team', 'calendar', 'profile'];
     case 'superadmin':
       return ['admin', 'profile'];
+    case 'pestoun':
+      return ['fosterHome', 'fosterChat', 'profile'];
     default:
       return ['profile'];
   }
@@ -60,7 +65,7 @@ export default function MobileShell() {
             <NavLink
               key={key}
               to={meta.path}
-              end={meta.path === '/'}
+              end={meta.path === '/' || meta.path === '/moje'}
               className={({ isActive }) => cn(
                 'flex flex-1 flex-col items-center justify-center gap-1 pt-1.5',
                 'text-[10px] font-medium leading-none',

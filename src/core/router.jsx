@@ -28,7 +28,8 @@ import {
   OrganizationDetailPage, AdminChildDetailPage, TodayPage,
   Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
   MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
-  MobileVisitTimerScreen,
+  MobileVisitTimerScreen, MobileNotificationsScreen,
+  FosterHomeScreen, FosterChildScreen, FosterChatScreen,
 } from './routerPages.js';
 
 // Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
@@ -39,26 +40,8 @@ import {
 // je v legacy-modules/router-auth-context.jsx. Lazy-loaded stránky (MVP i nové
 // B2B SaaS/mobilní) jsou v ./routerPages.js (CLAUDE.md limit 300 řádků).
 
-// ── Navigační definice (odpovídá RAIL v prototypu) ───────────
-
-// Datová konstanta sdílená s Layout.jsx, ne komponenta. `labelKey` místo natvrdo
-// textu (Krok 2, i18n) — router.jsx je jen směrovač/konfigurace (CLAUDE.md), samotný
-// t() překlad dělá až konzument (Layout.jsx), který běží uvnitř komponenty.
-// eslint-disable-next-line react-refresh/only-export-components
-export const MVP_NAV = [
-  { path: '/prehled',    labelKey: 'nav.items.prehled',    icon: 'grid' },
-  { path: '/pestouni',   labelKey: 'nav.items.pestouni',   icon: 'user' },
-  { path: '/deti',       labelKey: 'nav.items.deti',       icon: 'child' },
-  { path: '/kontakty',   labelKey: 'nav.items.kontakty',   icon: 'building' },
-  { path: '/kalendar',   labelKey: 'nav.items.kalendar',   icon: 'calendar' },
-  { path: '/vzdelavani', labelKey: 'nav.items.vzdelavani', icon: 'book' },
-];
-
-// Dokumenty vypnuty (audit #5, docs/INVENTAR.md §11) — viz legacy-modules/README.md.
-// Non-MVP položky (zakomentováno):
-// { path: '/reporty-manazerske', label: 'Manažerské reporty', icon: 'chart' },
-// { path: '/workflow',           label: 'Workflow Engine',     icon: 'flow' },
-// { path: '/monetizace',         label: 'Monetizace',          icon: 'credit-card' },
+// Navigační definice (MVP_NAV) přesunuta do ./navConfig.js (2026-07-06, limit
+// 300 řádků). Layout.jsx ji importuje odtud.
 
 // ── Fallback loader ───────────────────────────────────────────
 
@@ -258,9 +241,35 @@ const router = createBrowserRouter([
     // funkci plní avatar dropdown v AdminTopbar).
     element: <Suspense fallback={<Loading />}><AdminLayout title="Profil" /></Suspense>,
     children: [{
-      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin', 'pestoun']} />,
       children: [
         { path: '/profil', element: <Suspense fallback={<Loading />}><MobileProfileScreen /></Suspense> },
+      ],
+    }],
+  },
+
+  {
+    // Notifikační centrum (2026-07-06) — všechny role včetně pěstouna.
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Oznámení" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin', 'pestoun']} />,
+      children: [
+        { path: '/oznameni', element: <Suspense fallback={<Loading />}><MobileNotificationsScreen /></Suspense> },
+      ],
+    }],
+  },
+
+  {
+    // Pěstounská PWA (2026-07-06, docs/domain/chat-a-pestounska-appka.md) —
+    // omezený strom /moje/*, VÝHRADNĚ role pestoun. Ostatní role sem nesmí
+    // (RequireOrgRole je pošle na jejich domovskou stránku).
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Moje" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['pestoun']} />,
+      children: [
+        { path: '/moje', element: <Suspense fallback={<Loading />}><FosterHomeScreen /></Suspense> },
+        { path: '/moje/chat', element: <Suspense fallback={<Loading />}><FosterChatScreen /></Suspense> },
+        { path: '/moje/deti/:childId', element: <Suspense fallback={<Loading />}><FosterChildScreen /></Suspense> },
       ],
     }],
   },

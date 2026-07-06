@@ -24,6 +24,7 @@ import NativeButton from '../ui/NativeButton.jsx';
 import { NativeFormGroup, NativeFormRow, RowInput } from '../ui/NativeFormRow.jsx';
 import MobileFamilyHeader from './familyDetail/MobileFamilyHeader.jsx';
 import MobileTimelineTab from './familyDetail/MobileTimelineTab.jsx';
+import MobileChatTab from './familyDetail/MobileChatTab.jsx';
 import MobileFostersTab from './familyDetail/MobileFostersTab.jsx';
 import MobileRespitTab from './familyDetail/MobileRespitTab.jsx';
 import MobileSocialTab from './familyDetail/MobileSocialTab.jsx';
@@ -55,6 +56,7 @@ export default function MobileFamilyDetailScreen() {
   const requiredHours = family ? CARE_TYPES[family.careType]?.requiredHours ?? 24 : 24;
   const tabItems = [
     { value: 'osa', label: 'Osa' },
+    { value: 'chat', label: 'Chat' },
     { value: 'pestouni', label: 'Pěstouni' },
     { value: 'respit', label: 'Respit' },
     { value: 'social', label: 'Sociální prostor' },
@@ -94,8 +96,12 @@ export default function MobileFamilyDetailScreen() {
 
           {tab === 'osa' && <MobileTimelineTab familyId={familyId} familyName={family.name} childrenList={children} canManage={canManage} />}
 
+          {tab === 'chat' && <MobileChatTab familyId={familyId} />}
+
           {tab === 'pestouni' && (
             <MobileFostersTab
+              familyId={familyId}
+              organizationId={family.organizationId}
               fosters={family.fosters ?? []}
               fosterCourses={fosterCourses}
               requiredHours={requiredHours}

@@ -21,3 +21,6 @@ export * from './org/children.js';
 export * from './org/events.js';
 export * from './org/timeline.js';
 export * from './org/codelists.js';
+export * from './org/messages.js';
+export * from './org/notifications.js';
+export * from './org/fosterAccess.js';

@@ -13,8 +13,10 @@ import { parseRc } from '../../../shared/rcUtils.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
 import { NativeFormGroup, NativeFormRow, NativeInfoRow, RowInput } from '../../ui/NativeFormRow.jsx';
+import InviteFosterButton from './InviteFosterButton.jsx';
 
 export default function MobileFostersTab({
+  familyId, organizationId,
   fosters, fosterCourses, requiredHours, onAddFoster, canManage,
   fosterForm, setFosterForm, submitting, submitError,
   courseDialogFor, setCourseDialogFor, courseForm, setCourseForm, onAddCourse,
@@ -82,6 +84,8 @@ export default function MobileFostersTab({
           Přidat pěstouna
         </NativeButton>
       )}
+
+      {canManage && <InviteFosterButton familyId={familyId} organizationId={organizationId} />}
 
       {sheet === 'foster' && (
         <NativeSheet

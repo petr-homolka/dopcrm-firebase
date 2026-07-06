@@ -49,9 +49,13 @@ engine), je popsána v `docs/domain/` — čerpej odtud. Chybí-li tam, ZEPTEJ S
 
 ## Doménová pravidla (neměnná)
 - Hierarchie: organizations → users (zaměstnanci) → foster_families → children.
-  Pěstouni a děti NEJSOU Auth uživatelé.
-- Role: superadmin · org_admin · vedouci_pobocky · teamleader · klicova_osoba · asistent_ko ·
-  zamestnanec. Každý zaměstnanec má `nadrizeny`.
+- **Pěstoun MÁ Auth účet** (revize 2026-07-06, `docs/domain/chat-a-pestounska-appka.md`):
+  role `pestoun`, vlastní přihlášení, omezená appka `/moje/*`. Zakládá se pozvánkou KO.
+  **Dítě zůstává bez účtu.** (Dřívější pravidlo „pěstouni ani děti nejsou Auth uživatelé"
+  platí už jen pro děti.)
+- Role zaměstnanců: superadmin · org_admin · vedouci_pobocky · teamleader · klicova_osoba ·
+  asistent_ko · zamestnanec. Každý zaměstnanec má `nadrizeny`. Navíc externí role `pestoun`
+  (není zaměstnanec — omezený přístup jen ke své rodině a dětem).
 - Registrace organizace = self-service (`/registrace`), superadmin ji NEZAKLÁDÁ.
 - Limit: max 25 rodin na klíčovou osobu (`assertFamilyCapacity`).
 - RČ = primární identifikátor osob (děti, příbuzní); jméno jen fallback.

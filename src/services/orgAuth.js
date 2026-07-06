@@ -32,6 +32,7 @@ export function dashboardPathForRole(role) {
     case 'klicova_osoba':   return '/admin/terenni';
     case 'vedouci_pobocky':
     case 'teamleader':      return '/admin/tym';
+    case 'pestoun':         return '/moje';
     default:                return '/prehled';
   }
 }
@@ -43,7 +44,8 @@ export function dashboardPathForRole(role) {
  * přestala být VÝCHOZÍ landing page). Ostatní role beze změny.
  */
 export function homePathForRole(role) {
-  return role === 'klicova_osoba' ? '/' : dashboardPathForRole(role);
+  if (role === 'klicova_osoba') return '/';
+  return dashboardPathForRole(role);
 }
 
 /**
@@ -62,7 +64,13 @@ const ROLE_LABELS = {
   vedouci_pobocky: 'Vedoucí pobočky',
   teamleader: 'Teamleader',
   klicova_osoba: 'Klíčová osoba',
+  pestoun: 'Pěstoun',
 };
+
+/** Role pěstouna — omezená appka `/moje/*` (docs/domain/chat-a-pestounska-appka.md). */
+export function isFoster(role) {
+  return role === 'pestoun';
+}
 
 /** Lidský popisek role pro zobrazení v UI (topbar dropdown, mobilní Profil). */
 export function roleLabel(role) {

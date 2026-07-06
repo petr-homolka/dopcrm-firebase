@@ -90,6 +90,29 @@ service cloud.firestore {
       return signedIn() && myOrgId() == orgId;
     }
 
+    // ── Role pěstouna (2026-07-06, docs/domain/chat-a-pestounska-appka.md) ──
+    // KRITICKÉ: pěstoun má organizationId = svou organizaci, takže by přes
+    // holé sameOrg() viděl VŠECHNY rodiny a děti organizace. Proto se sameOrg
+    // větev u rodin/dětí/uživatelů/zpráv OMEZUJE na zaměstnance (isStaff) a
+    // pěstoun dostává jen úzký disjunkt přes foster_families.fosterUserIds.
+    function isStaff() {
+      return signedIn() && myRole() in
+        ['superadmin', 'org_admin', 'vedouci_pobocky', 'teamleader', 'klicova_osoba', 'asistent_ko', 'zamestnanec'];
+    }
+
+    function isFoster() {
+      return signedIn() && myRole() == 'pestoun';
+    }
+
+    // Smí tento pěstoun vidět tuto rodinu? (uid je v jejím fosterUserIds)
+    function fosterOfFamilyData(famData) {
+      return isFoster() && (request.auth.uid in famData.get('fosterUserIds', []));
+    }
+
+    function fosterOfFamilyId(famId) {
+      return fosterOfFamilyData(get(/databases/$(database)/documents/foster_families/$(famId)).data);
+    }
+
     // ── organizations (tenanti) ──────────────────────────────
     // SaaS je SEBEOBSLUŽNÉ (2026-07-02): kdokoli přihlášený smí založit VLASTNÍ
     // organizaci (createdBy == on sám) — Superadmin organizace nezakládá, jen
@@ -166,9 +189,11 @@ service cloud.firestore {
       // rodin a zastupitelnosti; navíc to opravuje Firestore "list" dotaz, který
       // jinak vždy spadne na permission-denied bez rovnostního filtru, jenž by
       // odpovídal pravidlu).
+      // Pozor: sameOrg omezeno na zaměstnance — pěstoun čte JEN svůj profil
+      // (jinak by viděl celý zaměstnanecký rozpis organizace).
       allow read: if isSuperadmin()
                      || request.auth.uid == uid
-                     || sameOrg(resource.data.organizationId);
+                     || (isStaff() && sameOrg(resource.data.organizationId));
 
       // Založení zaměstnance:
       //   superadmin      -> kohokoli, kdekoli
@@ -181,7 +206,12 @@ service cloud.firestore {
                            && get(/databases/$(database)/documents/organizations/$(request.resource.data.organizationId)).data.createdBy == request.auth.uid)
                        || (isOrgAdmin()
                            && request.resource.data.organizationId == myOrgId()
-                           && request.resource.data.role in ['org_admin', 'vedouci_pobocky', 'teamleader', 'klicova_osoba', 'asistent_ko', 'zamestnanec']);
+                           && request.resource.data.role in ['org_admin', 'vedouci_pobocky', 'teamleader', 'klicova_osoba', 'asistent_ko', 'zamestnanec'])
+                       // Pozvání pěstouna (inviteFoster) — KO i management smí založit
+                       // účet role 'pestoun' ve VLASTNÍ organizaci (2026-07-06).
+                       || ((isManagement() || isKlicovaOsoba())
+                           && request.resource.data.organizationId == myOrgId()
+                           && request.resource.data.role == 'pestoun');
 
       // Úprava: superadmin cokoli; org_admin své zaměstnance (nesmí je povýšit na
       // superadmina ani přehodit do jiné organizace); uživatel sám smí upravit
@@ -198,6 +228,18 @@ service cloud.firestore {
 
       allow delete: if isSuperadmin()
                        || (isOrgAdmin() && sameOrg(resource.data.organizationId) && resource.data.role != 'superadmin');
+
+      // Notifikační centrum (2026-07-06, docs/domain/chat-a-pestounska-appka.md).
+      // Čte/označuje/maže JEN vlastník. Zakládat smí jiný přihlášený uživatel ze
+      // STEJNÉ organizace jako příjemce (KO notifikuje pěstouna a naopak) —
+      // organizace příjemce se ověří get() na jeho users/{uid} dokument.
+      match /notifications/{notifId} {
+        allow read, update, delete: if request.auth.uid == uid;
+        allow create: if signedIn() && (
+          request.auth.uid == uid
+          || myOrgId() == get(/databases/$(database)/documents/users/$(uid)).data.organizationId
+        );
+      }
     }
 
     // ── foster_families (klientské rodiny) ───────────────────
@@ -209,8 +251,9 @@ service cloud.firestore {
       // osoba, "Moje rodiny"), protože se rovnostní pole dotazu neshoduje s
       // polem v pravidle (organizationId) — objeveno 2026-07-02.
       allow read: if isSuperadmin()
-                     || sameOrg(resource.data.organizationId)
-                     || resource.data.assignedTo == request.auth.uid;
+                     || (isStaff() && sameOrg(resource.data.organizationId))
+                     || resource.data.assignedTo == request.auth.uid
+                     || fosterOfFamilyData(resource.data);
 
       // Založení nové rodiny: management organizace kdekoli v ní; klíčová osoba
       // jen rovnou jako přidělenou sobě (terénní realita — potká rodinu, založí ji).
@@ -286,6 +329,34 @@ service cloud.firestore {
                             .hasOnly(['pinned', 'body', 'title', 'occurredAt', 'subjectRefs', 'updatedAt', 'updatedBy']);
         allow delete: if false;
       }
+
+      // Chat rodiny — tři úrovně soukromí (2026-07-06,
+      // docs/domain/chat-a-pestounska-appka.md). HRANICE JE TADY, ne v UI.
+      //   private  — čte JEN autor (poznámka KO sobě)
+      //   internal — čtou zaměstnanci organizace; pěstoun NIKDY
+      //   foster   — čtou zaměstnanci I pěstoun rodiny (KO ↔ pěstoun)
+      match /messages/{msgId} {
+        function famData() {
+          return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
+        }
+        function staffCanPost() {
+          return (isManagement() && sameOrg(famData().organizationId))
+              || (isKlicovaOsoba() && famData().assignedTo == request.auth.uid);
+        }
+        allow read: if isSuperadmin()
+          || (isStaff() && sameOrg(famData().organizationId)
+              && resource.data.audience in ['internal', 'foster'])
+          || (resource.data.audience == 'private' && resource.data.authorUid == request.auth.uid)
+          || (resource.data.audience == 'foster' && fosterOfFamilyData(famData()));
+        // Zaměstnanec smí libovolnou úroveň; pěstoun JEN 'foster' a jen do své
+        // rodiny (jednosměrně KO). authorUid musí být volající (bez podvržení).
+        allow create: if request.resource.data.authorUid == request.auth.uid && (
+          staffCanPost()
+          || (fosterOfFamilyData(famData()) && request.resource.data.audience == 'foster')
+        );
+        // Úprava/smazání jen vlastní zprávy.
+        allow update, delete: if resource.data.authorUid == request.auth.uid;
+      }
     }
 
     // ── children (děti svěřené do péče) ──────────────────────
@@ -294,9 +365,12 @@ service cloud.firestore {
     match /children/{childId} {
       // Viz shodná poznámka u foster_families — assignedTo disjunkt kvůli
       // Firestore "list" dotazům filtrovaným přes assignedTo (budoucí použití).
+      // sameOrg omezeno na zaměstnance; pěstoun vidí jen děti SVÉ rodiny
+      // (přes fosterUserIds rodiny) — ne všechny děti organizace.
       allow read: if isSuperadmin()
-                     || sameOrg(resource.data.organizationId)
-                     || resource.data.assignedTo == request.auth.uid;
+                     || (isStaff() && sameOrg(resource.data.organizationId))
+                     || resource.data.assignedTo == request.auth.uid
+                     || fosterOfFamilyId(resource.data.fosterFamilyId);
 
       allow create: if isSuperadmin()
                        || (isManagement() && sameOrg(request.resource.data.organizationId))
