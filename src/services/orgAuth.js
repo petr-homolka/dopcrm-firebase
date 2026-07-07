@@ -12,12 +12,79 @@
 import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
 } from 'firebase/auth';
-import { auth } from './firebase.js';
+import {
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, limit, serverTimestamp,
+} from 'firebase/firestore';
+import { auth, db } from './firebase.js';
+import { emailForSignInKey } from './org/fosterAccess.js';
 
 export async function signIn(email, password) {
   const cred = await signInWithEmailAndPassword(auth, email, password);
   return cred.user;
+}
+
+/** Je aktuální URL jednorázový přihlašovací odkaz? (completion route /prihlaseni) */
+export function isMagicLink() {
+  return isSignInWithEmailLink(auth, window.location.href);
+}
+
+/**
+ * Dokončí přihlášení magic linkem. `emailFallback` se použije, když odkaz
+ * uživatel otevřel na jiném zařízení (localStorage prázdný) — UI se doptá.
+ * Po přihlášení případně založí profil pěstouna z jeho pozvánky.
+ */
+export async function completeMagicLink(emailFallback = '') {
+  let email = '';
+  try { email = window.localStorage.getItem(emailForSignInKey) ?? ''; } catch { /* private mode */ }
+  email = email || emailFallback;
+  if (!email) throw new Error('Zadejte prosím e-mail, na který odkaz přišel.');
+  const cred = await signInWithEmailLink(auth, email.trim().toLowerCase(), window.location.href);
+  try { window.localStorage.removeItem(emailForSignInKey); } catch { /* ignore */ }
+  await acceptFosterInvitationIfNeeded(cred.user);
+  return cred.user;
+}
+
+/**
+ * Bootstrap profilu pěstouna z pozvánky (2026-07-06 §A). Když přihlášený
+ * uživatel ještě nemá `users/{uid}`, dohledá pozvánku na svůj ověřený e-mail
+ * a založí si z ní profil (role pestoun, rodina, organizace). Bez pozvánky =
+ * neznámý účet → odhlášení a chyba.
+ */
+export async function acceptFosterInvitationIfNeeded(user) {
+  const userRef = doc(db, 'users', user.uid);
+  const existing = await getDoc(userRef);
+  if (existing.exists()) return existing.data();
+
+  const snap = await getDocs(query(
+    collection(db, 'foster_invitations'),
+    where('email', '==', (user.email ?? '').toLowerCase()),
+    limit(1)
+  ));
+  if (snap.empty) {
+    await firebaseSignOut(auth);
+    throw new Error('K tomuto e-mailu není žádná pozvánka. Požádejte klíčovou osobu o nový odkaz.');
+  }
+  const inv = snap.docs[0];
+  const d = inv.data();
+  await setDoc(userRef, {
+    email: user.email,
+    displayName: d.displayName ?? user.email,
+    phone: d.phone ?? '',
+    role: 'pestoun',
+    organizationId: d.organizationId,
+    fosterFamilyId: d.fosterFamilyId,
+    invitationId: inv.id,
+    active: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: user.uid,
+    updatedBy: user.uid,
+  });
+  await updateDoc(inv.ref, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedUid: user.uid });
+  return null;
 }
 
 export async function signOut() {

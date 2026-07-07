@@ -45,6 +45,7 @@ export const MobileSettingsScreen   = lazy(() => import('../mobile/screens/Mobil
 export const MobileChildDetailScreen = lazy(() => import('../mobile/screens/MobileChildDetailScreen.jsx'));
 export const MobileVisitTimerScreen  = lazy(() => import('../mobile/screens/MobileVisitTimerScreen.jsx'));
 export const MobileNotificationsScreen = lazy(() => import('../mobile/screens/MobileNotificationsScreen.jsx'));
+export const MagicLinkScreen   = lazy(() => import('../mobile/screens/MagicLinkScreen.jsx'));
 
 // ── Pěstounská PWA (2026-07-06, docs/domain/chat-a-pestounska-appka.md) ──
 // Omezená appka role `pestoun` — vlastní strom /moje/*.

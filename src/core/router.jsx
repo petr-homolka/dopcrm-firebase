@@ -28,7 +28,7 @@ import {
   OrganizationDetailPage, AdminChildDetailPage, TodayPage,
   Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
   MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
-  MobileVisitTimerScreen, MobileNotificationsScreen,
+  MobileVisitTimerScreen, MobileNotificationsScreen, MagicLinkScreen,
   FosterHomeScreen, FosterChildScreen, FosterChatScreen,
 } from './routerPages.js';
 
@@ -130,6 +130,9 @@ function RegisterRoute() {
 const router = createBrowserRouter([
   { path: '/login', element: <LoginRoute /> },
   { path: '/registrace', element: <RegisterRoute /> },
+  // Dokončení magic-link přihlášení pěstouna (2026-07-06 §A) — veřejné,
+  // sem míří odkaz z e-mailu; obrazovka sama dokončí sign-in a přesměruje.
+  { path: '/prihlaseni', element: <Suspense fallback={<Loading />}><MagicLinkScreen /></Suspense> },
 
   {
     element: <RequireAuth />,
