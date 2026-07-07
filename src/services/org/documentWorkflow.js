@@ -30,7 +30,7 @@ export async function sendToFosterReview(familyId, docId) {
     { status: 'foster_review', visibleToFoster: true },
     { action: 'sent_foster', fromStatus: d?.status, toStatus: 'foster_review' },
     async () => {
-      const fosters = await listFosterUsersOfFamily(familyId);
+      const fosters = await listFosterUsersOfFamily(familyId, d?.organizationId);
       await pushNotificationTo(fosters.map((f) => f.id), {
         type: 'document', title: 'Dokument ke schválení', body: d?.title ?? '', link: '/moje',
       });

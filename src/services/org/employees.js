@@ -33,11 +33,18 @@ export async function listKlicoveOsobyByOrg(organizationId) {
   return users.filter((u) => u.role === 'klicova_osoba');
 }
 
-/** Pěstounské účty navázané na rodinu — pro cílení notifikací (2026-07-06 §C). */
-export async function listFosterUsersOfFamily(familyId) {
-  const snap = await getDocs(
-    query(collection(db, 'users'), where('fosterFamilyId', '==', familyId), limit(20))
-  );
+/**
+ * Pěstounské účty navázané na rodinu — pro cílení notifikací (2026-07-06 §C).
+ * Filtr MUSÍ obsahovat organizationId (shoda s `sameOrg` v rules) — jinak
+ * Firestore odmítne celý list ([[crm-firestore-list-query-rule-pole]]).
+ */
+export async function listFosterUsersOfFamily(familyId, organizationId) {
+  const snap = await getDocs(query(
+    collection(db, 'users'),
+    where('organizationId', '==', organizationId),
+    where('fosterFamilyId', '==', familyId),
+    limit(20)
+  ));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.role === 'pestoun');
 }
 
