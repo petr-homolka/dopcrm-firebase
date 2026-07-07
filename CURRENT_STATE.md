@@ -1,6 +1,27 @@
 # CURRENT_STATE
 **Verze:** 2.3.0 (Chat 3 úrovně soukromí + notifikace + pěstounská PWA, 2026-07-06)
 
+## 2026-07-06 — Program dokumenty/workflow/přihlášení (spec A–E) — průběžně
+
+Uživatel zadal velký program (`docs/domain/dokumenty-workflow-a-prihlaseni.md`),
+zpracovávat postupně, průběžně nasazovat na moje.doprovazeni.com **bez schvalování**
+(stálý souhlas 2026-07-06). Stav:
+
+- **A. Magic-link přihlášení pěstouna — HOTOVO, nasazeno.** `foster_invitations/{email}`,
+  `sendFosterMagicLink` (Firebase email-link), completion `/prihlaseni` (MagicLinkScreen)
+  vč. bootstrapu profilu z pozvánky; rules přepsány — `fosterOfFamily` nově přes
+  `users/{uid}.fosterFamilyId` (pěstoun už nezapisuje foster_families). Ověřeno (pěstoun
+  vidí děti+chat, spis denied; KO vytvoří pozvánku). Odeslání e-mailu + klik nelze
+  automatizovaně otestovat. SMS/WhatsApp = TODO (placené kanály).
+- **B. Chat — 4. kategorie „Pro OSPOD" + filtr kategorií — HOTOVO, nasazeno.** Cílení na
+  skupiny/kanály/DM = zbývá.
+- **C. Dokumentový modul** (model, Storage, markdown editor, DOCX/PDF/obrázek náhled, verze) — ZBÝVÁ.
+- **D. Schvalovací workflow** (stavový automat Koncept→…→Uzavřeno, audit, schvalovatel+náhradník,
+  uzavření s výhradou) — ZBÝVÁ.
+- **E. Příjem dokumentů + časová osa + OCR** — ZBÝVÁ; e-mail ingest (`pestoun.jmeno@…`) a OCR
+  vyžadují backend (MX/parser, Vertex AI) — postaví se model+UI+simulace+seam, produkční
+  napojení = TODO (docs/INVENTAR.md).
+
 ## 2026-07-06 — Chat, notifikace a pěstounská PWA (nová vrstva systému)
 
 Zadání: chat KO↔pěstoun se třemi úrovněmi soukromí + notifikace + samostatná
