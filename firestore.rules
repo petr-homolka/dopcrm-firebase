@@ -140,7 +140,7 @@ service cloud.firestore {
       // stejně jako u foster_families). Zápis: management celé organizace vždy;
       // klíčová osoba jen u vlastních událostí (assignedTo == její uid).
       match /events/{eventId} {
-        allow read: if isSuperadmin() || sameOrg(orgId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(orgId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(orgId))
           || (isKlicovaOsoba() && sameOrg(orgId) && request.resource.data.assignedTo == request.auth.uid);
@@ -153,7 +153,7 @@ service cloud.firestore {
       // událostí apod.). Čtení: celá organizace (selecty). Zápis: management
       // — položky číselníků definuje administrace, ne terén.
       match /codelists/{listId} {
-        allow read: if isSuperadmin() || sameOrg(orgId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(orgId));
         allow write: if isSuperadmin() || (isManagement() && sameOrg(orgId));
       }
     }
@@ -277,7 +277,7 @@ service cloud.firestore {
         function parentFamily() {
           return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentFamily().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentFamily().organizationId));
         allow create, update, delete: if isSuperadmin()
           || (isManagement() && sameOrg(parentFamily().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentFamily().organizationId)
@@ -291,7 +291,7 @@ service cloud.firestore {
         function parentFamilyCourses() {
           return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentFamilyCourses().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentFamilyCourses().organizationId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(parentFamilyCourses().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentFamilyCourses().organizationId)
@@ -320,8 +320,11 @@ service cloud.firestore {
           return (isOrgAdmin() && sameOrg(parentFamilyTimeline().organizationId))
               || (isKlicovaOsoba() && parentFamilyTimeline().assignedTo == request.auth.uid);
         }
+        // Spis rodiny — VÝHRADNĚ zaměstnanci (sameOrg gated na isStaff) nebo
+        // přiřazená KO. Pěstoun NIKDY (i když je téže organizace) — jinak by
+        // přes holé sameOrg viděl celou časovou osu (únik zjištěn 2026-07-06).
         allow read: if isSuperadmin()
-                       || sameOrg(parentFamilyTimeline().organizationId)
+                       || (isStaff() && sameOrg(parentFamilyTimeline().organizationId))
                        || parentFamilyTimeline().assignedTo == request.auth.uid;
         allow create: if canWriteTimeline();
         allow update: if canWriteTimeline()
@@ -344,9 +347,12 @@ service cloud.firestore {
               || (isKlicovaOsoba() && famData().assignedTo == request.auth.uid);
         }
         allow read: if isSuperadmin()
-          || (isStaff() && sameOrg(famData().organizationId)
-              && resource.data.audience in ['internal', 'foster'])
-          || (resource.data.audience == 'private' && resource.data.authorUid == request.auth.uid)
+          // Autor vždy čte vlastní zprávu (i soukromou) — samostatný disjunkt,
+          // aby dotaz where('authorUid','==',uid) šel Firestore staticky ověřit.
+          || resource.data.authorUid == request.auth.uid
+          // Zaměstnanec téže organizace čte vše KROMĚ cizích soukromých.
+          || (isStaff() && sameOrg(famData().organizationId) && resource.data.audience != 'private')
+          // Pěstoun rodiny čte jen úroveň 'foster'.
           || (resource.data.audience == 'foster' && fosterOfFamilyData(famData()));
         // Zaměstnanec smí libovolnou úroveň; pěstoun JEN 'foster' a jen do své
         // rodiny (jednosměrně KO). authorUid musí být volající (bez podvržení).
@@ -390,7 +396,7 @@ service cloud.firestore {
         function parentChild() {
           return get(/databases/$(database)/documents/children/$(childId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentChild().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentChild().organizationId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(parentChild().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentChild().organizationId)
@@ -405,7 +411,7 @@ service cloud.firestore {
         function parentChildNotes() {
           return get(/databases/$(database)/documents/children/$(childId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentChildNotes().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentChildNotes().organizationId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(parentChildNotes().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentChildNotes().organizationId)
@@ -419,7 +425,7 @@ service cloud.firestore {
         function parentChildPrevFosters() {
           return get(/databases/$(database)/documents/children/$(childId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentChildPrevFosters().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentChildPrevFosters().organizationId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(parentChildPrevFosters().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentChildPrevFosters().organizationId)
@@ -433,7 +439,7 @@ service cloud.firestore {
         function parentChildVerdicts() {
           return get(/databases/$(database)/documents/children/$(childId)).data;
         }
-        allow read: if isSuperadmin() || sameOrg(parentChildVerdicts().organizationId);
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(parentChildVerdicts().organizationId));
         allow create: if isSuperadmin()
           || (isManagement() && sameOrg(parentChildVerdicts().organizationId))
           || (isKlicovaOsoba() && sameOrg(parentChildVerdicts().organizationId)

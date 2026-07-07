@@ -1,5 +1,30 @@
 # CURRENT_STATE
-**Verze:** 2.2.0 (Lidl v4: profily s hero + tabulky, hodinový kalendář, číselníky, 2026-07-06)
+**Verze:** 2.3.0 (Chat 3 úrovně soukromí + notifikace + pěstounská PWA, 2026-07-06)
+
+## 2026-07-06 — Chat, notifikace a pěstounská PWA (nová vrstva systému)
+
+Zadání: chat KO↔pěstoun se třemi úrovněmi soukromí + notifikace + samostatná
+omezená appka pěstouna s vlastním přihlášením. Spec: `docs/domain/chat-a-pestounska-appka.md`.
+
+- **Role `pestoun`** = nově Auth uživatel (revize závazného pravidla, potvrzeno uživatelem).
+  Zakládá se pozvánkou KO/vedení (`inviteFoster`, sekundární Auth instance jako `createEmployee`),
+  navázán na rodinu přes `foster_families.fosterUserIds`. Dítě zůstává bez účtu.
+- **Chat** (`foster_families/{id}/messages`, `org/messages.js`): úrovně `private` (jen autor),
+  `internal` (tým, směrování na příjemce), `foster` (KO↔pěstoun). KO tab „Chat" na kartě
+  rodiny s výběrem úrovně; pěstoun ve své appce vidí a píše jen `foster`.
+- **Notifikace** (`users/{uid}/notifications`, `org/notifications.js`): zvonek s odznakem
+  na Dnes i pěstounské Domů, centrum `/oznameni`; zakládají se klientsky při odeslání zprávy.
+- **Pěstounská PWA** `/moje/*` (role pestoun): Domů (moje děti + chat + dokumenty prázdné),
+  omezený profil dítěte (jen jméno/datum/škola — NE spis), chat s KO. MobileShell foster taby.
+- **BEZPEČNOSTNÍ HRANICE ve firestore.rules** (ne jen UI): `sameOrg` větev u rodin, dětí,
+  uživatelů, ORG podkolekcí i CELÉHO spisu (timeline, respit, kurzy, historie, poznámky,
+  soud) OMEZENA na `isStaff()` — pěstoun má stejné `organizationId`, takže bez toho by přes
+  holé `sameOrg` viděl vše. Pěstoun čte jen svou rodinu (`fosterUserIds`), své děti a
+  úroveň `foster`. **Únik do spisu odhalen a opraven při ověřování.**
+- Ověřeno end-to-end na dev (KO i pěstoun): pěstoun vidí jen `foster` zprávu (ne `private`/
+  `internal`), spis/pinned/jiné rodiny/zaměstnance = permission-denied, vlastní děti + chat OK,
+  smí poslat jen `foster` (internal/private create denied). Lint+build čisté, rules na DEV.
+  **Prod hosting + rules: čeká na revizi pravidel s uživatelem (slíbeno).**
 
 ## 2026-07-06 — Lidl v4: profily, formuláře, kalendář a Rodiny dle Lidl Plus
 
