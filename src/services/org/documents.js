@@ -66,7 +66,7 @@ export async function createMarkdownDocument(familyId, { title, content = '', su
 }
 
 /** Metadata dokumentu ke Storage souboru (upload obsahu řeší volající zvlášť). */
-export async function createFileDocument(familyId, { title, kind, storagePath, mimeType, fileName, source = 'internal', subjectRefs = [], extractedText = '', organizationId, assignedTo }) {
+export async function createFileDocument(familyId, { title, kind, storagePath = null, mimeType = null, fileName = '', source = 'internal', subjectRefs = [], extractedText = '', organizationId, assignedTo }) {
   const ref = await addDoc(docsCol(familyId), {
     title: title.trim() || fileName || 'Soubor',
     kind,                          // 'pdf' | 'image' | 'docx'

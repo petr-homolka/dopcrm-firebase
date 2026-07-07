@@ -7,14 +7,14 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, ChevronRight, Plus } from 'lucide-react';
+import { FileText, ChevronRight, Plus, Inbox } from 'lucide-react';
 import { cn } from '../../../components/ui/cn.js';
-import { listDocuments, createMarkdownDocument } from '../../../services/orgService.js';
+import { listDocuments, createMarkdownDocument, ingestDocument } from '../../../services/orgService.js';
 import { docStatusLabel, docStatusTone, DOC_KINDS } from '../../../shared/documentConstants.js';
 import { toast } from '../../../store/toastStore.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
-import { NativeFormGroup, NativeFormRow, RowInput, RowTextarea } from '../../ui/NativeFormRow.jsx';
+import { NativeFormGroup, NativeFormRow, RowInput, RowSelect, RowTextarea } from '../../ui/NativeFormRow.jsx';
 import { NativeChip, NativeEmptyState } from '../../ui/NativeBits.jsx';
 
 export default function MobileDocumentsTab({ familyId, organizationId, assignedTo, canManage }) {
@@ -23,6 +23,8 @@ export default function MobileDocumentsTab({ familyId, organizationId, assignedT
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({ title: '', content: '' });
+  const [ingestOpen, setIngestOpen] = useState(false);
+  const [ingest, setIngest] = useState({ title: '', source: 'email', extractedText: '' });
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
@@ -46,6 +48,25 @@ export default function MobileDocumentsTab({ familyId, organizationId, assignedT
     } catch (err) {
       console.error('[MobileDocumentsTab] Založení selhalo:', err);
       toast.error(err.message ?? 'Dokument se nepodařilo založit.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleIngest() {
+    setSubmitting(true);
+    try {
+      await ingestDocument(familyId, {
+        title: ingest.title, source: ingest.source, kind: ingest.source === 'foto' ? 'image' : 'pdf',
+        extractedText: ingest.extractedText, subjectRefs: [], organizationId, assignedTo,
+      });
+      setIngestOpen(false);
+      setIngest({ title: '', source: 'email', extractedText: '' });
+      await load();
+      toast.info('Dokument zaznamenán a vložen do časové osy.');
+    } catch (err) {
+      console.error('[MobileDocumentsTab] Záznam příchozího dokumentu selhal:', err);
+      toast.error(err.message ?? 'Záznam se nezdařil.');
     } finally {
       setSubmitting(false);
     }
@@ -93,6 +114,11 @@ export default function MobileDocumentsTab({ familyId, organizationId, assignedT
           <Plus size={16} strokeWidth={2} /> Nový dokument
         </NativeButton>
       )}
+      {canManage && (
+        <NativeButton variant="secondary" className="h-12" onClick={() => setIngestOpen(true)}>
+          <Inbox size={16} strokeWidth={2} /> Zaznamenat příchozí dokument
+        </NativeButton>
+      )}
 
       {sheetOpen && (
         <NativeSheet
@@ -111,6 +137,40 @@ export default function MobileDocumentsTab({ familyId, organizationId, assignedT
             </NativeFormRow>
             <NativeFormRow label="Obsah" isLast stacked hint="Podporuje jednoduchý markdown: # nadpis, **tučně**, - odrážka.">
               <RowTextarea rows={8} value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} placeholder="Text dokumentu…" />
+            </NativeFormRow>
+          </NativeFormGroup>
+        </NativeSheet>
+      )}
+
+      {ingestOpen && (
+        <NativeSheet
+          title="Příchozí dokument"
+          onClose={() => !submitting && setIngestOpen(false)}
+          submitting={submitting}
+          footer={
+            <NativeButton onClick={handleIngest} disabled={submitting || !ingest.title.trim()}>
+              {submitting ? 'Ukládám…' : 'Zaznamenat do spisu'}
+            </NativeButton>
+          }
+        >
+          <p className="text-[13px] text-native-textMuted">
+            Dokument přijatý e-mailem (pestoun.jmeno@doprovazeni.com) nebo nahraný pěstounem se
+            zaznamená a vloží do časové osy — data v čase pro reporty a AI. Přečtený text
+            (OCR) zatím doplňte ručně; automatické čtení PDF přibude s napojením OCR.
+          </p>
+          <NativeFormGroup>
+            <NativeFormRow label="Název">
+              <RowInput value={ingest.title} onChange={(e) => setIngest((f) => ({ ...f, title: e.target.value }))} autoFocus placeholder="např. Zpráva ze školy" />
+            </NativeFormRow>
+            <NativeFormRow label="Zdroj">
+              <RowSelect value={ingest.source} onChange={(e) => setIngest((f) => ({ ...f, source: e.target.value }))}>
+                <option value="email">E-mail</option>
+                <option value="foto">Fotka / sken</option>
+                <option value="foster">Od pěstouna</option>
+              </RowSelect>
+            </NativeFormRow>
+            <NativeFormRow label="Přečtený text" isLast stacked hint="Co je v dokumentu napsané (pro časovou osu a reporty).">
+              <RowTextarea rows={5} value={ingest.extractedText} onChange={(e) => setIngest((f) => ({ ...f, extractedText: e.target.value }))} placeholder="Obsah dokumentu…" />
             </NativeFormRow>
           </NativeFormGroup>
         </NativeSheet>

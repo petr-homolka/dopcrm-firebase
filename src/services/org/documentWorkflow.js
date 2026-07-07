@@ -11,7 +11,7 @@
  */
 
 import { updateDoc } from 'firebase/firestore';
-import { documentRef, getDocument, addAudit } from './documents.js';
+import { documentRef, getDocument, addAudit, createFileDocument } from './documents.js';
 import { meta } from './shared.js';
 import { pushNotification, pushNotificationTo } from './notifications.js';
 import { createSystemTimelineEntry } from './timeline.js';
@@ -125,4 +125,30 @@ export async function fileDocument(familyId, docId) {
 /** Kdo je schvalovatel dokumentů KO (a náhradník) — z nastavení KO uživatele. */
 export function docApproverOf(userProfile) {
   return { approver: userProfile?.docApprover ?? null, backup: userProfile?.docApproverBackup ?? null };
+}
+
+// ── §E: Příjem dokumentů + časová osa (AI-ready) ─────────────────
+/**
+ * Zaznamená příchozí dokument (z e-mailu / nahraný pěstounem / fotka) do spisu
+ * rodiny a VLOŽÍ HO DO ČASOVÉ OSY (data v čase pro AI reporty OSPOD/soud —
+ * docs/domain/dokumenty-workflow-a-prihlaseni.md §E). `extractedText` doplní
+ * OCR (org/ocr.js) nebo člověk. `subjectRefs` prázdné = „k zařazení" (KO pak
+ * přiřadí rodině/dítěti). Produkční e-mailový příjem (MX/parser) = TODO.
+ */
+export async function ingestDocument(familyId, { title, source = 'email', kind = 'pdf', extractedText = '', subjectRefs = [], fileName = '', storagePath = null, organizationId, assignedTo }) {
+  const id = await createFileDocument(familyId, {
+    title, kind, storagePath, fileName: fileName || title, source, extractedText, subjectRefs, organizationId, assignedTo,
+  });
+  await createSystemTimelineEntry(familyId, {
+    title: `Přijat dokument: ${title}`,
+    body: extractedText ? extractedText.slice(0, 800) : '(bez přečteného textu — doplňte ručně nebo přes OCR)',
+    subjectRefs,
+  });
+  return id;
+}
+
+/** KO zařadí příchozí dokument ke konkrétním osobám (rodina/dítě/kombinace). */
+export async function assignDocumentSubjects(familyId, docId, subjectRefs) {
+  await updateDoc(documentRef(familyId, docId), { subjectRefs, ...meta() });
+  await addAudit(familyId, docId, { action: 'version', note: 'zařazeno do spisu' });
 }
