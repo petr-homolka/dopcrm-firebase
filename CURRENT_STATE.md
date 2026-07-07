@@ -7,6 +7,19 @@ Uživatel zadal velký program (`docs/domain/dokumenty-workflow-a-prihlaseni.md`
 zpracovávat postupně, průběžně nasazovat na moje.doprovazeni.com **bez schvalování**
 (stálý souhlas 2026-07-06). Stav:
 
+- **C. Dokumentový modul — HOTOVO, nasazeno.** `documents` podkolekce + verze + audit;
+  interní markdown editor (bezpečný mini-renderer bez závislosti), stavový chip, seznam na
+  kartě rodiny; pěstoun vidí jen `visibleToFoster`. Nahrané soubory (PDF/obrázek/DOCX) přes
+  Storage = TODO (Storage na dev zatím neprovozováno) — model připraven, náhled/stažení až s ním.
+- **D. Schvalovací workflow — HOTOVO, ověřeno end-to-end.** Stavový automat draft→foster_review→
+  commented/approved→final→mgmt_review→closed(±výhrada)→sent/filed; fáze A (KO↔pěstoun opakovaně),
+  fáze B (vedení, schvalovatel), uzavření s výhradou, auditní stopa. Ověřeno přes 4 role: audit
+  = created→sent_foster→foster_commented→marked_final→sent_mgmt→mgmt_approved→sent_authority.
+- **E. Příjem + časová osa + OCR — jádro HOTOVO.** `ingestDocument` (příchozí dokument →
+  záznam + zápis do ČASOVÉ OSY s přečteným textem = data v čase pro AI); KO UI „Zaznamenat
+  příchozí dokument". ⚠️ Binární upload (Storage), reálné OCR (Vertex) a e-mailový příjem
+  (`pestoun.jmeno@doprovazeni.com`, MX/parser) = infrastruktura → seam + model hotové,
+  napojení TODO (docs/INVENTAR.md).
 - **A. Magic-link přihlášení pěstouna — HOTOVO, nasazeno.** `foster_invitations/{email}`,
   `sendFosterMagicLink` (Firebase email-link), completion `/prihlaseni` (MagicLinkScreen)
   vč. bootstrapu profilu z pozvánky; rules přepsány — `fosterOfFamily` nově přes

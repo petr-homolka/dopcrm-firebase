@@ -142,6 +142,11 @@ sem vždy nejdřív podívej; po implementaci funkce aktualizuj její stav.
 |---|---|---|---|
 | PWA (manifest, service worker, instalovatelnost) | — | `docs/history.md` | ✅ (přes vite-plugin-pwa, viz Krok 5 úklidu) |
 | Mobilní PWA obrazovky (src/mobile/) | Dnes, Rodiny, Detail rodiny+dítěte, Kalendář (týdenní agenda + zakládání/úprava/smazání událostí), Giant Timer s GPS bodem a rekapitulací, FAB speed-dial | `DESIGN.md` §12, `docs/design/connecteam-analyza-2026-07-05.md` | ✅ (2026-07-05/06, Connecteam blok 1) |
+| Chat KO↔pěstoun (4 úrovně soukromí) | private/internal/foster/ospod; pěstoun jen `foster`; filtr kategorií; hranice ve firestore.rules | `docs/domain/chat-a-pestounska-appka.md` | ✅ (2026-07-06) |
+| Pěstounská PWA + magic-link | role `pestoun` (Auth), pozvánka + jednorázový e-mailový odkaz, omezená appka `/moje/*` | `docs/domain/chat-a-pestounska-appka.md`, `…dokumenty-workflow-a-prihlaseni.md` §A | ✅ e-mail; 🟡 SMS/WhatsApp (placené, TODO) |
+| Notifikace + centrum | per-uživatel, odznak, `/oznameni` | `docs/domain/chat-a-pestounska-appka.md` | ✅ (klientsky; Cloud Function TODO) |
+| Dokumenty + schvalovací workflow | stavový automat Koncept→…→Uzavřeno(±výhrada)→Odesláno/Uloženo, verze, audit, KO↔pěstoun↔vedení; markdown editor | `docs/domain/dokumenty-workflow-a-prihlaseni.md` §C/§D | ✅ ověřeno end-to-end; 🟡 upload souborů (Storage), náhled DOCX/PDF |
+| Příjem dokumentů + OCR + e-mail ingest | ingest → časová osa (data v čase pro AI); OCR seam; e-mail `pestoun.jmeno@doprovazeni.com` | `…dokumenty-workflow-a-prihlaseni.md` §E | 🟡 jádro (ingest→osa) ✅; OCR (Vertex) + inbound e-mail (MX/parser) = TODO |
 | Nativní mobilní appka (Expo/React Native) | Samostatný repo `pestouni-crm-mobile`, role `klicova_osoba` | `crm-mobil-nativni-app` (paměť) | 🟡 pozastaveno (SDK kompatibilita zařízení) |
 | Gesta (swipe-back, pull-to-refresh) | Jen vanilla prototyp, mobilní web appka to neřeší (nativní appka ano) | `docs/history-claude-md.md` §5 | 🟡 (řeší nativní mobilní repo) |
 | Detail-first navigace + terénní akční dok | Timer návštěvy, hlas→osa, rychlý zápis, sken | `crm-mobil-detail-first` (paměť) | 🟡 (nativní mobilní repo) |
