@@ -47,11 +47,14 @@ export const MobileVisitTimerScreen  = lazy(() => import('../mobile/screens/Mobi
 export const MobileNotificationsScreen = lazy(() => import('../mobile/screens/MobileNotificationsScreen.jsx'));
 export const MagicLinkScreen   = lazy(() => import('../mobile/screens/MagicLinkScreen.jsx'));
 
+export const MobileDocumentDetailScreen = lazy(() => import('../mobile/screens/documents/MobileDocumentDetailScreen.jsx'));
+
 // ── Pěstounská PWA (2026-07-06, docs/domain/chat-a-pestounska-appka.md) ──
 // Omezená appka role `pestoun` — vlastní strom /moje/*.
 export const FosterHomeScreen  = lazy(() => import('../mobile/screens/foster/FosterHomeScreen.jsx'));
 export const FosterChildScreen = lazy(() => import('../mobile/screens/foster/FosterChildScreen.jsx'));
 export const FosterChatScreen  = lazy(() => import('../mobile/screens/foster/FosterChatScreen.jsx'));
+export const FosterDocumentScreen = lazy(() => import('../mobile/screens/foster/FosterDocumentScreen.jsx'));
 
 // Non-MVP (zakomentováno):
 // export const WorkflowPage     = lazy(() => import('../modules/workflow/WorkflowPage'));

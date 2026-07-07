@@ -25,6 +25,7 @@ import { NativeFormGroup, NativeFormRow, RowInput } from '../ui/NativeFormRow.js
 import MobileFamilyHeader from './familyDetail/MobileFamilyHeader.jsx';
 import MobileTimelineTab from './familyDetail/MobileTimelineTab.jsx';
 import MobileChatTab from './familyDetail/MobileChatTab.jsx';
+import MobileDocumentsTab from './familyDetail/MobileDocumentsTab.jsx';
 import MobileFostersTab from './familyDetail/MobileFostersTab.jsx';
 import MobileRespitTab from './familyDetail/MobileRespitTab.jsx';
 import MobileSocialTab from './familyDetail/MobileSocialTab.jsx';
@@ -57,6 +58,7 @@ export default function MobileFamilyDetailScreen() {
   const tabItems = [
     { value: 'osa', label: 'Osa' },
     { value: 'chat', label: 'Chat' },
+    { value: 'dokumenty', label: 'Dokumenty' },
     { value: 'pestouni', label: 'Pěstouni' },
     { value: 'respit', label: 'Respit' },
     { value: 'social', label: 'Sociální prostor' },
@@ -97,6 +99,10 @@ export default function MobileFamilyDetailScreen() {
           {tab === 'osa' && <MobileTimelineTab familyId={familyId} familyName={family.name} childrenList={children} canManage={canManage} />}
 
           {tab === 'chat' && <MobileChatTab familyId={familyId} />}
+
+          {tab === 'dokumenty' && (
+            <MobileDocumentsTab familyId={familyId} organizationId={family.organizationId} assignedTo={family.assignedTo} canManage={canManage} />
+          )}
 
           {tab === 'pestouni' && (
             <MobileFostersTab

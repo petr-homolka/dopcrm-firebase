@@ -28,8 +28,8 @@ import {
   OrganizationDetailPage, AdminChildDetailPage, TodayPage,
   Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
   MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
-  MobileVisitTimerScreen, MobileNotificationsScreen, MagicLinkScreen,
-  FosterHomeScreen, FosterChildScreen, FosterChatScreen,
+  MobileVisitTimerScreen, MobileNotificationsScreen, MagicLinkScreen, MobileDocumentDetailScreen,
+  FosterHomeScreen, FosterChildScreen, FosterChatScreen, FosterDocumentScreen,
 } from './routerPages.js';
 
 // Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
@@ -215,6 +215,7 @@ const router = createBrowserRouter([
           // Měření času návštěvy + GPS (2026-07-06) — čistě terénní/mobilní,
           // žádný desktop ekvivalent (viz MobileVisitTimerScreen.jsx).
           { path: '/admin/terenni/:familyId/navsteva',    element: <Suspense fallback={<Loading />}><MobileVisitTimerScreen /></Suspense> },
+          { path: '/admin/terenni/:familyId/dokumenty/:docId', element: <Suspense fallback={<Loading />}><MobileDocumentDetailScreen /></Suspense> },
         ],
       },
     ],
@@ -273,6 +274,7 @@ const router = createBrowserRouter([
         { path: '/moje', element: <Suspense fallback={<Loading />}><FosterHomeScreen /></Suspense> },
         { path: '/moje/chat', element: <Suspense fallback={<Loading />}><FosterChatScreen /></Suspense> },
         { path: '/moje/deti/:childId', element: <Suspense fallback={<Loading />}><FosterChildScreen /></Suspense> },
+        { path: '/moje/dokumenty/:docId', element: <Suspense fallback={<Loading />}><FosterDocumentScreen /></Suspense> },
       ],
     }],
   },

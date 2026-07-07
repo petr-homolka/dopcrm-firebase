@@ -10,7 +10,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Baby, MessageSquare, FileText, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore.js';
-import { getFoster, listChildrenByFamily } from '../../../services/orgService.js';
+import { getFoster, listChildrenByFamily, listFosterVisibleDocuments } from '../../../services/orgService.js';
+import { docStatusLabel, docStatusTone } from '../../../shared/documentConstants.js';
+import { NativeChip } from '../../ui/NativeBits.jsx';
 import { cn } from '../../../components/ui/cn.js';
 import MobileTopNav from '../../ui/MobileTopNav.jsx';
 import NativeHero, { HeroBody } from '../../ui/NativeHero.jsx';
@@ -23,12 +25,17 @@ export default function FosterHomeScreen() {
   const familyId = profile?.fosterFamilyId;
   const [family, setFamily] = useState(null);
   const [children, setChildren] = useState([]);
+  const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!familyId || !profile?.organizationId) { setLoading(false); return; }
-    Promise.all([getFoster(familyId), listChildrenByFamily(familyId, profile.organizationId)])
-      .then(([fam, kids]) => { setFamily(fam); setChildren(kids); })
+    Promise.all([
+      getFoster(familyId),
+      listChildrenByFamily(familyId, profile.organizationId),
+      listFosterVisibleDocuments(familyId),
+    ])
+      .then(([fam, kids, ds]) => { setFamily(fam); setChildren(kids); setDocs(ds); })
       .catch((err) => console.error('[FosterHomeScreen] Načtení selhalo:', err))
       .finally(() => setLoading(false));
   }, [familyId, profile]);
@@ -89,11 +96,33 @@ export default function FosterHomeScreen() {
           )}
 
           <SectionLabel>Dokumenty</SectionLabel>
-          <NativeEmptyState
-            icon={FileText}
-            title="Zatím žádné dokumenty"
-            description="Až vám klíčová osoba pošle dokument ke schválení nebo podpisu, objeví se tady."
-          />
+          {docs.length === 0 ? (
+            <NativeEmptyState
+              icon={FileText}
+              title="Zatím žádné dokumenty"
+              description="Až vám klíčová osoba pošle dokument ke schválení nebo podpisu, objeví se tady."
+            />
+          ) : (
+            <div className="overflow-hidden rounded-native-card bg-native-surface">
+              {docs.map((d, i) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => navigate(`/moje/dokumenty/${d.id}`)}
+                  className="flex w-full items-center gap-3 pl-4 text-left active:bg-native-bg"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-native-primary/10 text-native-primary">
+                    <FileText size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className={cn('flex min-w-0 flex-1 items-center gap-2 py-3 pr-4', i < docs.length - 1 && 'border-b border-native-separator')}>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-native-text">{d.title}</span>
+                    <NativeChip tone={docStatusTone(d.status)}>{docStatusLabel(d.status)}</NativeChip>
+                    <ChevronRight size={18} strokeWidth={2} className="shrink-0 text-native-textMuted" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </HeroBody>
     </div>

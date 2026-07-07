@@ -33,6 +33,14 @@ export async function listKlicoveOsobyByOrg(organizationId) {
   return users.filter((u) => u.role === 'klicova_osoba');
 }
 
+/** Pěstounské účty navázané na rodinu — pro cílení notifikací (2026-07-06 §C). */
+export async function listFosterUsersOfFamily(familyId) {
+  const snap = await getDocs(
+    query(collection(db, 'users'), where('fosterFamilyId', '==', familyId), limit(20))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((u) => u.role === 'pestoun');
+}
+
 /**
  * Klíčové osoby VE SVÉ PODŘÍZENOSTI daného manažera (vedouci_pobocky/
  * teamleader) — transitivně přes řetěz `nadrizeny`, ne celá organizace

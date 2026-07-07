@@ -391,6 +391,52 @@ service cloud.firestore {
         // Úprava/smazání jen vlastní zprávy.
         allow update, delete: if resource.data.authorUid == request.auth.uid;
       }
+
+      // Dokumenty rodiny + schvalovací workflow (2026-07-06 §C/§D,
+      // docs/domain/dokumenty-workflow-a-prihlaseni.md). Pěstoun vidí dokument
+      // JEN když je mu zpřístupněn (visibleToFoster) a jen svou rodinu; smí ho
+      // pouze schválit/okomentovat (status + fosterComment), nic víc.
+      match /documents/{docId} {
+        function famDataDoc() {
+          return get(/databases/$(database)/documents/foster_families/$(familyId)).data;
+        }
+        function isDocWriter() {
+          return (isManagement() && sameOrg(famDataDoc().organizationId))
+              || (isKlicovaOsoba() && famDataDoc().assignedTo == request.auth.uid);
+        }
+        allow read: if isSuperadmin()
+          || (isStaff() && sameOrg(famDataDoc().organizationId))
+          || (resource.data.visibleToFoster == true && fosterOfFamily(familyId));
+        allow create: if isDocWriter()
+          || (fosterOfFamily(familyId) && request.resource.data.source == 'foster');
+        allow update: if isDocWriter()
+          || (fosterOfFamily(familyId)
+              && resource.data.visibleToFoster == true
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'fosterComment', 'updatedAt', 'updatedBy'])
+              && request.resource.data.status in ['approved_foster', 'commented']);
+        allow delete: if isSuperadmin() || (isManagement() && sameOrg(famDataDoc().organizationId));
+
+        // Verze (append-only) — čte tým i pěstoun (když je dokument zpřístupněn);
+        // zapisuje jen zaměstnanec-writer (obsahové změny nedělá pěstoun).
+        match /versions/{vId} {
+          function parentDocData() {
+            return get(/databases/$(database)/documents/foster_families/$(familyId)/documents/$(docId)).data;
+          }
+          allow read: if isSuperadmin()
+            || (isStaff() && sameOrg(famDataDoc().organizationId))
+            || (parentDocData().visibleToFoster == true && fosterOfFamily(familyId));
+          allow create: if isDocWriter();
+          allow update, delete: if false;
+        }
+
+        // Auditní stopa (append-only) — INTERNÍ, čte jen tým (pěstoun ne).
+        // Zapisovat smí zaměstnanec-writer i pěstoun (jeho schválení/komentář).
+        match /audit/{aId} {
+          allow read: if isSuperadmin() || (isStaff() && sameOrg(famDataDoc().organizationId));
+          allow create: if isDocWriter() || fosterOfFamily(familyId);
+          allow update, delete: if false;
+        }
+      }
     }
 
     // ── children (děti svěřené do péče) ──────────────────────

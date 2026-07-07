@@ -24,3 +24,5 @@ export * from './org/codelists.js';
 export * from './org/messages.js';
 export * from './org/notifications.js';
 export * from './org/fosterAccess.js';
+export * from './org/documents.js';
+export * from './org/documentWorkflow.js';
