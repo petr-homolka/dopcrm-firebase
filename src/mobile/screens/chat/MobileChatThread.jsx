@@ -20,6 +20,7 @@ const AUDIENCE_TONE = {
   private: 'bg-native-textMuted/15 text-native-textMuted',
   internal: 'bg-native-warning/15 text-native-warning',
   foster: 'bg-native-primary/15 text-native-primary',
+  ospod: 'bg-native-danger/15 text-native-danger',
 };
 
 function timeLabel(v) {
@@ -60,10 +61,12 @@ export default function MobileChatThread({ mode, messages, loading, sending, onS
   const { currentUser } = useAuthStore();
   const uid = currentUser?.uid;
   const [text, setText] = useState('');
-  const [audience, setAudience] = useState(mode === 'foster' ? 'foster' : 'foster');
+  const [audience, setAudience] = useState('foster');
+  const [filter, setFilter] = useState(null); // null = všechny kategorie
   const endRef = useRef(null);
 
   const staffAudiences = useMemo(() => Object.keys(MESSAGE_AUDIENCES), []);
+  const shown = mode === 'staff' && filter ? messages.filter((m) => m.audience === filter) : messages;
 
   function handleSend() {
     if (!text.trim() || sending) return;
@@ -73,12 +76,33 @@ export default function MobileChatThread({ mode, messages, loading, sending, onS
 
   return (
     <div className="flex min-h-[60vh] flex-col">
+      {mode === 'staff' && messages.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto px-4 pt-3 [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setFilter(null)}
+            className={cn('shrink-0 rounded-full px-3 py-1 text-[13px] font-medium', !filter ? 'bg-native-primary/15 text-native-primary' : 'text-native-textMuted')}
+          >
+            Vše
+          </button>
+          {staffAudiences.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={cn('shrink-0 rounded-full px-3 py-1 text-[13px] font-medium', filter === key ? 'bg-native-primary/15 text-native-primary' : 'text-native-textMuted')}
+            >
+              {MESSAGE_AUDIENCES[key].label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-3">
         {loading && <p className="py-8 text-center text-[15px] text-native-textMuted">Načítám…</p>}
-        {!loading && messages.length === 0 && (
+        {!loading && shown.length === 0 && (
           <p className="py-8 text-center text-[15px] text-native-textMuted">{emptyHint}</p>
         )}
-        {!loading && messages.map((msg) => (
+        {!loading && shown.map((msg) => (
           <Bubble
             key={msg.id}
             msg={msg}
