@@ -111,6 +111,15 @@ service cloud.firestore {
       return isFoster() && myProfile().get('fosterFamilyId', '') == famId;
     }
 
+    // ── Externí účastník případu (2026-07-06, docs/domain/externi-ucastnici.md) ──
+    function isExternal() {
+      return signedIn() && myRole() == 'external';
+    }
+    // Je volající TÍMTO externím účastníkem? (přes svůj profil, ne zápis do EP dokumentu)
+    function externalOfEp(epId) {
+      return isExternal() && myProfile().get('externalParticipantId', '') == epId;
+    }
+
     // ── organizations (tenanti) ──────────────────────────────
     // SaaS je SEBEOBSLUŽNÉ (2026-07-02): kdokoli přihlášený smí založit VLASTNÍ
     // organizaci (createdBy == on sám) — Superadmin organizace nezakládá, jen
@@ -195,6 +204,59 @@ service cloud.firestore {
                        || ((isManagement() || isKlicovaOsoba()) && sameOrg(resource.data.organizationId));
     }
 
+    // ── ep_invitations (pozvánky externího účastníka, 2026-07-06 §3) ──
+    match /ep_invitations/{invId} {
+      allow read: if isSuperadmin()
+                     || ((isManagement() || isKlicovaOsoba()) && sameOrg(resource.data.organizationId))
+                     || (signedIn() && request.auth.token.email == resource.data.email);
+      allow create: if (isManagement() || isKlicovaOsoba()) && sameOrg(request.resource.data.organizationId);
+      allow update: if isSuperadmin()
+                       || ((isManagement() || isKlicovaOsoba()) && sameOrg(resource.data.organizationId))
+                       || (signedIn() && request.auth.token.email == resource.data.email
+                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'acceptedUid', 'updatedAt', 'updatedBy']));
+      allow delete: if isSuperadmin()
+                       || ((isManagement() || isKlicovaOsoba()) && sameOrg(resource.data.organizationId));
+    }
+
+    // ── external_participants (externí účastníci případu, 2026-07-06,
+    // docs/domain/externi-ucastnici.md). Vytváří/spravuje KO/management; EP
+    // vidí JEN svůj vlastní účet, své granty a svůj audit (přes profil).
+    match /external_participants/{epId} {
+      function epData() {
+        return get(/databases/$(database)/documents/external_participants/$(epId)).data;
+      }
+      function epManager() {
+        return (isManagement() || isKlicovaOsoba()) && sameOrg(epData().organizationId);
+      }
+      allow read: if isSuperadmin()
+                     || (isStaff() && sameOrg(resource.data.organizationId))
+                     || externalOfEp(epId);
+      allow create: if (isManagement() || isKlicovaOsoba()) && sameOrg(request.resource.data.organizationId);
+      allow update: if isSuperadmin() || ((isManagement() || isKlicovaOsoba()) && sameOrg(resource.data.organizationId));
+      allow delete: if isSuperadmin() || (isManagement() && sameOrg(resource.data.organizationId));
+
+      // Vztah k dítěti — popisný, nedává práva.
+      match /access/{childId} {
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(epData().organizationId)) || externalOfEp(epId);
+        allow write: if epManager();
+      }
+
+      // Granty oprávnění (časově verzované). EP je jen ČTE; zapisuje KO/management.
+      match /grants/{grantId} {
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(epData().organizationId)) || externalOfEp(epId);
+        allow create, update: if epManager();
+        allow delete: if false;   // granty se neruší mazáním, ale odvoláním (validTo)
+      }
+
+      // Auditní stopa — NEMĚNNÁ. Čte tým i sám EP (svůj audit). Zapisovat smí
+      // zaměstnanec i EP (své akce). Nikdy update/delete.
+      match /audit/{auditId} {
+        allow read: if isSuperadmin() || (isStaff() && sameOrg(epData().organizationId)) || externalOfEp(epId);
+        allow create: if (isStaff() && sameOrg(epData().organizationId)) || externalOfEp(epId);
+        allow update, delete: if false;
+      }
+    }
+
     // ── users (zaměstnanci) ───────────────────────────────────
     // Role (hierarchie 2026-07-02, viz zadání): org_admin (zástupce/ředitel) →
     // vedouci_pobocky → teamleader → klicova_osoba → asistent_ko; + zamestnanec
@@ -239,7 +301,16 @@ service cloud.firestore {
                            && exists(/databases/$(database)/documents/foster_invitations/$(request.resource.data.invitationId))
                            && get(/databases/$(database)/documents/foster_invitations/$(request.resource.data.invitationId)).data.email == request.auth.token.email
                            && request.resource.data.organizationId == get(/databases/$(database)/documents/foster_invitations/$(request.resource.data.invitationId)).data.organizationId
-                           && request.resource.data.fosterFamilyId == get(/databases/$(database)/documents/foster_invitations/$(request.resource.data.invitationId)).data.fosterFamilyId);
+                           && request.resource.data.fosterFamilyId == get(/databases/$(database)/documents/foster_invitations/$(request.resource.data.invitationId)).data.fosterFamilyId)
+                       // Magic-link: externí účastník si založí profil dle pozvánky
+                       // vydané na jeho ověřený e-mail (2026-07-06 §3) — org + epId musí sedět.
+                       || (signedIn() && request.auth.uid == uid
+                           && request.resource.data.role == 'external'
+                           && request.resource.data.email == request.auth.token.email
+                           && exists(/databases/$(database)/documents/ep_invitations/$(request.resource.data.invitationId))
+                           && get(/databases/$(database)/documents/ep_invitations/$(request.resource.data.invitationId)).data.email == request.auth.token.email
+                           && request.resource.data.organizationId == get(/databases/$(database)/documents/ep_invitations/$(request.resource.data.invitationId)).data.organizationId
+                           && request.resource.data.externalParticipantId == get(/databases/$(database)/documents/ep_invitations/$(request.resource.data.invitationId)).data.epId);
 
       // Úprava: superadmin cokoli; org_admin své zaměstnance (nesmí je povýšit na
       // superadmina ani přehodit do jiné organizace); uživatel sám smí upravit

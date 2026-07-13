@@ -58,33 +58,40 @@ export async function acceptFosterInvitationIfNeeded(user) {
   const existing = await getDoc(userRef);
   if (existing.exists()) return existing.data();
 
-  const snap = await getDocs(query(
-    collection(db, 'foster_invitations'),
-    where('email', '==', (user.email ?? '').toLowerCase()),
-    limit(1)
-  ));
-  if (snap.empty) {
-    await firebaseSignOut(auth);
-    throw new Error('K tomuto e-mailu není žádná pozvánka. Požádejte klíčovou osobu o nový odkaz.');
+  const email = (user.email ?? '').toLowerCase();
+
+  // 1) Pozvánka pěstouna
+  const fSnap = await getDocs(query(collection(db, 'foster_invitations'), where('email', '==', email), limit(1)));
+  if (!fSnap.empty) {
+    const inv = fSnap.docs[0];
+    const d = inv.data();
+    await setDoc(userRef, {
+      email: user.email, displayName: d.displayName ?? user.email, phone: d.phone ?? '',
+      role: 'pestoun', organizationId: d.organizationId, fosterFamilyId: d.fosterFamilyId,
+      invitationId: inv.id, active: true,
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: user.uid, updatedBy: user.uid,
+    });
+    await updateDoc(inv.ref, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedUid: user.uid });
+    return null;
   }
-  const inv = snap.docs[0];
-  const d = inv.data();
-  await setDoc(userRef, {
-    email: user.email,
-    displayName: d.displayName ?? user.email,
-    phone: d.phone ?? '',
-    role: 'pestoun',
-    organizationId: d.organizationId,
-    fosterFamilyId: d.fosterFamilyId,
-    invitationId: inv.id,
-    active: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: user.uid,
-    updatedBy: user.uid,
-  });
-  await updateDoc(inv.ref, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedUid: user.uid });
-  return null;
+
+  // 2) Pozvánka externího účastníka (docs/domain/externi-ucastnici.md §3)
+  const eSnap = await getDocs(query(collection(db, 'ep_invitations'), where('email', '==', email), limit(1)));
+  if (!eSnap.empty) {
+    const inv = eSnap.docs[0];
+    const d = inv.data();
+    await setDoc(userRef, {
+      email: user.email, displayName: d.displayName ?? user.email,
+      role: 'external', organizationId: d.organizationId, externalParticipantId: d.epId,
+      invitationId: inv.id, active: true,
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: user.uid, updatedBy: user.uid,
+    });
+    await updateDoc(inv.ref, { status: 'accepted', acceptedAt: serverTimestamp(), acceptedUid: user.uid });
+    return null;
+  }
+
+  await firebaseSignOut(auth);
+  throw new Error('K tomuto e-mailu není žádná pozvánka. Požádejte klíčovou osobu o nový odkaz.');
 }
 
 export async function signOut() {
@@ -100,6 +107,7 @@ export function dashboardPathForRole(role) {
     case 'vedouci_pobocky':
     case 'teamleader':      return '/admin/tym';
     case 'pestoun':         return '/moje';
+    case 'external':        return '/ucastnik';
     default:                return '/prehled';
   }
 }
@@ -132,11 +140,17 @@ const ROLE_LABELS = {
   teamleader: 'Teamleader',
   klicova_osoba: 'Klíčová osoba',
   pestoun: 'Pěstoun',
+  external: 'Externí účastník',
 };
 
 /** Role pěstouna — omezená appka `/moje/*` (docs/domain/chat-a-pestounska-appka.md). */
 export function isFoster(role) {
   return role === 'pestoun';
+}
+
+/** Role externího účastníka — appka `/ucastnik/*` (docs/domain/externi-ucastnici.md). */
+export function isExternal(role) {
+  return role === 'external';
 }
 
 /** Lidský popisek role pro zobrazení v UI (topbar dropdown, mobilní Profil). */

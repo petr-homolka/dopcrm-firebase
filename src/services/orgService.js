@@ -27,3 +27,6 @@ export * from './org/fosterAccess.js';
 export * from './org/documents.js';
 export * from './org/documentWorkflow.js';
 export * from './org/ocr.js';
+export * from './org/externalParticipants.js';
+export * from './org/externalGrants.js';
+export * from './org/externalAudit.js';
