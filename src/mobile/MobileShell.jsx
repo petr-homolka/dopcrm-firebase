@@ -26,6 +26,8 @@ const TAB_META = {
   // Pěstounská appka (2026-07-06) — omezené taby role pestoun.
   fosterHome: { label: 'Domů', icon: Home, path: '/moje' },
   fosterChat: { label: 'Chat', icon: MessageSquare, path: '/moje/chat' },
+  // Appka externího účastníka (2026-07-06) — minimální, obsah dle oprávnění.
+  epHome: { label: 'Domů', icon: Home, path: '/ucastnik' },
 };
 
 function tabsForRole(role) {
@@ -41,6 +43,8 @@ function tabsForRole(role) {
       return ['admin', 'profile'];
     case 'pestoun':
       return ['fosterHome', 'fosterChat', 'profile'];
+    case 'external':
+      return ['epHome', 'profile'];
     default:
       return ['profile'];
   }
@@ -65,7 +69,7 @@ export default function MobileShell() {
             <NavLink
               key={key}
               to={meta.path}
-              end={meta.path === '/' || meta.path === '/moje'}
+              end={meta.path === '/' || meta.path === '/moje' || meta.path === '/ucastnik'}
               className={({ isActive }) => cn(
                 'flex flex-1 flex-col items-center justify-center gap-1 pt-1.5',
                 'text-[10px] font-medium leading-none',

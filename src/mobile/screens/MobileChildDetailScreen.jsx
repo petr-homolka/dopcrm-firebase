@@ -29,6 +29,7 @@ import MobileOspodCourtTab from './childDetail/MobileOspodCourtTab.jsx';
 import MobileFamilyTab from './childDetail/MobileFamilyTab.jsx';
 import MobileSocialSpaceTab from './childDetail/MobileSocialSpaceTab.jsx';
 import { MobileNotesTab, MobileHistoryTab } from './childDetail/MobileNotesHistoryTab.jsx';
+import MobileChildParticipantsTab from './childDetail/MobileChildParticipantsTab.jsx';
 
 /** Chip na modré ploše hero — bílý tint (Lidl vzor, shodné s MobileFamilyHeader). */
 function HeroChip({ children }) {
@@ -63,6 +64,7 @@ const TABS = [
   { value: 'socialni', label: 'Sociální prostor' },
   { value: 'poznamky', label: 'Poznámky' },
   { value: 'historie', label: 'Historie' },
+  { value: 'ucastnici', label: 'Účastníci' },
 ];
 
 export default function MobileChildDetailScreen() {
@@ -262,6 +264,8 @@ export default function MobileChildDetailScreen() {
               onLoadMore={() => loadMore('history')}
             />
           )}
+
+          {tab === 'ucastnici' && <MobileChildParticipantsTab child={child} canManage={canManage} />}
           </HeroBody>
         </>
       )}

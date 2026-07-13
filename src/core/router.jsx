@@ -1,19 +1,7 @@
 /**
- * MVP Router — React Router v6
- *
- * Povolené cesty (MVP):
- *   login, organizace, uživatelé, děti, pěstouni, rodiny,
- *   kontakty, návštěvy, zápisy, dokumenty, kalendář
- *
- * Auth: Firebase onAuthStateChanged přes initAuth() ze services/auth.js
- *   — role se NIKDY nečtou z Custom Claims, vždy z Firestore user_roles/{uid}
- *
- * ZAKOMENTOVÁNO (non-MVP — doplnit až po MVP release):
- *   - Workflow Engine (WF-1..14, exit, převody, GDPR retence)
- *   - AI agenti (strukturace, draft reportu, konverzační asistent)
- *   - OCR integrace (sken dokladu, OCR faktury)
- *   - Pokročilé reporty (manažerské grafy, automatizované joby)
- *   - Monetizace / FUP
+ * Router (React Router v6). Ochrana rout VÝHRADNĚ přes useAuthStore (Zustand);
+ * role z Firestore users/{uid}, nikdy z Custom Claims. Lazy stránky v
+ * ./routerPages.js, MVP_NAV v ./navConfig.js (CLAUDE.md limit 300 řádků).
  */
 
 import React, { Suspense } from 'react';
@@ -29,19 +17,13 @@ import {
   Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
   MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
   MobileVisitTimerScreen, MobileNotificationsScreen, MagicLinkScreen, MobileDocumentDetailScreen,
+  MobileParticipantDetailScreen,
   FosterHomeScreen, FosterChildScreen, FosterChatScreen, FosterDocumentScreen,
+  EPHomeScreen, EPAuditScreen,
 } from './routerPages.js';
 
-// Legacy AuthContext/AuthProvider/useAuth (Firebase session přes services/auth.js)
-// ODSTRANĚNO 2026-07-03 — způsobovalo redirect smyčku po přihlášení, protože
-// existovaly DVA nezávislé mechanismy rozhodující o přesměrování z /login
-// (tento kontext + Login.jsx's useAuthStore efekt). Ochrana rout je teď VÝHRADNĚ
-// přes useAuthStore (Zustand) — jediný zdroj pravdy. Původní kód (pro referenci)
-// je v legacy-modules/router-auth-context.jsx. Lazy-loaded stránky (MVP i nové
-// B2B SaaS/mobilní) jsou v ./routerPages.js (CLAUDE.md limit 300 řádků).
-
-// Navigační definice (MVP_NAV) přesunuta do ./navConfig.js (2026-07-06, limit
-// 300 řádků). Layout.jsx ji importuje odtud.
+// Legacy AuthContext ODSTRANĚN 2026-07-03 (redirect smyčka) — viz
+// legacy-modules/router-auth-context.jsx. MVP_NAV je v ./navConfig.js.
 
 // ── Fallback loader ───────────────────────────────────────────
 
@@ -216,6 +198,7 @@ const router = createBrowserRouter([
           // žádný desktop ekvivalent (viz MobileVisitTimerScreen.jsx).
           { path: '/admin/terenni/:familyId/navsteva',    element: <Suspense fallback={<Loading />}><MobileVisitTimerScreen /></Suspense> },
           { path: '/admin/terenni/:familyId/dokumenty/:docId', element: <Suspense fallback={<Loading />}><MobileDocumentDetailScreen /></Suspense> },
+          { path: '/admin/terenni/:familyId/deti/:childId/ucastnici/:epId', element: <Suspense fallback={<Loading />}><MobileParticipantDetailScreen /></Suspense> },
         ],
       },
     ],
@@ -245,7 +228,7 @@ const router = createBrowserRouter([
     // funkci plní avatar dropdown v AdminTopbar).
     element: <Suspense fallback={<Loading />}><AdminLayout title="Profil" /></Suspense>,
     children: [{
-      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin', 'pestoun']} />,
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin', 'pestoun', 'external']} />,
       children: [
         { path: '/profil', element: <Suspense fallback={<Loading />}><MobileProfileScreen /></Suspense> },
       ],
@@ -275,6 +258,19 @@ const router = createBrowserRouter([
         { path: '/moje/chat', element: <Suspense fallback={<Loading />}><FosterChatScreen /></Suspense> },
         { path: '/moje/deti/:childId', element: <Suspense fallback={<Loading />}><FosterChildScreen /></Suspense> },
         { path: '/moje/dokumenty/:docId', element: <Suspense fallback={<Loading />}><FosterDocumentScreen /></Suspense> },
+      ],
+    }],
+  },
+
+  {
+    // Appka externího účastníka (2026-07-06, docs/domain/externi-ucastnici.md) —
+    // strom /ucastnik/*, VÝHRADNĚ role external. Vidí jen povolené (granty).
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Účastník" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['external']} />,
+      children: [
+        { path: '/ucastnik', element: <Suspense fallback={<Loading />}><EPHomeScreen /></Suspense> },
+        { path: '/ucastnik/audit', element: <Suspense fallback={<Loading />}><EPAuditScreen /></Suspense> },
       ],
     }],
   },
