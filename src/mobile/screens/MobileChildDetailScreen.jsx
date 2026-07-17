@@ -13,6 +13,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { careLabel, relGroups } from '../../shared/domainConstants.js';
 import { getChild, getFoster } from '../../services/orgService.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -68,6 +69,7 @@ const TABS = [
 ];
 
 export default function MobileChildDetailScreen() {
+  const { t } = useTranslation();
   const { familyId, childId } = useParams();
   const navigate = useNavigate();
   const { role } = useAuthStore();
@@ -85,15 +87,15 @@ export default function MobileChildDetailScreen() {
     setError('');
     try {
       const [data] = await Promise.all([getChild(childId), loadLists()]);
-      if (!data) throw new Error('Dítě nenalezeno.');
+      if (!data) throw new Error(t('m.childDetail.notFound', 'Dítě nenalezeno.'));
       setChild(data);
       setFamily(await getFoster(data.fosterFamilyId));
     } catch (err) {
-      setError(err.message ?? 'Načtení se nezdařilo.');
+      setError(err.message ?? t('m.childDetail.loadFailed', 'Načtení se nezdařilo.'));
     } finally {
       setLoading(false);
     }
-  }, [childId, loadLists]);
+  }, [childId, loadLists, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -105,7 +107,7 @@ export default function MobileChildDetailScreen() {
     <div>
       <MobileTopNav
         variant="hero"
-        title={loading ? 'Načítám…' : 'Dítě'}
+        title={loading ? t('m.childDetail.loading', 'Načítám…') : t('m.childDetail.title', 'Dítě')}
         onBack={() => navigate(`/admin/terenni/${familyId}`)}
       />
 

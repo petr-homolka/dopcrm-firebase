@@ -15,6 +15,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, Square } from 'lucide-react';
 import { getFoster, createTimelineEntry } from '../../services/orgService.js';
@@ -29,6 +30,7 @@ import NativeSheet from '../ui/NativeSheet.jsx';
 import { NativeFormGroup, NativeFormRow, RowTextarea } from '../ui/NativeFormRow.jsx';
 
 export default function MobileVisitTimerScreen() {
+  const { t } = useTranslation();
   const { familyId } = useParams();
   const navigate = useNavigate();
   const routeState = useLocation();
@@ -113,14 +115,14 @@ export default function MobileVisitTimerScreen() {
   if (conflict) {
     return (
       <div>
-        <MobileTopNav title="Návštěva" onBack={() => navigate(-1)} />
+        <MobileTopNav title={t('m.visit.title', 'Návštěva')} onBack={() => navigate(-1)} />
         <div className="mx-4 mt-6 flex flex-col gap-3 rounded-native-card bg-native-surface p-5 text-center">
           <p className="text-[15px] font-medium text-native-text">
-            Máte již rozjetou návštěvu u rodiny {conflict.familyName}.
+            {t('m.visit.conflictRunning', 'Máte již rozjetou návštěvu u rodiny {{name}}.', { name: conflict.familyName })}
           </p>
-          <p className="text-[14px] text-native-textMuted">Nejdřív ji dokončete, než začnete další.</p>
+          <p className="text-[14px] text-native-textMuted">{t('m.visit.conflictHint', 'Nejdřív ji dokončete, než začnete další.')}</p>
           <NativeButton className="mt-2 h-12" onClick={() => navigate(`/admin/terenni/${conflict.familyId}/navsteva`, { state: { familyName: conflict.familyName } })}>
-            Přejít na rozjetou návštěvu
+            {t('m.visit.goToRunning', 'Přejít na rozjetou návštěvu')}
           </NativeButton>
         </div>
       </div>
@@ -129,12 +131,12 @@ export default function MobileVisitTimerScreen() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-native-bg">
-      <MobileTopNav title="Návštěva" onBack={() => navigate(-1)} />
+      <MobileTopNav title={t('m.visit.title', 'Návštěva')} onBack={() => navigate(-1)} />
       <div className="flex flex-col gap-5 px-4 pt-5">
         <div className="overflow-hidden rounded-native-card bg-native-primary">
           <div className="flex items-center justify-between px-4 pt-4">
-            <p className="text-[14px] font-medium text-white/80">Probíhá návštěva</p>
-            <span className="truncate rounded-full bg-white/20 px-3 py-1 text-[13px] font-semibold text-white">{familyName || 'Rodina'}</span>
+            <p className="text-[14px] font-medium text-white/80">{t('m.visit.inProgress', 'Probíhá návštěva')}</p>
+            <span className="truncate rounded-full bg-white/20 px-3 py-1 text-[13px] font-semibold text-white">{familyName || t('m.visit.familyFallback', 'Rodina')}</span>
           </div>
           <p className="py-5 text-center text-[56px] font-bold leading-none tabular-nums text-white">
             {formatDuration(elapsed)}
@@ -142,43 +144,43 @@ export default function MobileVisitTimerScreen() {
           <div className="flex items-center gap-2 border-t border-white/15 px-4 py-3">
             <MapPin size={15} strokeWidth={2} className="shrink-0 text-white/80" />
             <p className="truncate text-[13px] text-white/90">
-              {!visit ? 'Zjišťuji polohu…' : visit.location?.address ? `Příchod označen v: ${visit.location.address}` : visit.location ? 'Poloha zaznamenána (adresa se nepodařilo dohledat)' : 'Poloha nedostupná'}
+              {!visit ? t('m.visit.locating', 'Zjišťuji polohu…') : visit.location?.address ? t('m.visit.arrivalAt', 'Příchod označen v: {{address}}', { address: visit.location.address }) : visit.location ? t('m.visit.locationNoAddress', 'Poloha zaznamenána (adresa se nepodařilo dohledat)') : t('m.visit.locationUnavailable', 'Poloha nedostupná')}
             </p>
           </div>
         </div>
 
         <NativeButton variant="danger" className="h-14" onClick={handleStop} disabled={!visit || ending}>
           <Square size={18} strokeWidth={2.25} fill="currentColor" />
-          Ukončit návštěvu
+          {t('m.visit.stop', 'Ukončit návštěvu')}
         </NativeButton>
       </div>
 
       {recap && (
         <NativeSheet
-          title="Souhrn návštěvy"
+          title={t('m.visit.recapTitle', 'Souhrn návštěvy')}
           onClose={() => !ending && setRecap(null)}
           submitting={ending}
           footer={
             <NativeButton onClick={handleSaveRecap} disabled={ending}>
-              {ending ? 'Ukládám…' : 'Uložit záznam'}
+              {ending ? t('m.common.saving', 'Ukládám…') : t('m.visit.saveRecord', 'Uložit záznam')}
             </NativeButton>
           }
         >
           <div className="rounded-native-card bg-native-bg p-4 text-center">
             <p className="text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">
-              {familyName || 'Rodina'}
+              {familyName || t('m.visit.familyFallback', 'Rodina')}
             </p>
             <p className="mt-1 text-[28px] font-bold leading-tight tabular-nums text-native-primary">
               {formatDuration(recap.durationSeconds)}
             </p>
             <p className="mt-0.5 text-[13px] text-native-textMuted">
-              {visit?.location?.address ? `Zahájeno v: ${visit.location.address}` : visit?.location ? 'Poloha zaznamenána' : 'Bez záznamu polohy'}
+              {visit?.location?.address ? t('m.visit.startedAt', 'Zahájeno v: {{address}}', { address: visit.location.address }) : visit?.location ? t('m.visit.locationRecorded', 'Poloha zaznamenána') : t('m.visit.noLocation', 'Bez záznamu polohy')}
             </p>
           </div>
           <NativeFormGroup>
             {/* Textarea se do horizontálního řádku (v4) nevejde → stacked */}
-            <NativeFormRow label="Poznámka z návštěvy" isLast stacked hint="Můžete doplnit hned, nebo později rozkliknutím záznamu na Ose.">
-              <RowTextarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} autoFocus placeholder="Co se při návštěvě dělo…" />
+            <NativeFormRow label={t('m.visit.noteLabel', 'Poznámka z návštěvy')} isLast stacked hint={t('m.visit.noteHint', 'Můžete doplnit hned, nebo později rozkliknutím záznamu na Ose.')}>
+              <RowTextarea rows={4} value={note} onChange={(e) => setNote(e.target.value)} autoFocus placeholder={t('m.visit.notePlaceholder', 'Co se při návštěvě dělo…')} />
             </NativeFormRow>
           </NativeFormGroup>
         </NativeSheet>

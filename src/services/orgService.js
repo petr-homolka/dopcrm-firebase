@@ -30,3 +30,6 @@ export * from './org/ocr.js';
 export * from './org/externalParticipants.js';
 export * from './org/externalGrants.js';
 export * from './org/externalAudit.js';
+export * from './org/reports.js';
+export * from './org/tasks.js';
+export * from './org/institutions.js';

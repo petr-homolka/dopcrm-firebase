@@ -60,7 +60,7 @@ export default {
         },
         success: { 50: '#DCFCE7', 500: '#22C55E', 600: '#16A34A', 700: '#166534' },
         warning: { 50: '#FEF3C7', 500: '#F59E0B', 600: '#D97706', 700: '#92400E' },
-        danger: { 50: '#FEE2E2', 500: '#EF4444', 600: '#DC2626', 700: '#991B1B' },
+        danger: { 50: '#FEE2E2', 200: '#FECACA', 500: '#EF4444', 600: '#DC2626', 700: '#991B1B' },
         info: { 50: '#DBEAFE', 500: '#2E7CF6', 600: '#1E6FF5' },
 
         // Barvy modulů — dlaždice v sidebaru (DESIGN.md §2.2).

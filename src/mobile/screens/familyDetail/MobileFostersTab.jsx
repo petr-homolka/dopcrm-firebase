@@ -8,6 +8,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Plus } from 'lucide-react';
 import { parseRc } from '../../../shared/rcUtils.js';
 import NativeSheet from '../../ui/NativeSheet.jsx';
@@ -21,6 +22,7 @@ export default function MobileFostersTab({
   fosterForm, setFosterForm, submitting, submitError,
   courseDialogFor, setCourseDialogFor, courseForm, setCourseForm, onAddCourse,
 }) {
+  const { t } = useTranslation();
   const [sheet, setSheet] = useState(null); // null | 'foster'
   const rcCheck = parseRc(fosterForm.rc);
 
@@ -32,7 +34,7 @@ export default function MobileFostersTab({
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
       {fosters.length === 0 && (
-        <p className="py-6 text-center text-[15px] text-native-textMuted">Zatím žádní pěstouni.</p>
+        <p className="py-6 text-center text-[15px] text-native-textMuted">{t('m.fosters.empty', 'Zatím žádní pěstouni.')}</p>
       )}
 
       {fosters.map((foster) => {
@@ -47,22 +49,22 @@ export default function MobileFostersTab({
               </span>
               <p className="min-w-0 flex-1 truncate text-[17px] font-bold text-native-text">{foster.name}</p>
             </div>
-            <NativeInfoRow label="Rodné číslo" value={foster.rc} />
+            <NativeInfoRow label={t('m.fosters.rc', 'Rodné číslo')} value={foster.rc} />
             <NativeInfoRow
-              label="Telefon"
+              label={t('m.fosters.phone', 'Telefon')}
               value={foster.phone ? (
                 <a href={`tel:${foster.phone.replace(/\s/g, '')}`} className="text-native-primary">{foster.phone}</a>
               ) : ''}
             />
             <NativeInfoRow
-              label="E-mail"
+              label={t('m.fosters.email', 'E-mail')}
               value={foster.email ? (
                 <a href={`mailto:${foster.email}`} className="break-all text-native-primary">{foster.email}</a>
               ) : ''}
             />
             <NativeInfoRow
-              label="Vzdělávání"
-              value={`${hours} / ${requiredHours} h`}
+              label={t('m.fosters.education', 'Vzdělávání')}
+              value={t('m.fosters.hoursValue', '{{hours}} / {{required}} h', { hours, required: requiredHours })}
               tone={meetsHours ? undefined : 'warning'}
               isLast={!canManage}
             />
@@ -72,7 +74,7 @@ export default function MobileFostersTab({
                 onClick={() => setCourseDialogFor(foster.id)}
                 className="flex w-full items-center gap-1.5 py-3.5 text-[15px] font-medium text-native-primary"
               >
-                <Plus size={16} strokeWidth={2} /> Zapsat kurz
+                <Plus size={16} strokeWidth={2} /> {t('m.fosters.addCourse', 'Zapsat kurz')}
               </button>
             )}
           </div>
@@ -81,7 +83,7 @@ export default function MobileFostersTab({
 
       {canManage && (
         <NativeButton variant="secondary" className="mt-1 h-12" onClick={() => setSheet('foster')}>
-          Přidat pěstouna
+          {t('m.fosters.addFoster', 'Přidat pěstouna')}
         </NativeButton>
       )}
 
@@ -89,27 +91,27 @@ export default function MobileFostersTab({
 
       {sheet === 'foster' && (
         <NativeSheet
-          title="Přidat pěstouna"
+          title={t('m.fosters.addFoster', 'Přidat pěstouna')}
           onClose={() => setSheet(null)}
           submitting={submitting}
-          footer={<NativeButton onClick={handleAddFoster} disabled={submitting || !fosterForm.name.trim()}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
+          footer={<NativeButton onClick={handleAddFoster} disabled={submitting || !fosterForm.name.trim()}>{submitting ? t('m.fosters.saving', 'Ukládám…') : t('m.fosters.save', 'Uložit')}</NativeButton>}
         >
           {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
-            <NativeFormRow label="Jméno">
+            <NativeFormRow label={t('m.fosters.name', 'Jméno')}>
               <RowInput value={fosterForm.name} onChange={(e) => setFosterForm((f) => ({ ...f, name: e.target.value }))} autoFocus />
             </NativeFormRow>
             <NativeFormRow
-              label="Rodné číslo"
-              hint={rcCheck.error ?? (rcCheck.checksumWarning ? 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.' : undefined)}
+              label={t('m.fosters.rc', 'Rodné číslo')}
+              hint={rcCheck.error ?? (rcCheck.checksumWarning ? t('m.fosters.rcChecksumWarn', 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.') : undefined)}
               hintTone={rcCheck.error ? 'danger' : 'warning'}
             >
               <RowInput value={fosterForm.rc} onChange={(e) => setFosterForm((f) => ({ ...f, rc: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Telefon">
+            <NativeFormRow label={t('m.fosters.phone', 'Telefon')}>
               <RowInput type="tel" value={fosterForm.phone} onChange={(e) => setFosterForm((f) => ({ ...f, phone: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="E-mail" isLast>
+            <NativeFormRow label={t('m.fosters.email', 'E-mail')} isLast>
               <RowInput type="email" value={fosterForm.email} onChange={(e) => setFosterForm((f) => ({ ...f, email: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>
@@ -118,23 +120,23 @@ export default function MobileFostersTab({
 
       {courseDialogFor && (
         <NativeSheet
-          title="Zapsat kurz"
+          title={t('m.fosters.addCourse', 'Zapsat kurz')}
           onClose={() => setCourseDialogFor(null)}
           submitting={submitting}
-          footer={<NativeButton onClick={onAddCourse} disabled={submitting || !courseForm.kod.trim()}>{submitting ? 'Ukládám…' : 'Uložit'}</NativeButton>}
+          footer={<NativeButton onClick={onAddCourse} disabled={submitting || !courseForm.kod.trim()}>{submitting ? t('m.fosters.saving', 'Ukládám…') : t('m.fosters.save', 'Uložit')}</NativeButton>}
         >
           {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
-            <NativeFormRow label="Kód kurzu">
+            <NativeFormRow label={t('m.fosters.courseCode', 'Kód kurzu')}>
               <RowInput value={courseForm.kod} onChange={(e) => setCourseForm((f) => ({ ...f, kod: e.target.value }))} autoFocus />
             </NativeFormRow>
-            <NativeFormRow label="Kde">
+            <NativeFormRow label={t('m.fosters.courseWhere', 'Kde')}>
               <RowInput value={courseForm.kde} onChange={(e) => setCourseForm((f) => ({ ...f, kde: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Kdy">
+            <NativeFormRow label={t('m.fosters.courseWhen', 'Kdy')}>
               <RowInput type="date" value={courseForm.kdy} onChange={(e) => setCourseForm((f) => ({ ...f, kdy: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Hodiny" isLast>
+            <NativeFormRow label={t('m.fosters.courseHours', 'Hodiny')} isLast>
               <RowInput type="number" value={courseForm.hodiny} onChange={(e) => setCourseForm((f) => ({ ...f, hodiny: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>

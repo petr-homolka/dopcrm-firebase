@@ -26,6 +26,7 @@ import { NativeFormGroup, NativeFormRow, RowInput, RowTextarea } from '../../ui/
 import { SectionLabel, NativeEmptyState } from '../../ui/NativeBits.jsx';
 
 function TimelineCard({ entry, childrenList, onEdit, onTogglePin, canEdit }) {
+  const { t } = useTranslation();
   const meta = TIMELINE_TYPE_META[entry.type] ?? TIMELINE_TYPE_META.note;
   const Icon = meta.icon;
   const isSystem = entry.type === 'system';
@@ -56,7 +57,7 @@ function TimelineCard({ entry, childrenList, onEdit, onTogglePin, canEdit }) {
               type="button"
               onClick={(e) => { e.stopPropagation(); onTogglePin(entry); }}
               className="p-1 text-native-textMuted"
-              aria-label={entry.pinned ? 'Odepnout' : 'Připnout'}
+              aria-label={entry.pinned ? t('m.timeline.unpin', 'Odepnout') : t('m.timeline.pin', 'Připnout')}
             >
               <Pin size={14} strokeWidth={2} className={entry.pinned ? 'fill-native-primary text-native-primary' : undefined} />
             </button>
@@ -79,7 +80,7 @@ function TimelineCard({ entry, childrenList, onEdit, onTogglePin, canEdit }) {
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1 text-[12px] font-medium text-native-primary"
             >
-              <MapPin size={13} strokeWidth={2} /> Mapa
+              <MapPin size={13} strokeWidth={2} /> {t('m.timeline.map', 'Mapa')}
             </a>
           )}
         </div>
@@ -127,7 +128,7 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
   const typeLabel = typeFilter ? t(TIMELINE_FILTERS.find((f) => f.key === typeFilter)?.labelKey) : null;
   const childName = childFilter ? childrenList.find((c) => c.id === childFilter)?.firstName : null;
   const filterActive = !!(typeFilter || childFilter);
-  const filterLabel = [typeLabel, childName].filter(Boolean).join(' · ') || 'Filtr';
+  const filterLabel = [typeLabel, childName].filter(Boolean).join(' · ') || t('m.timeline.filter', 'Filtr');
 
   function canEdit(entry) {
     return canManage && entry.type !== 'system' && !entry._pending;
@@ -152,21 +153,21 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
       <div className="flex flex-col gap-2 px-4 pb-28 pt-1">
         {pinned.length > 0 && (
           <>
-            <SectionLabel>Připnuté</SectionLabel>
+            <SectionLabel>{t('m.timeline.pinned', 'Připnuté')}</SectionLabel>
             {pinned.map((entry) => (
               <TimelineCard key={entry.id} entry={entry} childrenList={childrenList} onEdit={openEdit} onTogglePin={togglePin} canEdit={canEdit(entry)} />
             ))}
           </>
         )}
 
-        {loading && <p className="py-8 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+        {loading && <p className="py-8 text-center text-[15px] text-native-textMuted">{t('m.timeline.loading', 'Načítám…')}</p>}
 
         {!loading && dayGroups.length === 0 && (
           <div className="mt-2">
             <NativeEmptyState
               icon={StickyNote}
-              title="Zatím žádné záznamy"
-              description="Klepněte na + a zapište poznámku, nebo rovnou spusťte návštěvu."
+              title={t('m.timeline.emptyTitle', 'Zatím žádné záznamy')}
+              description={t('m.timeline.emptyDesc', 'Klepněte na + a zapište poznámku, nebo rovnou spusťte návštěvu.')}
             />
           </div>
         )}
@@ -182,7 +183,7 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
 
         {!loading && hasMore && (
           <NativeButton variant="secondary" className="mt-2 h-11" onClick={loadMore}>
-            Načíst další
+            {t('m.timeline.loadMore', 'Načíst další')}
           </NativeButton>
         )}
       </div>
@@ -190,20 +191,20 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
       {canManage && (
         <NativeFab
           actions={[
-            { icon: Timer, label: 'Zahájit návštěvu', onClick: () => navigate(`/admin/terenni/${familyId}/navsteva`, { state: { familyName } }) },
-            { icon: StickyNote, label: 'Nový záznam', onClick: openAdd },
+            { icon: Timer, label: t('m.timeline.startVisit', 'Zahájit návštěvu'), onClick: () => navigate(`/admin/terenni/${familyId}/navsteva`, { state: { familyName } }) },
+            { icon: StickyNote, label: t('m.timeline.newEntry', 'Nový záznam'), onClick: openAdd },
           ]}
         />
       )}
 
       {filterOpen && (
         <NativeSheet
-          title="Filtr záznamů"
+          title={t('m.timeline.filterTitle', 'Filtr záznamů')}
           onClose={() => setFilterOpen(false)}
-          footer={<NativeButton onClick={() => setFilterOpen(false)}>Hotovo</NativeButton>}
+          footer={<NativeButton onClick={() => setFilterOpen(false)}>{t('m.timeline.done', 'Hotovo')}</NativeButton>}
         >
           <div>
-            <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">Typ záznamu</p>
+            <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">{t('m.timeline.filterType', 'Typ záznamu')}</p>
             <div className="flex flex-wrap gap-1.5">
               {TIMELINE_FILTERS.map((f) => (
                 <FilterChip key={f.labelKey} active={typeFilter === f.key} onClick={() => setTypeFilter(f.key)}>
@@ -214,9 +215,9 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
           </div>
           {childrenList.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">Dítě</p>
+              <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">{t('m.timeline.filterChild', 'Dítě')}</p>
               <div className="flex flex-wrap gap-1.5">
-                <FilterChip active={!childFilter} onClick={() => setChildFilter(null)}>Všechny</FilterChip>
+                <FilterChip active={!childFilter} onClick={() => setChildFilter(null)}>{t('m.timeline.allChildren', 'Všechny')}</FilterChip>
                 {childrenList.map((child) => (
                   <FilterChip key={child.id} active={childFilter === child.id} onClick={() => setChildFilter(child.id)}>
                     {child.firstName}
@@ -230,30 +231,30 @@ export default function MobileTimelineTab({ familyId, familyName, childrenList, 
 
       {dialogOpen && (
         <NativeSheet
-          title={editingEntry ? 'Upravit záznam' : 'Nový záznam'}
+          title={editingEntry ? t('m.timeline.editEntry', 'Upravit záznam') : t('m.timeline.newEntry', 'Nový záznam')}
           onClose={() => setDialogOpen(false)}
           submitting={editSubmitting}
           footer={
             <NativeButton onClick={() => submitEntry(form)} disabled={editSubmitting || !form.body.trim()}>
-              {editSubmitting ? 'Ukládám…' : 'Uložit'}
+              {editSubmitting ? t('m.timeline.saving', 'Ukládám…') : t('m.timeline.save', 'Uložit')}
             </NativeButton>
           }
         >
           <NativeFormGroup>
-            <NativeFormRow label="Nadpis">
-              <RowInput value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Poznámka" />
+            <NativeFormRow label={t('m.timeline.titleLabel', 'Nadpis')}>
+              <RowInput value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t('m.timeline.titlePlaceholder', 'Poznámka')} />
             </NativeFormRow>
             {/* Textarea se do horizontálního řádku (v4) nevejde → stacked */}
-            <NativeFormRow label="Text" stacked>
+            <NativeFormRow label={t('m.timeline.bodyLabel', 'Text')} stacked>
               <RowTextarea value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} autoFocus />
             </NativeFormRow>
-            <NativeFormRow label="Datum" isLast>
+            <NativeFormRow label={t('m.timeline.dateLabel', 'Datum')} isLast>
               <RowInput type="date" value={form.occurredAt} onChange={(e) => setForm((f) => ({ ...f, occurredAt: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>
           {childrenList.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">Týká se</p>
+              <p className="mb-1.5 text-[12px] font-medium text-native-textMuted">{t('m.timeline.subjectLabel', 'Týká se')}</p>
               <div className="flex flex-wrap gap-1.5">
                 {childrenList.map((child) => {
                   const active = form.childIds.includes(child.id);

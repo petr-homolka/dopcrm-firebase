@@ -8,6 +8,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, Users, SlidersHorizontal } from 'lucide-react';
 import Avatar from '../../components/ui/Avatar.jsx';
@@ -31,6 +32,7 @@ const TABS = [
 ];
 
 function FamilyRow({ family, onClick, isLast }) {
+  const { t } = useTranslation();
   const visit = lastVisitInfo(family);
   const city = cityFromAddress(family.address);
   return (
@@ -38,7 +40,7 @@ function FamilyRow({ family, onClick, isLast }) {
       <Avatar name={family.name} size="lg" tone="native" />
       <div className={cn('flex min-w-0 flex-1 items-center gap-2 py-3 pr-4', !isLast && 'border-b border-native-separator')}>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[17px] font-semibold text-native-text">{family.name || '(bez jména)'}</p>
+          <p className="truncate text-[17px] font-semibold text-native-text">{family.name || t('m.families.noName', '(bez jména)')}</p>
           <p className="truncate text-[13px] text-native-textMuted">
             {[city, careLabel(family.careType)].filter(Boolean).join(' · ')}
           </p>
@@ -53,6 +55,7 @@ function FamilyRow({ family, onClick, isLast }) {
 }
 
 export default function MobileFamiliesScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { role, organizationId, currentUser } = useAuthStore();
   const cacheKey = `${organizationId}:${role}:${currentUser?.uid}`;
@@ -97,7 +100,7 @@ export default function MobileFamiliesScreen() {
   const q = query.trim().toLowerCase();
   const filtered = families.filter((f) => f.name?.toLowerCase().includes(q));
   const groups = groupFamilies(filtered, groupBy, careLabel);
-  const groupLabel = GROUP_OPTIONS.find((o) => o.value === groupBy)?.label ?? 'Abecedně';
+  const groupLabel = GROUP_OPTIONS.find((o) => o.value === groupBy)?.label ?? t('m.families.groupAbc', 'Abecedně');
 
   const fosters = families
     .flatMap((f) => (f.fosters ?? []).map((p) => ({ ...p, familyId: f.id, familyName: f.name })))
@@ -116,7 +119,7 @@ export default function MobileFamiliesScreen() {
 
   return (
     <div className="pb-6">
-      <MobileTopNav title="Rodiny" />
+      <MobileTopNav title={t('m.families.title', 'Rodiny')} />
 
       <NativeSegmented items={TABS} value={tab} onChange={setTab} />
 
@@ -126,7 +129,7 @@ export default function MobileFamiliesScreen() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Vyhledávání"
+            placeholder={t('m.families.searchPlaceholder', 'Vyhledávání')}
             className="h-11 w-full rounded-native-input bg-native-surface pl-9 pr-3 text-[16px] text-native-text placeholder:text-native-textMuted focus:outline-none"
           />
         </div>
@@ -140,12 +143,12 @@ export default function MobileFamiliesScreen() {
             )}
           >
             <SlidersHorizontal size={15} strokeWidth={2} />
-            {groupBy === 'abc' ? 'Seskupit' : groupLabel}
+            {groupBy === 'abc' ? t('m.families.group', 'Seskupit') : groupLabel}
           </button>
         )}
       </div>
 
-      {loading && <p className="px-4 py-6 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+      {loading && <p className="px-4 py-6 text-center text-[15px] text-native-textMuted">{t('m.families.loading', 'Načítám…')}</p>}
 
       {!loading && tab === 'rodiny' && (
         filtered.length > 0 ? (
@@ -168,10 +171,10 @@ export default function MobileFamiliesScreen() {
           <div className="mx-4 mt-2">
             <NativeEmptyState
               icon={Users}
-              title={families.length === 0 ? 'Zatím žádné pěstounské rodiny' : 'Nic neodpovídá hledání'}
+              title={families.length === 0 ? t('m.families.emptyTitle', 'Zatím žádné pěstounské rodiny') : t('m.families.noMatchTitle', 'Nic neodpovídá hledání')}
               description={families.length === 0
-                ? 'Rodiny vám přiřadí administrátor vaší organizace.'
-                : 'Zkuste kratší část názvu rodiny.'}
+                ? t('m.families.emptyDesc', 'Rodiny vám přiřadí administrátor vaší organizace.')
+                : t('m.families.noMatchDesc', 'Zkuste kratší část názvu rodiny.')}
             />
           </div>
         )
@@ -190,7 +193,7 @@ export default function MobileFamiliesScreen() {
       )}
 
       {groupSheetOpen && (
-        <NativeSheet title="Seskupit rodiny" onClose={() => setGroupSheetOpen(false)}>
+        <NativeSheet title={t('m.families.groupSheetTitle', 'Seskupit rodiny')} onClose={() => setGroupSheetOpen(false)}>
           <div className="overflow-hidden rounded-native-card bg-native-bg">
             {GROUP_OPTIONS.map((opt, i) => (
               <button
@@ -204,7 +207,7 @@ export default function MobileFamiliesScreen() {
                 )}
               >
                 {opt.label}
-                {opt.value === groupBy && <span className="text-[13px]">Vybráno</span>}
+                {opt.value === groupBy && <span className="text-[13px]">{t('m.families.selected', 'Vybráno')}</span>}
               </button>
             ))}
           </div>

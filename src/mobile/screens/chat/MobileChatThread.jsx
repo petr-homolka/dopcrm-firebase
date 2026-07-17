@@ -10,6 +10,7 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Trash2 } from 'lucide-react';
 import { cn } from '../../../components/ui/cn.js';
 import { useAuthStore } from '../../../store/authStore.js';
@@ -29,6 +30,7 @@ function timeLabel(v) {
 }
 
 function Bubble({ msg, mine, showAudience, onDelete }) {
+  const { t } = useTranslation();
   return (
     <div className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
       <div
@@ -48,7 +50,7 @@ function Bubble({ msg, mine, showAudience, onDelete }) {
         )}
         <span className="text-[11px] text-native-textMuted">{timeLabel(msg.createdAt)}</span>
         {mine && onDelete && (
-          <button type="button" onClick={() => onDelete(msg.id)} aria-label="Smazat" className="text-native-textMuted">
+          <button type="button" onClick={() => onDelete(msg.id)} aria-label={t('m.chat.delete', 'Smazat')} className="text-native-textMuted">
             <Trash2 size={13} strokeWidth={2} />
           </button>
         )}
@@ -58,6 +60,7 @@ function Bubble({ msg, mine, showAudience, onDelete }) {
 }
 
 export default function MobileChatThread({ mode, messages, loading, sending, onSend, onDelete, emptyHint }) {
+  const { t } = useTranslation();
   const { currentUser } = useAuthStore();
   const uid = currentUser?.uid;
   const [text, setText] = useState('');
@@ -83,7 +86,7 @@ export default function MobileChatThread({ mode, messages, loading, sending, onS
             onClick={() => setFilter(null)}
             className={cn('shrink-0 rounded-full px-3 py-1 text-[13px] font-medium', !filter ? 'bg-native-primary/15 text-native-primary' : 'text-native-textMuted')}
           >
-            Vše
+            {t('m.chat.filterAll', 'Vše')}
           </button>
           {staffAudiences.map((key) => (
             <button
@@ -98,7 +101,7 @@ export default function MobileChatThread({ mode, messages, loading, sending, onS
         </div>
       )}
       <div className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-3">
-        {loading && <p className="py-8 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+        {loading && <p className="py-8 text-center text-[15px] text-native-textMuted">{t('m.chat.loading', 'Načítám…')}</p>}
         {!loading && shown.length === 0 && (
           <p className="py-8 text-center text-[15px] text-native-textMuted">{emptyHint}</p>
         )}
@@ -140,14 +143,14 @@ export default function MobileChatThread({ mode, messages, loading, sending, onS
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={1}
-            placeholder={mode === 'foster' ? 'Napište klíčové osobě…' : 'Napište zprávu…'}
+            placeholder={mode === 'foster' ? t('m.chat.placeholderFoster', 'Napište klíčové osobě…') : t('m.chat.placeholderStaff', 'Napište zprávu…')}
             className="max-h-28 flex-1 resize-none rounded-native-input bg-native-bg px-3.5 py-2.5 text-[16px] text-native-text placeholder:text-native-textMuted focus:outline-none"
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={!text.trim() || sending}
-            aria-label="Odeslat"
+            aria-label={t('m.chat.send', 'Odeslat')}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-native-primary text-white transition-transform duration-100 active:scale-[0.94] disabled:bg-native-separator disabled:text-native-textMuted"
           >
             <Send size={18} strokeWidth={2} />

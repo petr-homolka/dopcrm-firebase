@@ -10,10 +10,12 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '../../components/ui/cn.js';
 
 export default function MobileTopNav({ title, onBack, right, variant = 'surface' }) {
+  const { t } = useTranslation();
   const hero = variant === 'hero';
   return (
     <div
@@ -27,7 +29,7 @@ export default function MobileTopNav({ title, onBack, right, variant = 'surface'
           <button
             type="button"
             onClick={onBack}
-            aria-label="Zpět"
+            aria-label={t('m.shell.back', 'Zpět')}
             className={cn('flex h-11 items-center', hero ? 'text-white' : 'text-native-primary')}
           >
             <ChevronLeft size={26} strokeWidth={2} />

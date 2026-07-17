@@ -7,10 +7,12 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react';
 import { countUnread } from '../../services/orgService.js';
 
 export default function NotificationBell({ tone = 'default' }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [count, setCount] = useState(0);
 
@@ -31,7 +33,7 @@ export default function NotificationBell({ tone = 'default' }) {
     <button
       type="button"
       onClick={() => navigate('/oznameni')}
-      aria-label={count > 0 ? `Oznámení (${count} nepřečtených)` : 'Oznámení'}
+      aria-label={count > 0 ? t('m.notif.bellWithCount', 'Oznámení ({{count}} nepřečtených)', { count }) : t('m.notif.bell', 'Oznámení')}
       className="relative flex h-10 w-10 items-center justify-center"
     >
       <Bell size={22} strokeWidth={2} className={iconColor} />

@@ -6,10 +6,12 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import useChatThread from '../chat/useChatThread.js';
 import MobileChatThread from '../chat/MobileChatThread.jsx';
 
 export default function MobileChatTab({ familyId }) {
+  const { t } = useTranslation();
   const { messages, loading, sending, send, remove } = useChatThread(familyId);
   return (
     <MobileChatThread
@@ -19,7 +21,7 @@ export default function MobileChatTab({ familyId }) {
       sending={sending}
       onSend={send}
       onDelete={remove}
-      emptyHint="Zatím žádné zprávy. Napište poznámku sobě, kolegům, nebo pěstounovi."
+      emptyHint={t('m.chat.emptyHint', 'Zatím žádné zprávy. Napište poznámku sobě, kolegům, nebo pěstounovi.')}
     />
   );
 }

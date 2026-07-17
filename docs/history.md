@@ -497,3 +497,115 @@ zeleně při příštím pushi se skutečnou změnou v `src/`.
 - V Firestore zatím neexistují žádné `data_objects` dokumenty typu `family`/`child` → Dashboard zobrazí 0 / „Žádné rodiny k zobrazení" (očekávané, čeká na reálná data)
 - Firestore Security Rules nasadit (`firebase deploy --only firestore:rules`)
 - Přepnout Firestore z test mode na produkční rules před ostrým provozem
+
+<!-- Přesunuto z CURRENT_STATE.md 2026-07-17 (limit 300 řádků) -->
+## 2026-07-05 — Zpětná vazba v2 + Connecteam jako závazný vzor
+
+Pět bodů uživatele k Detailu rodiny + strategické rozhodnutí (bod 6):
+
+- **Naplánovat návštěvu FUNGUJE** — dřívější odskok na /kalendar nikam nevedl; teď sheet
+  přímo v hlavičce rodiny (`MobileFamilyHeader.jsx`) → `createEvent` typu `visit` s vazbou
+  na rodinu, KO a adresou; ověřeno end-to-end (událost viditelná v Kalendáři vč. tečky).
+- **Jedna řada přepínačů** — filtry Osy už nejsou druhá řada pillů; kompaktní pilulka
+  „Filtr" vpravo otevírá sheet (typ záznamu + dítě), aktivní filtr se propisuje do popisku.
+- **Hlavička bez trvalé adresy/telefonu** — místo kontaktní karty kruhové rychlé akce
+  (Zavolat = tel:, E-mail = mailto:, Mapa = adresa v mapách, Naplánovat); chybějící údaj
+  akci ztlumí. Vzor iOS Kontakty/Connecteam.
+- **Zámek polí ZRUŠEN** (rozhodnutí uživatele „jen to zdržuje") — useEditLock.js a
+  LockBanner smazány ze všech sheetů.
+- **Jedno FAB se speed-dial menu** (`NativeFab.jsx`, vzor Things) — scrim + pojmenované
+  akce „Zahájit návštěvu"/„Nový záznam"; dvě FAB nad sebou zrušena.
+- **Connecteam = závazný vzor ~90 %** (PWA i desktop): 56 screenshotů analyzováno 5 agenty,
+  výstup v `docs/design/connecteam-analyza-2026-07-05.md` (top vzory + obrazovka po
+  obrazovce co přenést). Existující kód není překážka.
+
+## 2026-07-05 — UI redesign v3: konec kroužení kolem designu
+
+**Zadání:** „celé to předělej" — UI působilo nekonzistentně (upatlaně) a místy zeleně/teal,
+přestože tokeny říkaly modrá. Příčiny a řešení:
+
+- **Kořenová příčina „zelené":** 25 obrazovek (SuperAdmin, OrgDetail, Login, všechny Child*
+  taby/modály…) stále používalo LEGACY Amie tokeny `primary-600` = **teal #1A6B64** + `stone-*`.
+  Hromadně převedeno na `brand-*/ink-*/danger-*` (Connecteam modrá). Druhá příčina: dlouho
+  běžící Vite dev server drží zastaralou Tailwind JIT cache po změně tokenů — „ověřovací"
+  screenshoty ukazovaly starý teal i po opravě configu. **Po změně tailwind.config.js VŽDY
+  restart dev serveru.**
+- **DESIGN.md §12** — nová ZÁVAZNÁ mobilní spec v3: jediná typo škála (10/12/13/15/17/22/56),
+  radius jen 18/10/pill, barvy jen `native.*` (+ tinty /10 a /15), žádná zelená, žádné stíny,
+  komponenty výhradně ze `src/mobile/ui/`.
+- **`src/mobile/ui/NativeBits.jsx`** — sdílené `SectionLabel`/`NativeChip`/`NativeEmptyState`/
+  `StatTile` (+ `NATIVE_EVENT_BORDER`: návštěva na mobilu modrý proužek, ne zelený shift-visit);
+  lokální kopie z pěti obrazovek smazány. `NativeButton` secondary = tint výplň (ne outline),
+  `NativeSegmented` varianty primary/filter (konec dvou řad plných pillů na Ose).
+- Obrazovky sjednoceny dle §12: Home (tinty místo raw blue/orange-50, empty s radou), Rodiny
+  (vložená grouped karta + zaoblený search), Kalendář (nový header měsíc+rok, šipky po
+  stranách), Detail rodiny (NativeChip stavy, „Naplánovat"), Osa (filtr variant, Připnuté jako
+  sekce, empty s radou), Tým (grouped karta, stavové chipy), Respit (sdílený StatTile 28px).
+- Ověřeno živě na čerstvém serveru (390 px: Rodiny/Detail/Osa/Kalendář/Timer/Home/Login;
+  1280 px: OrgAdmin dashboard) — modrá #007AFF všude, `npm run build`+`lint` čisté, nasazeno
+  na doprovazeni-dev. Pozn.: subagenti nedostupní (session limit), audit proveden v hlavní smyčce.
+
+## 2026-07-03 — Krok 3: Obrazovka Dnes
+
+**Zadání:** nová domovská obrazovka pro `klicova_osoba` na `/` (DESIGN.md §6.1) — agenda dne,
+NE dashboard s KPI dlaždicemi/grafy. Pozdrav+datum, dnešní program, "Čeká na vás" (rodiny bez
+návštěvy >45 dní), nejbližší dva dny.
+
+- **Routing (zásadní změna):** `/` už NENÍ index route staršího `RequireAuth`+`Layout.jsx`
+  (Sekce A sidebar) — přesunuto na VLASTNÍ top-level route group se stejným `AdminLayout`
+  shellem jako zbytek `/admin/*` (topbar, ne stará sidebar), gated `RequireOrgRole
+  allowed={['klicova_osoba']}`. Důvod: kdyby `/` zůstalo pod starým `Layout`, klíčová osoba by
+  na své nové domovské stránce viděla legacy MVP sidebar (odkazy na 8řádkové stub stránky
+  `/pestouni`, `/deti`…), ne skutečnou B2B navigaci. `IndexRedirect` (starý komponent pro index
+  route) smazán — jeho roli teď dělá `RequireOrgRole` samo (fallback pro roli mimo `allowed`
+  pole = `homePathForRole(role)`).
+- `orgAuth.js` — nová `homePathForRole(role)`: `klicova_osoba` → `/` (Dnes), ostatní role beze
+  změny (`dashboardPathForRole` zůstává platná, jen přestala být VÝCHOZÍ landing page — pořád
+  se používá např. jako cíl "zobrazit vše" u sekce Čeká na vás → `/admin/terenni`). Použito v
+  `Login.jsx` (přesměrování po loginu) a `router.jsx` (`RequireOrgRole`, `RegisterRoute`).
+- `src/services/org/timeline.js` — `createTimelineEntry` nově zapisuje `foster_families.
+  lastVisitAt` v JEDNOM `writeBatch` VŽDY, když `type === 'visit'` (CLAUDE.md: denormalizovaná
+  pole aktualizovat v batch se změnou, která je vyvolala — `lastVisitAt` je v pravidle přímo
+  jmenovaný příklad). Poznámka: v appce zatím NEEXISTUJE UI cesta k založení timeline záznamu
+  typu `visit` (jen `note` — "Záznam v terénu/capture" je budoucí ⬜ funkce) — hook je tedy
+  připravený do budoucna, ověřen jen nepřímo (testovací `lastVisitAt` v seedu je zapsané přímo,
+  ne přes tuto cestu, viz níže).
+- `src/services/org/events.js` — nová `listEventsForAssignee(organizationId, uid, {from,to})`
+  (na rozdíl od `listEventsInRange` filtruje navíc `assignedTo`) + nový composite index
+  (`assignedTo`+`start`) v `firestore.indexes.json`, nasazeno na dev.
+- `src/modules/admin/TodayPage.jsx` + `useTodayPage.js` (nové) — max 25 rodin/KO (CLAUDE.md)
+  → řazení/filtrování "Čeká na vás" klidně na klientovi, žádný další index/stránkování potřeba.
+  Barva levého proužku dle typu události (`visit`=zelená/family, `meeting`=primary, `deadline`=
+  terakota, `education`=amber) a dle stáří návštěvy (>60 dní = terakota `entity-crisis`, 45–60
+  = amber, nikdy nenavštíveno = amber). Vokativ jména ("Jano" z "Jana") záměrně neřešen (1. pád).
+- i18n: nový namespace `today.*` v `cs.json`, plurál `daysAgo_one/_few/_other`.
+- Seed (`scripts/dev-seed.mjs`, `scripts/seed-calendar-events.mjs`): Rodina Kučerová dostala
+  testovací `lastVisitAt` 65 dní zpět (terakota), Rodina Nováková 50 dní zpět (amber), ostatní
+  bez pole (nikdy nenavštíveno); první rodina KAŽDÉ organizace dostala kalendářní návštěvu NA
+  DNES, druhá NA ZÍTRA — pokrývá všechny 3 scénáře ze zadání (den s událostmi/bez/stará návštěva)
+  napříč 3 demo KO účty, aniž by bylo nutné cokoli ručně překlikávat.
+
+**Ověřeno živě v Preview** (po dobuildění Firestore composite indexu, ~2,5 min): `demo.ko.jih.1`
+(dnešní návštěva Rodiny Kučerová v 13:00 se zelenou entity-family barvou, "Čeká na vás" s
+terakotovou `#C2410C` barvou a textem "Návštěva před 65 dny"), `demo.ko.sever.1` (dnešní událost
++ amber `#FBBF24` u Nováková/50 dní i Svobodová/"Zatím žádná návštěva"), `demo.ko.sever.2`
+(prázdný den — "Dnes nemáte naplánované žádné události.", sekce "Nejbližší dny" → "Zítra" s
+návštěvou Dvořákové). `org_admin` (`demo.admin.jih`) po loginu i při přímé návštěvě `/` správně
+skončí na `/admin/organizace`, ne na obrazovce Dnes. Mobilní viewport (390×844) ověřen přes
+`scrollWidth`/`getBoundingClientRect` (bez horizontálního přetečení, karty na plnou šířku,
+nadpis se zalamuje) — `preview_screenshot` v této session opakovaně timeoutoval (nesouvisející s
+kódem), ověření tedy funkční/strukturální, ne vizuální snímek. `npm run build`/`npm run lint`
+čisté po celou dobu.
+
+## 2026-07-02 — Velký úklid repozitáře (podle UKLID-PROMPT.md)
+
+Vanilla prototyp přesunut do `/legacy` (zamčený archiv, jen pro člověka). Nový `CLAUDE.md` +
+`DESIGN.md` (design systém „Přítomnost", soft/playful, Tailwind) nahradily starý handoff dokument
+(archivován do `docs/history-claude-md.md`). Tento soubor ořezán na ~200 řádků, starší záznamy
+přesunuty do `docs/history.md`. Následuje: extrakce doménové dokumentace do `docs/domain/`,
+`docs/INVENTAR.md`, přechod MUI → Tailwind, sjednocení PWA přes vite-plugin-pwa.
+
+*(Starší záznamy — Fáze 1 self-service, Fáze 2+3 obohacení entit, datový model dle vanilla
+prototypu, UI/UX úklid — přesunuty do docs/history.md.)*
+
+---

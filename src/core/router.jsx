@@ -12,8 +12,10 @@ import {
   LoginPage, RegisterPage, DashboardPage, FamiliesPage, FamilyDetailPage,
   ChildrenPage, ChildDetailPage, ContactsPage, CalendarPage, UsersPage,
   SettingsPage, HubPage, Layout, AdminLayout, SuperAdminDashboard,
-  OrgAdminDashboard, KlicovaOsobaDashboard, TeamDashboard, FosterFamilyDetailPage,
+  OrgAdminDashboard, TeamDashboard, FosterFamilyDetailPage,
   OrganizationDetailPage, AdminChildDetailPage, TodayPage,
+  FamiliesWorkspace, WorkspaceHome, DocumentDetailPanel, ParticipantDetailPanel, NotificationsPage,
+  TasksPage, EducationPage, InstitutionsPage,
   Responsive, MobileHomeScreen, MobileFamiliesScreen, MobileCalendarScreen, MobileProfileScreen,
   MobileFamilyDetailScreen, MobileTeamScreen, MobileSettingsScreen, MobileChildDetailScreen,
   MobileVisitTimerScreen, MobileNotificationsScreen, MagicLinkScreen, MobileDocumentDetailScreen,
@@ -174,34 +176,25 @@ const router = createBrowserRouter([
     }],
   },
   {
-    element: <Suspense fallback={<Loading />}><AdminLayout title="Terén" /></Suspense>,
-    children: [
-      {
-        // "Moje rodiny" — vlastní scoped dashboard klíčové osoby (org_admin smí nahlédnout).
-        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin']} />,
+    // Case-management workspace (2026-07-13): desktop = FamiliesWorkspace
+    // (master seznam + <Outlet>); mobil průchozí. Data hlídají firestore.rules.
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Terén" variant="workspace" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin', 'vedouci_pobocky', 'teamleader']} />,
+      children: [{
+        element: <Suspense fallback={<Loading />}><FamiliesWorkspace /></Suspense>,
         children: [
-          { path: '/admin/terenni', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamiliesScreen} desktop={KlicovaOsobaDashboard} /></Suspense> },
-        ],
-      },
-      {
-        // Detail rodiny/dítěte — sdílená cílová stránka hierarchického prokliku
-        // ze všech rolí (superadmin z OrganizationDetailPage, org_admin z
-        // FosterFamiliesPanel, klicova_osoba z vlastního dashboardu, vedouci_pobocky/
-        // teamleader z TeamDashboard — poslední dva jen ke čtení, viz
-        // isReadOnlyManager() v orgAuth.js). Čtení řeší firestore.rules (sameOrg),
-        // tady jen povolení routy.
-        element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'superadmin', 'vedouci_pobocky', 'teamleader']} />,
-        children: [
+          { path: '/admin/terenni', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamiliesScreen} desktop={WorkspaceHome} /></Suspense> },
           { path: '/admin/terenni/:familyId',            element: <Suspense fallback={<Loading />}><Responsive mobile={MobileFamilyDetailScreen} desktop={FosterFamilyDetailPage} /></Suspense> },
           { path: '/admin/terenni/:familyId/deti/:childId', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileChildDetailScreen} desktop={AdminChildDetailPage} /></Suspense> },
           // Měření času návštěvy + GPS (2026-07-06) — čistě terénní/mobilní,
           // žádný desktop ekvivalent (viz MobileVisitTimerScreen.jsx).
           { path: '/admin/terenni/:familyId/navsteva',    element: <Suspense fallback={<Loading />}><MobileVisitTimerScreen /></Suspense> },
-          { path: '/admin/terenni/:familyId/dokumenty/:docId', element: <Suspense fallback={<Loading />}><MobileDocumentDetailScreen /></Suspense> },
-          { path: '/admin/terenni/:familyId/deti/:childId/ucastnici/:epId', element: <Suspense fallback={<Loading />}><MobileParticipantDetailScreen /></Suspense> },
+          { path: '/admin/terenni/:familyId/dokumenty/:docId', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileDocumentDetailScreen} desktop={DocumentDetailPanel} /></Suspense> },
+          { path: '/admin/terenni/:familyId/deti/:childId/ucastnici/:epId', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileParticipantDetailScreen} desktop={ParticipantDetailPanel} /></Suspense> },
         ],
-      },
-    ],
+      }],
+    }],
   },
   {
     element: <Suspense fallback={<Loading />}><AdminLayout title="Tým" /></Suspense>,
@@ -213,8 +206,19 @@ const router = createBrowserRouter([
     }],
   },
   {
-    // Kalendář — pod AdminLayout pro VŠECHNY Sekce B role (viz PATH_FOR_KEY
-    // v AdminSidebar.jsx a tabsForRole v MobileShell.jsx).
+    // Úkoly / termíny a Vzdělávání (2026-07-13) — zaměstnanci organizace.
+    element: <Suspense fallback={<Loading />}><AdminLayout title="Úkoly" /></Suspense>,
+    children: [{
+      element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
+      children: [
+        { path: '/admin/ukoly', element: <Suspense fallback={<Loading />}><TasksPage /></Suspense> },
+        { path: '/admin/vzdelavani', element: <Suspense fallback={<Loading />}><EducationPage /></Suspense> },
+        { path: '/admin/instituce', element: <Suspense fallback={<Loading />}><InstitutionsPage /></Suspense> },
+      ],
+    }],
+  },
+  {
+    // Kalendář — pod AdminLayout pro VŠECHNY Sekce B role.
     element: <Suspense fallback={<Loading />}><AdminLayout title="Kalendář" /></Suspense>,
     children: [{
       element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin']} />,
@@ -241,7 +245,7 @@ const router = createBrowserRouter([
     children: [{
       element: <RequireOrgRole allowed={['klicova_osoba', 'org_admin', 'vedouci_pobocky', 'teamleader', 'superadmin', 'pestoun']} />,
       children: [
-        { path: '/oznameni', element: <Suspense fallback={<Loading />}><MobileNotificationsScreen /></Suspense> },
+        { path: '/oznameni', element: <Suspense fallback={<Loading />}><Responsive mobile={MobileNotificationsScreen} desktop={NotificationsPage} /></Suspense> },
       ],
     }],
   },

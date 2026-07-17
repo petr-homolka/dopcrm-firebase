@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore.js';
@@ -20,6 +21,7 @@ function ts(v) {
 }
 
 export default function EPAuditScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
   const epId = profile?.externalParticipantId;
@@ -33,10 +35,10 @@ export default function EPAuditScreen() {
 
   return (
     <div>
-      <MobileTopNav title="Moje historie" onBack={() => navigate('/ucastnik')} />
-      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+      <MobileTopNav title={t('m.ep.auditTitle', 'Moje historie')} onBack={() => navigate('/ucastnik')} />
+      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.common.loading', 'Načítám…')}</p>}
       {!loading && items.length === 0 && (
-        <div className="mx-4 mt-6"><NativeEmptyState icon={ShieldCheck} title="Zatím žádné záznamy" description="Zde uvidíte historii svých akcí v aplikaci." /></div>
+        <div className="mx-4 mt-6"><NativeEmptyState icon={ShieldCheck} title={t('m.ep.auditEmptyTitle', 'Zatím žádné záznamy')} description={t('m.ep.auditEmptyDesc', 'Zde uvidíte historii svých akcí v aplikaci.')} /></div>
       )}
       {!loading && items.length > 0 && (
         <div className="mx-4 mt-3 overflow-hidden rounded-native-card bg-native-surface">

@@ -32,6 +32,18 @@ export const OrganizationDetailPage = lazy(() => import('../modules/admin/Organi
 export const AdminChildDetailPage   = lazy(() => import('../modules/admin/ChildDetailPage.jsx'));
 export const TodayPage              = lazy(() => import('../modules/admin/TodayPage.jsx'));
 
+// ── Desktop case-management workspace (2026-07-13) ──────────────
+// Třípanel /admin/terenni: seznam rodin + <Outlet> detail. Desktopové
+// varianty modulů dokumentů, účastníků a oznámení (mobil má vlastní).
+export const FamiliesWorkspace      = lazy(() => import('../modules/admin/workspace/FamiliesWorkspace.jsx'));
+export const WorkspaceHome          = lazy(() => import('../modules/admin/workspace/WorkspaceHome.jsx'));
+export const DocumentDetailPanel    = lazy(() => import('../modules/admin/documents/DocumentDetailPanel.jsx'));
+export const ParticipantDetailPanel = lazy(() => import('../modules/admin/participants/ParticipantDetailPanel.jsx'));
+export const NotificationsPage      = lazy(() => import('../modules/admin/NotificationsPage.jsx'));
+export const TasksPage              = lazy(() => import('../modules/tasks/TasksPage.jsx'));
+export const EducationPage          = lazy(() => import('../modules/education/EducationPage.jsx'));
+export const InstitutionsPage       = lazy(() => import('../modules/institutions/InstitutionsPage.jsx'));
+
 // ── Mobilní obrazovky (STRICT UI/UX DESIGN MANDATE, 2026-07-05) — vlastní
 // strom src/mobile/, Responsive.jsx vybírá mobil/desktop, žádné sdílení JSX.
 export const Responsive             = lazy(() => import('../mobile/Responsive.jsx'));

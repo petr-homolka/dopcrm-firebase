@@ -513,6 +513,30 @@ service cloud.firestore {
     // ── children (děti svěřené do péče) ──────────────────────
     // organizationId + assignedTo jsou denormalizované z rodičovské foster_family
     // (viz orgService.js) — umožňuje stejná pravidla bez cross-collection get().
+    // ── Úkoly / termíny (2026-07-13) ──────────────────────────────────
+    // Top-level `tasks/{id}` organizace. Čtou/píšou zaměstnanci téže
+    // organizace (isStaff+sameOrg), superadmin napříč. Pěstoun ani externí
+    // účastník sem nemají přístup (nejsou isStaff). List dotazy VŽDY filtrují
+    // organizationId (jinak permission-denied — "list vs rule pole").
+    match /tasks/{taskId} {
+      allow read: if isSuperadmin() || (isStaff() && sameOrg(resource.data.organizationId));
+      allow create: if isSuperadmin()
+                       || (isStaff() && sameOrg(request.resource.data.organizationId)
+                           && request.resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isSuperadmin() || (isStaff() && sameOrg(resource.data.organizationId));
+    }
+
+    // ── Instituce / „Ostatní" kontakty (2026-07-13) ───────────────────
+    // Adresář institucí organizace (OSPOD, soud, škola, lékař…). Stejný režim
+    // jako `tasks`: zaměstnanci téže organizace. List dotazy filtrují orgId.
+    match /institutions/{institutionId} {
+      allow read: if isSuperadmin() || (isStaff() && sameOrg(resource.data.organizationId));
+      allow create: if isSuperadmin()
+                       || (isStaff() && sameOrg(request.resource.data.organizationId)
+                           && request.resource.data.createdBy == request.auth.uid);
+      allow update, delete: if isSuperadmin() || (isStaff() && sameOrg(resource.data.organizationId));
+    }
+
     match /children/{childId} {
       // Viz shodná poznámka u foster_families — assignedTo disjunkt kvůli
       // Firestore "list" dotazům filtrovaným přes assignedTo (budoucí použití).

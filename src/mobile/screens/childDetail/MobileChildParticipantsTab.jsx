@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, ChevronRight, Users } from 'lucide-react';
 import { cn } from '../../../components/ui/cn.js';
@@ -21,6 +22,7 @@ const STATUS_TONE = { invited: 'warning', active: 'primary', suspended: 'muted' 
 const STATUS_LABEL = { invited: 'Pozván', active: 'Aktivní', suspended: 'Pozastaven' };
 
 export default function MobileChildParticipantsTab({ child, canManage }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,13 +47,13 @@ export default function MobileChildParticipantsTab({ child, canManage }) {
         organizationId: child.organizationId, childId: child.id, childName,
         relationLabel: form.relationLabel, displayName: form.displayName, email: form.email, phone: form.phone,
       });
-      toast.info(`Pozvánka odeslána na ${form.email}. Účastník zatím nemá žádná oprávnění.`);
+      toast.info(t('m.ep.invited', 'Pozvánka odeslána na {{email}}. Účastník zatím nemá žádná oprávnění.', { email: form.email }));
       setOpen(false);
       setForm({ displayName: '', email: '', phone: '', relationLabel: '' });
       await load();
     } catch (err) {
       console.error('[Participants] Pozvání selhalo:', err);
-      toast.error(err.message ?? 'Pozvání se nezdařilo.');
+      toast.error(err.message ?? t('m.ep.inviteFailed', 'Pozvání se nezdařilo.'));
     } finally {
       setSubmitting(false);
     }
@@ -62,14 +64,13 @@ export default function MobileChildParticipantsTab({ child, canManage }) {
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
       <p className="text-[13px] text-native-textMuted">
-        Externí účastníci případu (rodič, prarodič, psycholog, škola…). Každý má vlastní
-        přihlášení a přesně ta oprávnění, která mu schválíte — nic víc.
+        {t('m.ep.description', 'Externí účastníci případu (rodič, prarodič, psycholog, škola…). Každý má vlastní přihlášení a přesně ta oprávnění, která mu schválíte — nic víc.')}
       </p>
 
-      {loading && <p className="py-6 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+      {loading && <p className="py-6 text-center text-[15px] text-native-textMuted">{t('m.ep.loading', 'Načítám…')}</p>}
 
       {!loading && items.length === 0 && (
-        <NativeEmptyState icon={Users} title="Žádní účastníci" description="Pozvěte prvního externího účastníka case managementu." />
+        <NativeEmptyState icon={Users} title={t('m.ep.emptyTitle', 'Žádní účastníci')} description={t('m.ep.emptyDescription', 'Pozvěte prvního externího účastníka case managementu.')} />
       )}
 
       {!loading && items.length > 0 && (
@@ -87,7 +88,7 @@ export default function MobileChildParticipantsTab({ child, canManage }) {
               <div className={cn('flex min-w-0 flex-1 items-center gap-2 py-3 pr-4', i < items.length - 1 && 'border-b border-native-separator')}>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-medium text-native-text">{p.displayName}</p>
-                  <p className="truncate text-[13px] text-native-textMuted">{p.relationLabel || 'bez popisu vztahu'}</p>
+                  <p className="truncate text-[13px] text-native-textMuted">{p.relationLabel || t('m.ep.noRelationLabel', 'bez popisu vztahu')}</p>
                 </div>
                 <NativeChip tone={STATUS_TONE[p.status] ?? 'muted'}>{STATUS_LABEL[p.status] ?? p.status}</NativeChip>
                 <ChevronRight size={18} strokeWidth={2} className="shrink-0 text-native-textMuted" />
@@ -99,26 +100,25 @@ export default function MobileChildParticipantsTab({ child, canManage }) {
 
       {canManage && (
         <NativeButton variant="secondary" className="mt-1 h-12" onClick={() => setOpen(true)}>
-          <UserPlus size={16} strokeWidth={2} /> Pozvat účastníka
+          <UserPlus size={16} strokeWidth={2} /> {t('m.ep.invite', 'Pozvat účastníka')}
         </NativeButton>
       )}
 
       {open && (
         <NativeSheet
-          title="Pozvat účastníka"
+          title={t('m.ep.invite', 'Pozvat účastníka')}
           onClose={() => !submitting && setOpen(false)}
           submitting={submitting}
-          footer={<NativeButton onClick={handleInvite} disabled={submitting || !valid}>{submitting ? 'Odesílám…' : 'Poslat pozvánku'}</NativeButton>}
+          footer={<NativeButton onClick={handleInvite} disabled={submitting || !valid}>{submitting ? t('m.ep.sending', 'Odesílám…') : t('m.ep.sendInvite', 'Poslat pozvánku')}</NativeButton>}
         >
           <p className="text-[13px] text-native-textMuted">
-            Účastník dostane jednorázový přihlašovací odkaz. Popis vztahu je jen informativní —
-            žádná práva z něj neplynou, ta se přidělují samostatně.
+            {t('m.ep.inviteHint', 'Účastník dostane jednorázový přihlašovací odkaz. Popis vztahu je jen informativní — žádná práva z něj neplynou, ta se přidělují samostatně.')}
           </p>
           <NativeFormGroup>
-            <NativeFormRow label="Jméno"><RowInput value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} autoFocus /></NativeFormRow>
-            <NativeFormRow label="Vztah (popis)"><RowInput value={form.relationLabel} onChange={(e) => setForm((f) => ({ ...f, relationLabel: e.target.value }))} placeholder="např. matka, psycholog" /></NativeFormRow>
-            <NativeFormRow label="E-mail"><RowInput type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></NativeFormRow>
-            <NativeFormRow label="Telefon" isLast><RowInput type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.ep.name', 'Jméno')}><RowInput value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} autoFocus /></NativeFormRow>
+            <NativeFormRow label={t('m.ep.relationLabel', 'Vztah (popis)')}><RowInput value={form.relationLabel} onChange={(e) => setForm((f) => ({ ...f, relationLabel: e.target.value }))} placeholder={t('m.ep.relationPlaceholder', 'např. matka, psycholog')} /></NativeFormRow>
+            <NativeFormRow label={t('m.ep.email', 'E-mail')}><RowInput type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.ep.phone', 'Telefon')} isLast><RowInput type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></NativeFormRow>
           </NativeFormGroup>
         </NativeSheet>
       )}

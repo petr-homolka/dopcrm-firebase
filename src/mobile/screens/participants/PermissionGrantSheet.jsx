@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { permissionLabel, isSensitivePermission, REASON_TYPES } from '../../../shared/externalPermissions.js';
 import { requestGrant, approveGrant, activateGrant, revokeGrant, grantDirect } from '../../../services/orgService.js';
 import { toast } from '../../../store/toastStore.js';
@@ -22,6 +23,7 @@ function toTs(dateStr) {
 }
 
 export default function PermissionGrantSheet({ epId, childId, permissionKey, grant, onClose, onChanged }) {
+  const { t } = useTranslation();
   const sensitive = isSensitivePermission(permissionKey);
   const status = grant?.status ?? 'none';
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,7 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
   async function run(fn, okMsg) {
     setBusy(true);
     try { await fn(); toast.info(okMsg); await onChanged(); onClose(); }
-    catch (err) { console.error('[PermissionGrantSheet]', err); toast.error(err.message ?? 'Akce selhala.'); setBusy(false); }
+    catch (err) { console.error('[PermissionGrantSheet]', err); toast.error(err.message ?? t('m.epGrant.actionFailed', 'Akce selhala.')); setBusy(false); }
   }
 
   function addWindow() {
@@ -46,17 +48,17 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
 
   const doRequest = () => run(() => requestGrant(epId, {
     childId, permissionKey, reason: form.reason, reasonType: form.reasonType, sourceType: form.sourceType, ...validity,
-  }), 'Žádost zaznamenána.');
-  const doApprove = () => run(() => approveGrant(epId, grant.id), 'Schváleno.');
-  const doActivate = () => run(() => activateGrant(epId, grant.id, { validFrom: toTs(form.validFrom) }), 'Aktivováno.');
-  const doRevoke = () => run(() => revokeGrant(epId, grant.id), 'Oprávnění odvoláno.');
-  const doDirect = () => run(() => grantDirect(epId, { childId, permissionKey, ...validity }), 'Oprávnění zapnuto.');
+  }), t('m.epGrant.toastRequested', 'Žádost zaznamenána.'));
+  const doApprove = () => run(() => approveGrant(epId, grant.id), t('m.epGrant.toastApproved', 'Schváleno.'));
+  const doActivate = () => run(() => activateGrant(epId, grant.id, { validFrom: toTs(form.validFrom) }), t('m.epGrant.toastActivated', 'Aktivováno.'));
+  const doRevoke = () => run(() => revokeGrant(epId, grant.id), t('m.epGrant.toastRevoked', 'Oprávnění odvoláno.'));
+  const doDirect = () => run(() => grantDirect(epId, { childId, permissionKey, ...validity }), t('m.epGrant.toastEnabled', 'Oprávnění zapnuto.'));
 
   return (
     <NativeSheet title={permissionLabel(permissionKey)} onClose={() => !busy && onClose()} submitting={busy}>
       {sensitive && (
         <p className="rounded-native-card bg-native-warning/10 p-3 text-[13px] text-native-warning">
-          Citlivé oprávnění — vyžaduje doklad a tříkrokové schválení (Požádat → Schválit → Aktivovat).
+          {t('m.epGrant.sensitiveNotice', 'Citlivé oprávnění — vyžaduje doklad a tříkrokové schválení (Požádat → Schválit → Aktivovat).')}
         </p>
       )}
 
@@ -64,9 +66,9 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
       {status === 'active' && (
         <>
           <NativeFormGroup>
-            <NativeFormRow label="Stav" isLast><span className="text-[15px] text-native-primary">Aktivní</span></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.statusLabel', 'Stav')} isLast><span className="text-[15px] text-native-primary">{t('m.epGrant.statusActive', 'Aktivní')}</span></NativeFormRow>
           </NativeFormGroup>
-          <NativeButton variant="danger" onClick={doRevoke} disabled={busy}>Odvolat oprávnění</NativeButton>
+          <NativeButton variant="danger" onClick={doRevoke} disabled={busy}>{t('m.epGrant.revokeBtn', 'Odvolat oprávnění')}</NativeButton>
         </>
       )}
 
@@ -74,10 +76,10 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
       {!sensitive && status !== 'active' && (
         <>
           <NativeFormGroup>
-            <NativeFormRow label="Platnost od"><RowInput type="date" value={form.validFrom} onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))} /></NativeFormRow>
-            <NativeFormRow label="Platnost do" isLast hint="Prázdné = bez omezení."><RowInput type="date" value={form.validTo} onChange={(e) => setForm((f) => ({ ...f, validTo: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.validFrom', 'Platnost od')}><RowInput type="date" value={form.validFrom} onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.validTo', 'Platnost do')} isLast hint={t('m.epGrant.validToHint', 'Prázdné = bez omezení.')}><RowInput type="date" value={form.validTo} onChange={(e) => setForm((f) => ({ ...f, validTo: e.target.value }))} /></NativeFormRow>
           </NativeFormGroup>
-          <NativeButton onClick={doDirect} disabled={busy}>Zapnout oprávnění</NativeButton>
+          <NativeButton onClick={doDirect} disabled={busy}>{t('m.epGrant.enableBtn', 'Zapnout oprávnění')}</NativeButton>
         </>
       )}
 
@@ -85,31 +87,31 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
       {sensitive && (status === 'none' || status === 'revoked' || status === 'expired') && (
         <>
           <NativeFormGroup>
-            <NativeFormRow label="Typ dokladu">
+            <NativeFormRow label={t('m.epGrant.docType', 'Typ dokladu')}>
               <RowSelect value={form.reasonType} onChange={(e) => setForm((f) => ({ ...f, reasonType: e.target.value }))}>
                 {Object.entries(REASON_TYPES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </RowSelect>
             </NativeFormRow>
-            <NativeFormRow label="Zdroj / odkaz"><RowInput value={form.sourceType} onChange={(e) => setForm((f) => ({ ...f, sourceType: e.target.value }))} placeholder="č. j. rozhodnutí, dokument…" /></NativeFormRow>
-            <NativeFormRow label="Platnost od"><RowInput type="date" value={form.validFrom} onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))} /></NativeFormRow>
-            <NativeFormRow label="Platnost do"><RowInput type="date" value={form.validTo} onChange={(e) => setForm((f) => ({ ...f, validTo: e.target.value }))} /></NativeFormRow>
-            <NativeFormRow label="Důvod" isLast stacked><RowTextarea rows={3} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} placeholder="Odůvodnění aktivace…" /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.sourceLabel', 'Zdroj / odkaz')}><RowInput value={form.sourceType} onChange={(e) => setForm((f) => ({ ...f, sourceType: e.target.value }))} placeholder={t('m.epGrant.sourcePlaceholder', 'č. j. rozhodnutí, dokument…')} /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.validFrom', 'Platnost od')}><RowInput type="date" value={form.validFrom} onChange={(e) => setForm((f) => ({ ...f, validFrom: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.validTo', 'Platnost do')}><RowInput type="date" value={form.validTo} onChange={(e) => setForm((f) => ({ ...f, validTo: e.target.value }))} /></NativeFormRow>
+            <NativeFormRow label={t('m.epGrant.reasonLabel', 'Důvod')} isLast stacked><RowTextarea rows={3} value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} placeholder={t('m.epGrant.reasonPlaceholder', 'Odůvodnění aktivace…')} /></NativeFormRow>
           </NativeFormGroup>
 
           <div className="rounded-native-card bg-native-surface p-4">
-            <p className="text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">Časová okna (volitelné)</p>
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">{t('m.epGrant.windowsTitle', 'Časová okna (volitelné)')}</p>
             {windows.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {windows.map((w, i) => (
                   <span key={i} className="rounded-full bg-native-primary/15 px-2.5 py-1 text-[12px] text-native-primary">
-                    {w.type === 'weekly' ? `${WEEKDAYS[w.days[0]]}${w.weekParity !== 'all' ? ` (${w.weekParity === 'odd' ? 'liché' : 'sudé'})` : ''} ` : 'Denně '}{w.from}–{w.to}
+                    {w.type === 'weekly' ? `${WEEKDAYS[w.days[0]]}${w.weekParity !== 'all' ? ` (${w.weekParity === 'odd' ? t('m.epGrant.weekParityOdd', 'liché') : t('m.epGrant.weekParityEven', 'sudé')})` : ''} ` : `${t('m.epGrant.daily', 'Denně')} `}{w.from}–{w.to}
                   </span>
                 ))}
               </div>
             )}
             <div className="mt-2 flex flex-wrap items-end gap-2">
               <select value={win.type} onChange={(e) => setWin((w) => ({ ...w, type: e.target.value }))} className="rounded-native-input bg-native-bg px-2 py-2 text-[14px]">
-                <option value="daily">Denně</option><option value="weekly">Týdně</option>
+                <option value="daily">{t('m.epGrant.daily', 'Denně')}</option><option value="weekly">{t('m.epGrant.weekly', 'Týdně')}</option>
               </select>
               {win.type === 'weekly' && (
                 <>
@@ -117,24 +119,24 @@ export default function PermissionGrantSheet({ epId, childId, permissionKey, gra
                     {WEEKDAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
                   </select>
                   <select value={win.weekParity} onChange={(e) => setWin((w) => ({ ...w, weekParity: e.target.value }))} className="rounded-native-input bg-native-bg px-2 py-2 text-[14px]">
-                    <option value="all">každý</option><option value="odd">lichý</option><option value="even">sudý</option>
+                    <option value="all">{t('m.epGrant.parityAll', 'každý')}</option><option value="odd">{t('m.epGrant.parityOdd', 'lichý')}</option><option value="even">{t('m.epGrant.parityEven', 'sudý')}</option>
                   </select>
                 </>
               )}
               <input type="time" value={win.from} onChange={(e) => setWin((w) => ({ ...w, from: e.target.value }))} className="rounded-native-input bg-native-bg px-2 py-2 text-[14px]" />
               <input type="time" value={win.to} onChange={(e) => setWin((w) => ({ ...w, to: e.target.value }))} className="rounded-native-input bg-native-bg px-2 py-2 text-[14px]" />
-              <button type="button" onClick={addWindow} className="rounded-full bg-native-primary/10 px-3 py-2 text-[13px] font-medium text-native-primary">Přidat</button>
+              <button type="button" onClick={addWindow} className="rounded-full bg-native-primary/10 px-3 py-2 text-[13px] font-medium text-native-primary">{t('m.epGrant.addBtn', 'Přidat')}</button>
             </div>
           </div>
 
-          <NativeButton onClick={doRequest} disabled={busy || !form.reason.trim()}>Požádat o oprávnění</NativeButton>
+          <NativeButton onClick={doRequest} disabled={busy || !form.reason.trim()}>{t('m.epGrant.requestBtn', 'Požádat o oprávnění')}</NativeButton>
         </>
       )}
       {sensitive && status === 'requested' && (
-        <NativeButton onClick={doApprove} disabled={busy}>Schválit (vedení)</NativeButton>
+        <NativeButton onClick={doApprove} disabled={busy}>{t('m.epGrant.approveBtn', 'Schválit (vedení)')}</NativeButton>
       )}
       {sensitive && status === 'approved' && (
-        <NativeButton onClick={doActivate} disabled={busy}>Aktivovat (klíčová osoba)</NativeButton>
+        <NativeButton onClick={doActivate} disabled={busy}>{t('m.epGrant.activateBtn', 'Aktivovat (klíčová osoba)')}</NativeButton>
       )}
     </NativeSheet>
   );

@@ -11,6 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Settings as SettingsIcon, Check, X, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.js';
 import { getOrganization, isSlugAvailable, changeOrganizationSlug } from '../../services/orgService.js';
@@ -29,6 +30,7 @@ const STATUS_ICON = {
 const HINT_TONE = { ok: 'muted', taken: 'danger', invalid: 'danger', checking: 'muted', idle: 'muted' };
 
 export default function MobileSettingsScreen() {
+  const { t } = useTranslation();
   const { role, organizationId } = useAuthStore();
   const canManage = role === 'org_admin';
 
@@ -59,10 +61,10 @@ export default function MobileSettingsScreen() {
     setSaveMessage('');
     try {
       await changeOrganizationSlug(organizationId, slug);
-      setSaveMessage('Adresa organizace byla uložena.');
+      setSaveMessage(t('m.settings.slugSaved', 'Adresa organizace byla uložena.'));
       await load();
     } catch (err) {
-      setSaveMessage(err.message ?? 'Uložení se nezdařilo.');
+      setSaveMessage(err.message ?? t('m.settings.saveFailed', 'Uložení se nezdařilo.'));
     } finally {
       setSaving(false);
     }
@@ -71,12 +73,12 @@ export default function MobileSettingsScreen() {
   if (!canManage) {
     return (
       <div>
-        <MobileTopNav title="Nastavení" />
+        <MobileTopNav title={t('m.settings.title', 'Nastavení')} />
         <div className="mx-4 mt-6 flex flex-col items-center gap-2 rounded-native-card bg-native-surface py-10 text-center">
           <SettingsIcon size={28} strokeWidth={1.75} className="text-native-textMuted" />
-          <p className="text-[15px] font-medium text-native-text">Nastavení organizace</p>
+          <p className="text-[15px] font-medium text-native-text">{t('m.settings.orgSettings', 'Nastavení organizace')}</p>
           <p className="px-6 text-[14px] text-native-textMuted">
-            Tuto sekci může upravovat pouze administrátor organizace.
+            {t('m.settings.adminOnly', 'Tuto sekci může upravovat pouze administrátor organizace.')}
           </p>
         </div>
       </div>
@@ -85,10 +87,10 @@ export default function MobileSettingsScreen() {
 
   return (
     <div>
-      <MobileTopNav title="Nastavení" />
+      <MobileTopNav title={t('m.settings.title', 'Nastavení')} />
 
       {loading ? (
-        <p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p>
+        <p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.settings.loading', 'Načítám…')}</p>
       ) : (
         <div className="flex flex-col gap-4 px-4 pt-4">
           <p className="text-[15px] font-semibold text-native-text">{org?.name}</p>
@@ -97,10 +99,10 @@ export default function MobileSettingsScreen() {
             {/* Široký vlastní obsah (prefix + input + ikona) se do horizontálního
                 řádku (v4) nevejde → stacked. RowInput je od v4 zarovnaný doprava;
                 slug musí navazovat na prefix, proto !text-left (cn třídy nemerguje). */}
-            <NativeFormRow label="Adresa organizace" isLast stacked hint={message} hintTone={HINT_TONE[status]}>
+            <NativeFormRow label={t('m.settings.orgAddress', 'Adresa organizace')} isLast stacked hint={message} hintTone={HINT_TONE[status]}>
               <div className="flex items-center gap-2">
                 <span className="shrink-0 text-[16px] text-native-textMuted">doprovazeni.com/</span>
-                <RowInput className="!text-left" value={slug} onChange={(e) => setSlug(sanitizeSlugInput(e.target.value))} disabled={saving} placeholder="nazev-organizace" />
+                <RowInput className="!text-left" value={slug} onChange={(e) => setSlug(sanitizeSlugInput(e.target.value))} disabled={saving} placeholder={t('m.settings.slugPlaceholder', 'nazev-organizace')} />
                 {STATUS_ICON[status]}
               </div>
             </NativeFormRow>
@@ -109,7 +111,7 @@ export default function MobileSettingsScreen() {
           {saveMessage && <p className="text-[13px] text-native-textMuted">{saveMessage}</p>}
 
           <NativeButton className="h-12" disabled={saving || status !== 'ok' || slug === org?.slug} onClick={handleSave}>
-            {saving ? 'Ukládám…' : 'Uložit adresu'}
+            {saving ? t('m.settings.saving', 'Ukládám…') : t('m.settings.saveAddress', 'Uložit adresu')}
           </NativeButton>
         </div>
       )}

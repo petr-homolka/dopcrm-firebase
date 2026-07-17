@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { SectionLabel } from '../../ui/NativeBits.jsx';
 import { NativeInfoRow } from '../../ui/NativeFormRow.jsx';
@@ -31,6 +32,7 @@ function PersonCard({ name, rows }) {
 }
 
 export default function MobileSocialTab({ socialForm, onAddPartner, onAddChild, onAddParent, canManage }) {
+  const { t } = useTranslation();
   const biologicalChildren = socialForm.biologicalChildren ?? [];
   const parents = socialForm.parents ?? [];
   const partner = socialForm.partner;
@@ -39,46 +41,46 @@ export default function MobileSocialTab({ socialForm, onAddPartner, onAddChild, 
 
   return (
     <div className="flex flex-col px-4 pb-6 pt-1">
-      <SectionLabel>Partner/partnerka</SectionLabel>
+      <SectionLabel>{t('m.socialFam.partner', 'Partner/partnerka')}</SectionLabel>
       {partner?.name ? (
-        <PersonCard name={partner.name} rows={[{ label: 'Rodné číslo', value: partner.rc }, { label: 'Telefon', value: phoneValue(partner.phone) }]} />
+        <PersonCard name={partner.name} rows={[{ label: t('m.socialFam.rodneCislo', 'Rodné číslo'), value: partner.rc }, { label: t('m.socialFam.telefon', 'Telefon'), value: phoneValue(partner.phone) }]} />
       ) : (
         <div className="flex items-center justify-between rounded-native-card bg-native-surface px-4 py-3.5">
-          <span className="text-[15px] text-native-textMuted">Nevyplněno</span>
-          {canManage && <AddLink onClick={onAddPartner}>Přidat</AddLink>}
+          <span className="text-[15px] text-native-textMuted">{t('m.socialFam.nevyplneno', 'Nevyplněno')}</span>
+          {canManage && <AddLink onClick={onAddPartner}>{t('m.socialFam.pridat', 'Přidat')}</AddLink>}
         </div>
       )}
 
       <div className="flex items-center justify-between">
-        <SectionLabel>Biologické děti</SectionLabel>
-        {canManage && biologicalChildren.length > 0 && <AddLink onClick={onAddChild}>Přidat</AddLink>}
+        <SectionLabel>{t('m.socialFam.biologickeDeti', 'Biologické děti')}</SectionLabel>
+        {canManage && biologicalChildren.length > 0 && <AddLink onClick={onAddChild}>{t('m.socialFam.pridat', 'Přidat')}</AddLink>}
       </div>
       {biologicalChildren.length === 0 ? (
         <div className="flex items-center justify-between rounded-native-card bg-native-surface px-4 py-3.5">
-          <span className="text-[15px] text-native-textMuted">Žádné</span>
-          {canManage && <AddLink onClick={onAddChild}>Přidat</AddLink>}
+          <span className="text-[15px] text-native-textMuted">{t('m.socialFam.zadne', 'Žádné')}</span>
+          {canManage && <AddLink onClick={onAddChild}>{t('m.socialFam.pridat', 'Přidat')}</AddLink>}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {biologicalChildren.map((c, i) => (
-            <PersonCard key={c.id ?? i} name={c.name} rows={[{ label: 'Rodné číslo', value: c.rc }, { label: 'Datum narození', value: c.birthDate }]} />
+            <PersonCard key={c.id ?? i} name={c.name} rows={[{ label: t('m.socialFam.rodneCislo', 'Rodné číslo'), value: c.rc }, { label: t('m.socialFam.datumNarozeni', 'Datum narození'), value: c.birthDate }]} />
           ))}
         </div>
       )}
 
       <div className="flex items-center justify-between">
-        <SectionLabel>Rodiče</SectionLabel>
-        {canManage && parents.length > 0 && <AddLink onClick={onAddParent}>Přidat</AddLink>}
+        <SectionLabel>{t('m.socialFam.rodice', 'Rodiče')}</SectionLabel>
+        {canManage && parents.length > 0 && <AddLink onClick={onAddParent}>{t('m.socialFam.pridat', 'Přidat')}</AddLink>}
       </div>
       {parents.length === 0 ? (
         <div className="flex items-center justify-between rounded-native-card bg-native-surface px-4 py-3.5">
-          <span className="text-[15px] text-native-textMuted">Žádní</span>
-          {canManage && <AddLink onClick={onAddParent}>Přidat</AddLink>}
+          <span className="text-[15px] text-native-textMuted">{t('m.socialFam.zadni', 'Žádní')}</span>
+          {canManage && <AddLink onClick={onAddParent}>{t('m.socialFam.pridat', 'Přidat')}</AddLink>}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           {parents.map((p, i) => (
-            <PersonCard key={p.id ?? i} name={p.name} rows={[{ label: 'Rodné číslo', value: p.rc }, { label: 'Telefon', value: phoneValue(p.phone) }]} />
+            <PersonCard key={p.id ?? i} name={p.name} rows={[{ label: t('m.socialFam.rodneCislo', 'Rodné číslo'), value: p.rc }, { label: t('m.socialFam.telefon', 'Telefon'), value: phoneValue(p.phone) }]} />
           ))}
         </div>
       )}

@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../../store/authStore.js';
 import {
   createEvent, updateEvent, listFostersAssignedTo, listFostersByOrg,
@@ -37,6 +38,7 @@ function toTimeInputValue(date) {
 }
 
 export default function MobileEventSheet({ defaultDate, defaultFrom, event = null, onClose, onCreated }) {
+  const { t } = useTranslation();
   const { role, currentUser, organizationId } = useAuthStore();
   const [families, setFamilies] = useState([]);
   const [types, setTypes] = useState(EVENT_TYPES);
@@ -94,13 +96,13 @@ export default function MobileEventSheet({ defaultDate, defaultFrom, event = nul
       setForm((f) => ({ ...f, type: key }));
       setNewTypeLabel(null);
     } catch (err) {
-      toast.error(err.message ?? 'Typ se nepodařilo přidat.');
+      toast.error(err.message ?? t('m.event.addTypeFailed', 'Typ se nepodařilo přidat.'));
     }
   }
 
   const selectedFamily = families.find((f) => f.id === form.familyId);
   const effectiveTitle = form.title.trim()
-    || (form.type === 'visit' && selectedFamily ? `Návštěva — ${selectedFamily.name}` : types[form.type] ?? 'Událost');
+    || (form.type === 'visit' && selectedFamily ? t('m.event.visitTitle', 'Návštěva — {{name}}', { name: selectedFamily.name }) : types[form.type] ?? t('m.event.defaultTitle', 'Událost'));
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -113,7 +115,7 @@ export default function MobileEventSheet({ defaultDate, defaultFrom, event = nul
         const patch = { title: effectiveTitle, type: form.type, typeLabel, start, end, fosterFamilyId: form.familyId || null };
         if ((event.fosterFamilyId ?? '') !== form.familyId) patch.location = selectedFamily?.address ?? '';
         await updateEvent(organizationId, event.id, patch);
-        toast.info('Událost upravena.');
+        toast.info(t('m.event.updatedToast', 'Událost upravena.'));
       } else {
         await createEvent(organizationId, {
           title: effectiveTitle, type: form.type, typeLabel, start, end,
@@ -121,71 +123,71 @@ export default function MobileEventSheet({ defaultDate, defaultFrom, event = nul
           fosterFamilyId: form.familyId || null,
           location: selectedFamily?.address ?? '',
         });
-        toast.info(`Událost naplánována na ${start.toLocaleDateString('cs-CZ')} v ${form.from}.`);
+        toast.info(t('m.event.scheduledToast', 'Událost naplánována na {{date}} v {{time}}.', { date: start.toLocaleDateString('cs-CZ'), time: form.from }));
       }
       onCreated();
     } catch (err) {
       console.error('[MobileEventSheet] Uložení události selhalo:', err);
-      toast.error(err.message ?? 'Uložení se nezdařilo.');
+      toast.error(err.message ?? t('m.event.saveFailed', 'Uložení se nezdařilo.'));
       setSubmitting(false);
     }
   }
 
   return (
     <NativeSheet
-      title={event ? 'Upravit událost' : 'Nová událost'}
+      title={event ? t('m.event.editTitle', 'Upravit událost') : t('m.event.newTitle', 'Nová událost')}
       onClose={() => !submitting && onClose()}
       submitting={submitting}
       footer={
         <NativeButton onClick={handleSubmit} disabled={submitting || !form.date || !form.from}>
-          {submitting ? 'Ukládám…' : event ? 'Uložit změny' : 'Naplánovat'}
+          {submitting ? t('m.common.saving', 'Ukládám…') : event ? t('m.event.saveChanges', 'Uložit změny') : t('m.event.schedule', 'Naplánovat')}
         </NativeButton>
       }
     >
       <NativeFormGroup>
-        <NativeFormRow label="Typ">
+        <NativeFormRow label={t('m.event.typeLabel', 'Typ')}>
           <RowSelect value={form.type} onChange={handleTypeChange}>
             {Object.entries(types).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
-            {canAddType && <option value={ADD_TYPE}>+ Nový typ…</option>}
+            {canAddType && <option value={ADD_TYPE}>{t('m.event.addTypeOption', '+ Nový typ…')}</option>}
           </RowSelect>
         </NativeFormRow>
-        <NativeFormRow label="Rodina">
+        <NativeFormRow label={t('m.event.familyLabel', 'Rodina')}>
           <RowSelect value={form.familyId} onChange={set('familyId')}>
-            <option value="">Bez rodiny</option>
+            <option value="">{t('m.event.noFamily', 'Bez rodiny')}</option>
             {families.map((f) => (
               <option key={f.id} value={f.id}>{f.name}</option>
             ))}
           </RowSelect>
         </NativeFormRow>
-        <NativeFormRow label="Název" hint={form.title.trim() ? undefined : `Bez názvu se použije: ${effectiveTitle}`}>
+        <NativeFormRow label={t('m.event.nameLabel', 'Název')} hint={form.title.trim() ? undefined : t('m.event.nameHint', 'Bez názvu se použije: {{title}}', { title: effectiveTitle })}>
           <RowInput value={form.title} onChange={set('title')} placeholder={effectiveTitle} />
         </NativeFormRow>
-        <NativeFormRow label="Datum">
+        <NativeFormRow label={t('m.event.dateLabel', 'Datum')}>
           <RowInput type="date" value={form.date} onChange={set('date')} />
         </NativeFormRow>
-        <NativeFormRow label="Od">
+        <NativeFormRow label={t('m.event.fromLabel', 'Od')}>
           <RowInput type="time" value={form.from} onChange={set('from')} />
         </NativeFormRow>
-        <NativeFormRow label="Do" isLast>
+        <NativeFormRow label={t('m.event.toLabel', 'Do')} isLast>
           <RowInput type="time" value={form.to} onChange={set('to')} />
         </NativeFormRow>
       </NativeFormGroup>
 
       {newTypeLabel !== null && (
         <NativeFormGroup>
-          <NativeFormRow label="Nový typ" isLast hint="Uloží se do číselníku organizace — uvidí ho všichni.">
+          <NativeFormRow label={t('m.event.newTypeLabel', 'Nový typ')} isLast hint={t('m.event.newTypeHint', 'Uloží se do číselníku organizace — uvidí ho všichni.')}>
             <RowInput
               value={newTypeLabel}
               onChange={(e) => setNewTypeLabel(e.target.value)}
-              placeholder="Např. Supervize"
+              placeholder={t('m.event.newTypePlaceholder', 'Např. Supervize')}
               autoFocus
             />
           </NativeFormRow>
           <div className="flex gap-2 pb-3">
-            <NativeButton variant="secondary" className="h-11" onClick={() => setNewTypeLabel(null)}>Zrušit</NativeButton>
-            <NativeButton className="h-11" onClick={handleAddType} disabled={!newTypeLabel.trim()}>Přidat typ</NativeButton>
+            <NativeButton variant="secondary" className="h-11" onClick={() => setNewTypeLabel(null)}>{t('m.common.cancel', 'Zrušit')}</NativeButton>
+            <NativeButton className="h-11" onClick={handleAddType} disabled={!newTypeLabel.trim()}>{t('m.event.addTypeButton', 'Přidat typ')}</NativeButton>
           </div>
         </NativeFormGroup>
       )}

@@ -7,11 +7,13 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, MailCheck } from 'lucide-react';
 import { isMagicLink, completeMagicLink } from '../../services/orgAuth.js';
 
 export default function MagicLinkScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [phase, setPhase] = useState('working'); // working | needEmail | error
   const [email, setEmail] = useState('');
@@ -28,7 +30,7 @@ export default function MagicLinkScreen() {
       if (!fallbackEmail && /e-mail/i.test(err.message ?? '')) {
         setPhase('needEmail');
       } else {
-        setError(err.message ?? 'Přihlášení se nezdařilo.');
+        setError(err.message ?? t('m.magic.loginFailed', 'Přihlášení se nezdařilo.'));
         setPhase('error');
       }
     }
@@ -38,7 +40,7 @@ export default function MagicLinkScreen() {
     if (tried.current) return;
     tried.current = true;
     if (!isMagicLink()) {
-      setError('Tento odkaz už není platný nebo byl použit. Požádejte o nový.');
+      setError(t('m.magic.linkInvalid', 'Tento odkaz už není platný nebo byl použit. Požádejte o nový.'));
       setPhase('error');
       return;
     }
@@ -52,20 +54,20 @@ export default function MagicLinkScreen() {
         {phase === 'working' && (
           <>
             <Loader2 size={28} strokeWidth={2} className="mx-auto animate-spin text-native-primary" />
-            <p className="mt-3 text-[15px] text-native-textMuted">Přihlašuji vás…</p>
+            <p className="mt-3 text-[15px] text-native-textMuted">{t('m.magic.working', 'Přihlašuji vás…')}</p>
           </>
         )}
 
         {phase === 'needEmail' && (
           <>
             <MailCheck size={28} strokeWidth={1.75} className="mx-auto text-native-primary" />
-            <p className="mt-3 text-[17px] font-semibold text-native-text">Potvrďte svůj e-mail</p>
-            <p className="mt-1 text-[13px] text-native-textMuted">Zadejte e-mail, na který vám odkaz přišel.</p>
+            <p className="mt-3 text-[17px] font-semibold text-native-text">{t('m.magic.confirmEmailTitle', 'Potvrďte svůj e-mail')}</p>
+            <p className="mt-1 text-[13px] text-native-textMuted">{t('m.magic.confirmEmailHint', 'Zadejte e-mail, na který vám odkaz přišel.')}</p>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vas@email.cz"
+              placeholder={t('m.magic.emailPlaceholder', 'vas@email.cz')}
               className="mt-4 w-full rounded-native-input bg-native-bg px-3.5 py-3 text-[16px] text-native-text placeholder:text-native-textMuted focus:outline-none"
             />
             <button
@@ -74,21 +76,21 @@ export default function MagicLinkScreen() {
               disabled={!email.trim()}
               className="mt-3 h-12 w-full rounded-full bg-native-primary text-[17px] font-semibold text-white disabled:bg-native-separator disabled:text-native-textMuted"
             >
-              Přihlásit se
+              {t('m.magic.loginButton', 'Přihlásit se')}
             </button>
           </>
         )}
 
         {phase === 'error' && (
           <>
-            <p className="text-[17px] font-semibold text-native-text">Přihlášení se nezdařilo</p>
+            <p className="text-[17px] font-semibold text-native-text">{t('m.magic.errorTitle', 'Přihlášení se nezdařilo')}</p>
             <p className="mt-1 text-[14px] text-native-textMuted">{error}</p>
             <button
               type="button"
               onClick={() => navigate('/login', { replace: true })}
               className="mt-4 h-12 w-full rounded-full bg-native-primary/10 text-[17px] font-semibold text-native-primary"
             >
-              Zpět na přihlášení
+              {t('m.magic.backToLogin', 'Zpět na přihlášení')}
             </button>
           </>
         )}

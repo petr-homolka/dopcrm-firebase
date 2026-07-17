@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Baby } from 'lucide-react';
 import { NativeGroupedList, NativeListRow } from '../../ui/NativeListRow.jsx';
 import NativeButton from '../../ui/NativeButton.jsx';
@@ -17,10 +18,11 @@ function formatBirthDate(value) {
 }
 
 export default function MobileChildrenTab({ childrenList, onOpenChild, onAddChild, canManage }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-3">
       {childrenList.length === 0 && (
-        <p className="py-6 text-center text-[15px] text-native-textMuted">Zatím žádné svěřené děti.</p>
+        <p className="py-6 text-center text-[15px] text-native-textMuted">{t('m.famDetail.noChildren', 'Zatím žádné svěřené děti.')}</p>
       )}
 
       {childrenList.length > 0 && (
@@ -30,7 +32,7 @@ export default function MobileChildrenTab({ childrenList, onOpenChild, onAddChil
               key={child.id}
               icon={Baby}
               iconBg="bg-native-primary"
-              label={`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim() || 'Bez jména'}
+              label={`${child.firstName ?? ''} ${child.lastName ?? ''}`.trim() || t('m.famDetail.noName', 'Bez jména')}
               trailing={<span className="text-[13px] text-native-textMuted">{formatBirthDate(child.birthDate)}</span>}
               onClick={() => onOpenChild(child.id)}
               isLast={i === childrenList.length - 1}
@@ -41,7 +43,7 @@ export default function MobileChildrenTab({ childrenList, onOpenChild, onAddChil
 
       {canManage && (
         <NativeButton variant="secondary" className="h-12" onClick={onAddChild}>
-          Přidat dítě
+          {t('m.famDetail.addChild', 'Přidat dítě')}
         </NativeButton>
       )}
     </div>

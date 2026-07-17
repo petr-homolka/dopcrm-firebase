@@ -9,10 +9,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Timer, ChevronRight } from 'lucide-react';
 import { getActiveVisit, formatDuration } from '../../shared/visitTimerStorage.js';
 
 export default function ActiveVisitBanner() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const [visit, setVisit] = useState(() => getActiveVisit());
@@ -38,7 +40,7 @@ export default function ActiveVisitBanner() {
     >
       <Timer size={15} strokeWidth={2.25} className="shrink-0 text-white" />
       <span className="truncate text-[13px] font-semibold text-white">
-        Probíhá návštěva — {visit.familyName}
+        {t('m.shell.visitInProgress', 'Probíhá návštěva — {{name}}', { name: visit.familyName })}
       </span>
       <span className="ml-auto shrink-0 text-[13px] font-bold tabular-nums text-white">{formatDuration(elapsed)}</span>
       <ChevronRight size={15} strokeWidth={2.25} className="shrink-0 text-white/80" />

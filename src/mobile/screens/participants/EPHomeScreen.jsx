@@ -7,6 +7,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Lock } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore.js';
@@ -18,6 +19,7 @@ import NativeHero, { HeroBody } from '../../ui/NativeHero.jsx';
 import { SectionLabel, NativeEmptyState } from '../../ui/NativeBits.jsx';
 
 export default function EPHomeScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile } = useAuthStore();
   const epId = profile?.externalParticipantId;
@@ -35,26 +37,26 @@ export default function EPHomeScreen() {
   }, [epId]);
 
   const activeKeys = EXTERNAL_PERMISSIONS.filter((p) => grants.some((g) => g.permissionKey === p.key && isGrantActive(g)));
-  const name = profile?.displayName ?? 'Účastník';
+  const name = profile?.displayName ?? t('m.ep.defaultName', 'Účastník');
 
   return (
     <div>
-      <MobileTopNav variant="hero" title="Doprovázení" />
+      <MobileTopNav variant="hero" title={t('m.ep.homeTitle', 'Doprovázení')} />
       <NativeHero
-        title={`Dobrý den, ${name.split(' ')[0]}`}
+        title={t('m.ep.greeting', 'Dobrý den, {{name}}', { name: name.split(' ')[0] })}
         subtitle={ep?.childName ? <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[12px] font-semibold text-white">{ep.childName}</span> : null}
       />
 
       <HeroBody>
         <div className="p-4 pb-10">
-          <SectionLabel>Co máte povoleno</SectionLabel>
-          {loading && <p className="py-4 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+          <SectionLabel>{t('m.ep.whatAllowed', 'Co máte povoleno')}</SectionLabel>
+          {loading && <p className="py-4 text-center text-[15px] text-native-textMuted">{t('m.common.loading', 'Načítám…')}</p>}
 
           {!loading && activeKeys.length === 0 && (
             <NativeEmptyState
               icon={Lock}
-              title="Zatím žádná oprávnění"
-              description="Přístup k údajům, komunikaci nebo dokumentům vám povolí klíčová osoba. Do té doby zde nic není."
+              title={t('m.ep.emptyPermsTitle', 'Zatím žádná oprávnění')}
+              description={t('m.ep.emptyPermsDesc', 'Přístup k údajům, komunikaci nebo dokumentům vám povolí klíčová osoba. Do té doby zde nic není.')}
             />
           )}
 
@@ -71,8 +73,7 @@ export default function EPHomeScreen() {
             </div>
           )}
           <p className="mt-3 px-1 text-[13px] text-native-textMuted">
-            Konkrétní obsah (dokumenty, chat, časová osa…) se zpřístupní podle povolení
-            v dalších krocích. Vše, co v aplikaci uděláte, se zaznamenává.
+            {t('m.ep.contentNotice', 'Konkrétní obsah (dokumenty, chat, časová osa…) se zpřístupní podle povolení v dalších krocích. Vše, co v aplikaci uděláte, se zaznamenává.')}
           </p>
 
           <button
@@ -81,7 +82,7 @@ export default function EPHomeScreen() {
             className="mt-5 flex w-full items-center gap-3 rounded-native-card bg-native-surface px-4 py-3.5 text-left active:bg-native-bg"
           >
             <ShieldCheck size={20} strokeWidth={2} className="text-native-primary" />
-            <span className="flex-1 text-[15px] font-medium text-native-text">Moje auditní historie</span>
+            <span className="flex-1 text-[15px] font-medium text-native-text">{t('m.ep.auditHistoryLink', 'Moje auditní historie')}</span>
           </button>
         </div>
       </HeroBody>

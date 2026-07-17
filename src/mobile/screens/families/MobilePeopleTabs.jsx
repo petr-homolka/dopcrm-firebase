@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, ChevronRight, Baby } from 'lucide-react';
 import Avatar from '../../../components/ui/Avatar.jsx';
 import { cn } from '../../../components/ui/cn.js';
@@ -29,10 +30,11 @@ function PersonRow({ title, subtitle, right, onClick, isLast }) {
 }
 
 export function FostersList({ fosters, onOpenFamily }) {
+  const { t } = useTranslation();
   if (fosters.length === 0) {
     return (
       <div className="mx-4 mt-2">
-        <NativeEmptyState icon={User} title="Žádní pěstouni" description="Pěstouni se přidávají v detailu rodiny na záložce Pěstouni." />
+        <NativeEmptyState icon={User} title={t('m.families.noFostersTitle', 'Žádní pěstouni')} description={t('m.families.noFostersDesc', 'Pěstouni se přidávají v detailu rodiny na záložce Pěstouni.')} />
       </div>
     );
   }
@@ -52,17 +54,18 @@ export function FostersList({ fosters, onOpenFamily }) {
 }
 
 export function ChildrenList({ childrenList, familiesById, onOpenChild }) {
+  const { t } = useTranslation();
   if (childrenList.length === 0) {
     return (
       <div className="mx-4 mt-2">
-        <NativeEmptyState icon={Baby} title="Žádné děti" description="Děti se přidávají v detailu rodiny na záložce Děti." />
+        <NativeEmptyState icon={Baby} title={t('m.families.noChildrenTitle', 'Žádné děti')} description={t('m.families.noChildrenDesc', 'Děti se přidávají v detailu rodiny na záložce Děti.')} />
       </div>
     );
   }
   return (
     <div className="mx-4 overflow-hidden rounded-native-card bg-native-surface">
       {childrenList.map((ch, i) => {
-        const name = [ch.firstName, ch.lastName].filter(Boolean).join(' ') || '(bez jména)';
+        const name = [ch.firstName, ch.lastName].filter(Boolean).join(' ') || t('m.families.noName', '(bez jména)');
         return (
           <PersonRow
             key={ch.id}

@@ -10,6 +10,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CARE_TYPES } from '../../shared/domainConstants.js';
 import { parseRc, toDateInputValue } from '../../shared/rcUtils.js';
@@ -34,6 +35,7 @@ import MobileChildrenTab from './familyDetail/MobileChildrenTab.jsx';
 const noop = { preventDefault: () => {} };
 
 export default function MobileFamilyDetailScreen() {
+  const { t } = useTranslation();
   const { familyId } = useParams();
   const navigate = useNavigate();
   const { role } = useAuthStore();
@@ -56,13 +58,13 @@ export default function MobileFamilyDetailScreen() {
 
   const requiredHours = family ? CARE_TYPES[family.careType]?.requiredHours ?? 24 : 24;
   const tabItems = [
-    { value: 'osa', label: 'Osa' },
-    { value: 'chat', label: 'Chat' },
-    { value: 'dokumenty', label: 'Dokumenty' },
-    { value: 'pestouni', label: 'Pěstouni' },
-    { value: 'respit', label: 'Respit' },
-    { value: 'social', label: 'Sociální prostor' },
-    { value: 'deti', label: `Děti (${children.length})` },
+    { value: 'osa', label: t('m.famDetail.tabOsa', 'Osa') },
+    { value: 'chat', label: t('m.famDetail.tabChat', 'Chat') },
+    { value: 'dokumenty', label: t('m.famDetail.tabDocs', 'Dokumenty') },
+    { value: 'pestouni', label: t('m.famDetail.tabFosters', 'Pěstouni') },
+    { value: 'respit', label: t('m.famDetail.tabRespit', 'Respit') },
+    { value: 'social', label: t('m.famDetail.tabSocial', 'Sociální prostor') },
+    { value: 'deti', label: t('m.famDetail.tabChildren', 'Děti ({{n}})', { n: children.length }) },
   ];
 
   const childRc = parseRc(childForm.rc);
@@ -83,7 +85,7 @@ export default function MobileFamilyDetailScreen() {
 
   return (
     <div>
-      <MobileTopNav variant="hero" title={loading ? 'Načítám…' : 'Rodina'} onBack={() => navigate(-1)} />
+      <MobileTopNav variant="hero" title={loading ? t('m.famDetail.loading', 'Načítám…') : t('m.famDetail.title', 'Rodina')} onBack={() => navigate(-1)} />
 
       {error && <p className="px-4 py-6 text-center text-[15px] text-native-danger">{error}</p>}
 
@@ -131,7 +133,7 @@ export default function MobileFamilyDetailScreen() {
               limit={limit}
               realny={realny}
               eligible={eligible}
-              odmenaStatus={eligible ? 'Nárok na SPVPP/PPPD odměnu' : 'Bez nároku na odměnu'}
+              odmenaStatus={eligible ? t('m.famDetail.odmenaEligible', 'Nárok na SPVPP/PPPD odměnu') : t('m.famDetail.odmenaNone', 'Bez nároku na odměnu')}
               childrenList={children}
               respitEvents={respitEvents}
               canManage={canManage}
@@ -167,7 +169,7 @@ export default function MobileFamilyDetailScreen() {
 
       {childDialogOpen && (
         <NativeSheet
-          title="Přidat dítě"
+          title={t('m.famDetail.addChildTitle', 'Přidat dítě')}
           onClose={() => setChildDialogOpen(false)}
           submitting={submitting}
           footer={
@@ -175,26 +177,26 @@ export default function MobileFamilyDetailScreen() {
               onClick={() => handleAddChild(noop)}
               disabled={submitting || !childForm.firstName.trim() || !childForm.lastName.trim() || !!childRc.error}
             >
-              {submitting ? 'Ukládám…' : 'Uložit'}
+              {submitting ? t('m.famDetail.saving', 'Ukládám…') : t('m.famDetail.save', 'Uložit')}
             </NativeButton>
           }
         >
           {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
-            <NativeFormRow label="Jméno">
+            <NativeFormRow label={t('m.famDetail.firstName', 'Jméno')}>
               <RowInput value={childForm.firstName} onChange={(e) => setChildForm((f) => ({ ...f, firstName: e.target.value }))} autoFocus />
             </NativeFormRow>
-            <NativeFormRow label="Příjmení">
+            <NativeFormRow label={t('m.famDetail.lastName', 'Příjmení')}>
               <RowInput value={childForm.lastName} onChange={(e) => setChildForm((f) => ({ ...f, lastName: e.target.value }))} />
             </NativeFormRow>
             <NativeFormRow
-              label="Rodné číslo"
-              hint={childRc.error ?? (childRc.checksumWarning ? 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.' : undefined)}
+              label={t('m.famDetail.rc', 'Rodné číslo')}
+              hint={childRc.error ?? (childRc.checksumWarning ? t('m.famDetail.rcChecksumWarn', 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.') : undefined)}
               hintTone={childRc.error ? 'danger' : 'warning'}
             >
               <RowInput value={childForm.rc} onChange={(e) => handleChildRcChange(e.target.value)} />
             </NativeFormRow>
-            <NativeFormRow label="Datum narození" isLast>
+            <NativeFormRow label={t('m.famDetail.birthDate', 'Datum narození')} isLast>
               <RowInput type="date" value={childForm.birthDate} onChange={(e) => setChildForm((f) => ({ ...f, birthDate: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>
@@ -203,33 +205,33 @@ export default function MobileFamilyDetailScreen() {
 
       {socialDialogOpen && (
         <NativeSheet
-          title={socialKind === 'partner' ? 'Přidat partnera' : socialKind === 'child' ? 'Přidat biologické dítě' : 'Přidat rodiče'}
+          title={socialKind === 'partner' ? t('m.famDetail.addPartnerTitle', 'Přidat partnera') : socialKind === 'child' ? t('m.famDetail.addBioChildTitle', 'Přidat biologické dítě') : t('m.famDetail.addParentTitle', 'Přidat rodiče')}
           onClose={() => setSocialDialogOpen(false)}
           submitting={submitting}
           footer={
             <NativeButton onClick={() => handleSaveSocial(noop)} disabled={submitting || !socialEntry.name.trim() || !!socialRc.error}>
-              {submitting ? 'Ukládám…' : 'Uložit'}
+              {submitting ? t('m.famDetail.saving', 'Ukládám…') : t('m.famDetail.save', 'Uložit')}
             </NativeButton>
           }
         >
           {submitError && <p className="text-[14px] text-native-danger">{submitError}</p>}
           <NativeFormGroup>
-            <NativeFormRow label="Jméno">
+            <NativeFormRow label={t('m.famDetail.firstName', 'Jméno')}>
               <RowInput value={socialEntry.name} onChange={(e) => setSocialEntry((s) => ({ ...s, name: e.target.value }))} autoFocus />
             </NativeFormRow>
             <NativeFormRow
-              label="Rodné číslo"
-              hint={socialRc.error ?? (socialRc.checksumWarning ? 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.' : undefined)}
+              label={t('m.famDetail.rc', 'Rodné číslo')}
+              hint={socialRc.error ?? (socialRc.checksumWarning ? t('m.famDetail.rcChecksumWarn', 'Kontrolní součet RČ nesedí — zkontrolujte, prosím.') : undefined)}
               hintTone={socialRc.error ? 'danger' : 'warning'}
             >
               <RowInput value={socialEntry.rc} onChange={(e) => handleSocialRcChange(e.target.value)} />
             </NativeFormRow>
             {socialKind === 'child' ? (
-              <NativeFormRow label="Datum narození" isLast>
+              <NativeFormRow label={t('m.famDetail.birthDate', 'Datum narození')} isLast>
                 <RowInput type="date" value={socialEntry.birthDate} onChange={(e) => setSocialEntry((s) => ({ ...s, birthDate: e.target.value }))} />
               </NativeFormRow>
             ) : (
-              <NativeFormRow label="Telefon" isLast>
+              <NativeFormRow label={t('m.famDetail.phone', 'Telefon')} isLast>
                 <RowInput type="tel" value={socialEntry.phone} onChange={(e) => setSocialEntry((s) => ({ ...s, phone: e.target.value }))} />
               </NativeFormRow>
             )}

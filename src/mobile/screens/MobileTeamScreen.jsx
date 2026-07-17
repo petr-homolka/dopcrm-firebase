@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import Avatar from '../../components/ui/Avatar.jsx';
@@ -23,22 +24,23 @@ function familyCountLabel(n) {
 }
 
 export default function MobileTeamScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { loading, error, groups } = useTeamDashboard();
 
   return (
     <div>
-      <MobileTopNav title="Tým" />
+      <MobileTopNav title={t('m.team.title', 'Tým')} />
 
-      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.team.loading', 'Načítám…')}</p>}
       {!loading && error && <p className="px-4 py-6 text-center text-[15px] text-native-danger">{error}</p>}
 
       {!loading && !error && groups.length === 0 && (
         <div className="mx-4 mt-6">
           <NativeEmptyState
             icon={Users}
-            title="Nemáte žádné podřízené klíčové osoby"
-            description="Přiřazení do vaší podřízenosti (pole „nadřízený“) nastavuje administrátor organizace."
+            title={t('m.team.emptyTitle', 'Nemáte žádné podřízené klíčové osoby')}
+            description={t('m.team.emptyDesc', 'Přiřazení do vaší podřízenosti (pole „nadřízený“) nastavuje administrátor organizace.')}
           />
         </div>
       )}
@@ -54,7 +56,7 @@ export default function MobileTeamScreen() {
           </div>
 
           {families.length === 0 ? (
-            <p className="px-4 text-[13px] text-native-textMuted">Zatím nemá přiřazené žádné rodiny.</p>
+            <p className="px-4 text-[13px] text-native-textMuted">{t('m.team.noFamilies', 'Zatím nemá přiřazené žádné rodiny.')}</p>
           ) : (
             <div className="mx-4">
               <NativeGroupedList>

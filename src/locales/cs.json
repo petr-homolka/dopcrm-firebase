@@ -219,7 +219,10 @@
         "pestouni": "Pěstouni ({{count}})",
         "respit": "Respit a SPVPP",
         "social": "Sociální prostor",
-        "deti": "Svěřené děti ({{count}})"
+        "deti": "Svěřené děti ({{count}})",
+        "chat": "Chat",
+        "dokumenty": "Dokumenty",
+        "mapa": "Mapa"
       },
       "fosters": {
         "title": "Pěstouni v domácnosti",
@@ -344,7 +347,8 @@
         "rodina": "Biologická rodina",
         "socialni": "Sociální prostor",
         "poznamky": "Poznámky",
-        "historie": "Historie"
+        "historie": "Historie",
+        "ucastnici": "Účastníci"
       },
       "errors": {
         "notFound": "Dítě nenalezeno.",

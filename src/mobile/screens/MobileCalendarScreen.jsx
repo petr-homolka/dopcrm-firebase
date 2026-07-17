@@ -10,6 +10,7 @@
  */
 
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '../../components/ui/cn.js';
 import { EVENT_BORDER_CLASS, eventTypeLabel } from '../../shared/domainConstants.js';
@@ -25,6 +26,7 @@ const DAY_END = 19;
 const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i);
 
 function EventCard({ ev, onOpen }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -37,7 +39,7 @@ function EventCard({ ev, onOpen }) {
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-[15px] font-semibold text-native-text">
-          {ev.allDay ? 'Celý den' : `${formatTime(ev.start)} – ${formatTime(ev.end ?? ev.start)}`}
+          {ev.allDay ? t('m.calendar.allDay', 'Celý den') : `${formatTime(ev.start)} – ${formatTime(ev.end ?? ev.start)}`}
         </p>
         <span className="text-[13px] text-native-textMuted">{ev.typeLabel ?? eventTypeLabel(ev.type)}</span>
       </div>
@@ -48,6 +50,7 @@ function EventCard({ ev, onOpen }) {
 }
 
 export default function MobileCalendarScreen() {
+  const { t } = useTranslation();
   const week = useCalendarWeek();
   const [selected, setSelected] = useState(() => {
     const todayIdx = week.days.findIndex((d) => d.toDateString() === new Date().toDateString());
@@ -61,8 +64,8 @@ export default function MobileCalendarScreen() {
   if (week.loading) {
     return (
       <div>
-        <MobileTopNav title="Kalendář" />
-        <p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p>
+        <MobileTopNav title={t('m.calendar.title', 'Kalendář')} />
+        <p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.common.loading', 'Načítám…')}</p>
       </div>
     );
   }
@@ -94,16 +97,16 @@ export default function MobileCalendarScreen() {
 
   return (
     <div>
-      <MobileTopNav title="Kalendář" />
+      <MobileTopNav title={t('m.calendar.title', 'Kalendář')} />
 
       <div className="flex items-center justify-between px-2 pt-2">
-        <button type="button" onClick={week.goPrevWeek} aria-label="Předchozí týden" className="flex h-11 w-11 items-center justify-center text-native-primary">
+        <button type="button" onClick={week.goPrevWeek} aria-label={t('m.calendar.prevWeek', 'Předchozí týden')} className="flex h-11 w-11 items-center justify-center text-native-primary">
           <ChevronLeft size={22} strokeWidth={2} />
         </button>
         <p className="text-[15px] font-semibold capitalize text-native-text">
           {week.days[3]?.toLocaleDateString('cs-CZ', { month: 'long', year: 'numeric' })}
         </p>
-        <button type="button" onClick={week.goNextWeek} aria-label="Následující týden" className="flex h-11 w-11 items-center justify-center text-native-primary">
+        <button type="button" onClick={week.goNextWeek} aria-label={t('m.calendar.nextWeek', 'Následující týden')} className="flex h-11 w-11 items-center justify-center text-native-primary">
           <ChevronRight size={22} strokeWidth={2} />
         </button>
       </div>
@@ -132,7 +135,7 @@ export default function MobileCalendarScreen() {
       </div>
 
       <p className="px-4 pb-2 text-[13px] text-native-textMuted">
-        Tento týden · {week.weekTotals.visitCount} návštěv · {week.weekTotals.familyCount} rodin
+        {t('m.calendar.weekTotals', 'Tento týden · {{visits}} návštěv · {{families}} rodin', { visits: week.weekTotals.visitCount, families: week.weekTotals.familyCount })}
       </p>
 
       {week.error && <p className="px-4 py-4 text-center text-[15px] text-native-danger">{week.error}</p>}
@@ -156,11 +159,11 @@ export default function MobileCalendarScreen() {
                 ) : (
                   <button
                     type="button"
-                    aria-label={`Přidat událost v ${hour}:00`}
+                    aria-label={t('m.calendar.addAtHour', 'Přidat událost v {{hour}}:00', { hour })}
                     onClick={() => setSheet({ dayIdx: selected, from: `${String(hour).padStart(2, '0')}:00` })}
                     className="flex h-11 items-center gap-1 rounded-native-input px-2 text-[13px] font-medium text-native-textMuted/60 transition-colors active:bg-native-primary/10 active:text-native-primary"
                   >
-                    <Plus size={14} strokeWidth={2} /> Přidat
+                    <Plus size={14} strokeWidth={2} /> {t('m.common.add', 'Přidat')}
                   </button>
                 )}
               </div>
@@ -172,7 +175,7 @@ export default function MobileCalendarScreen() {
       <button
         type="button"
         onClick={() => setSheet({ dayIdx: selected })}
-        aria-label="Nová událost"
+        aria-label={t('m.calendar.newEvent', 'Nová událost')}
         className="fixed bottom-[calc(49px+env(safe-area-inset-bottom)+16px)] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-native-primary text-white transition-transform duration-100 active:scale-[0.94]"
       >
         <Plus size={26} strokeWidth={2.25} />

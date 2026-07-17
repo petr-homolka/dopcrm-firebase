@@ -7,6 +7,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { cn } from '../../../components/ui/cn.js';
@@ -38,6 +39,7 @@ function grantState(grants, key) {
 }
 
 export default function MobileParticipantDetailScreen() {
+  const { t } = useTranslation();
   const { epId } = useParams();
   const navigate = useNavigate();
   const [ep, setEp] = useState(null);
@@ -59,17 +61,17 @@ export default function MobileParticipantDetailScreen() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <div><MobileTopNav title="Účastník" onBack={() => navigate(-1)} /><p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p></div>;
+    return <div><MobileTopNav title={t('m.ep.detailTitle', 'Účastník')} onBack={() => navigate(-1)} /><p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.common.loading', 'Načítám…')}</p></div>;
   }
   if (!ep) {
-    return <div><MobileTopNav title="Účastník" onBack={() => navigate(-1)} /><p className="py-16 text-center text-[15px] text-native-textMuted">Účastník nenalezen.</p></div>;
+    return <div><MobileTopNav title={t('m.ep.detailTitle', 'Účastník')} onBack={() => navigate(-1)} /><p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.ep.notFound', 'Účastník nenalezen.')}</p></div>;
   }
 
   const cats = ['view', 'chat', 'action'];
 
   return (
     <div>
-      <MobileTopNav variant="hero" title="Účastník" onBack={() => navigate(-1)} />
+      <MobileTopNav variant="hero" title={t('m.ep.detailTitle', 'Účastník')} onBack={() => navigate(-1)} />
       <NativeHero
         title={ep.displayName}
         subtitle={

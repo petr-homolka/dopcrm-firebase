@@ -1,5 +1,89 @@
 # CURRENT_STATE
-**Verze:** 2.3.0 (Chat 3 úrovně soukromí + notifikace + pěstounská PWA, 2026-07-06)
+**Verze:** 2.5.0 (Desktop: rail, Reporty OSPOD, hledání ⌘K, Úkoly, Vzdělávání, 2026-07-13)
+
+## 2026-07-17 — CraftUI redesign PROVEDEN A VRÁCEN (na žádost uživatele)
+
+Import design systému CraftUI/Pěstouni (modro-šedá #4A6B8C, Lato+Source Sans Pro, tmavý
+sidebar, domain komponenty) byl kompletně implementován a nasazen, ale uživatel rozhodl:
+„naše minulá verze byla o hodně lepší" → VŠE vráceno do stavu před změnou (Connecteam
+desktop + iOS mobil). Revert byl chirurgický — git HEAD je starší než workspace/rail/
+Reporty/Úkoly/…, takže se vracely POUZE soubory redesignu (tokeny, fonty, sidebar,
+TodayPage z gitu, FosterFamilyDetailPage, smazané src/components/domain/ + uid.js +
+FamilyCaseHeader/Rail, DESIGN.md §13, PWA theme). CraftUI kit zůstává na disku
+(c:_____ClaudeAIcraftui-crm-design-system) — NEAPLIKOVAT bez výslovného pokynu.
+
+## 2026-07-13 v3 — Doplnění funkcí z prototypu (`inspirace-pak-smazat/`) na desktop
+
+Po sbalitelném railu (v2) uživatel zadal: doplnit postupně VŠE, co má desktopový prototyp
+a nám chybí. Nasazeno dev+prod hosting (bundle běží proti dev backendu, rules na dev).
+
+- **Reporty pro OSPOD (HOTOVO).** `org/reports.js` — `generateOspodReport` sestaví „Zprávu
+  o průběhu NRP" (markdown) z časové osy (návštěvy/poznámky), svěřených dětí a vzdělávání za
+  období → založí DOKUMENT (koncept), který projde stávajícím schvalovacím workflow.
+  UI: tlačítko „Vyplnit report" v detailu rodiny → `ReportGenerateDrawer` (výběr období).
+  Tisk/PDF: `DocumentDetailPanel` má „Tisk / PDF" (čisté tiskové okno, md→HTML).
+- **Globální hledání ⌘K (HOTOVO).** `CommandPalette` mount v `AdminLayout` (desktop), Ctrl/⌘+K,
+  hledá rodiny + děti (role-aware), klávesnice ↑/↓/Enter/Esc, proklik. Topbar má „⌘K" hint.
+- **Úkoly / termíny (HOTOVO).** Nová top-level kolekce `tasks` + firestore.rules (isStaff+sameOrg,
+  create s createdBy==uid). Služba `org/tasks.js`. Stránka `tasks/TasksPage` = kanban dle termínu
+  (Po termínu/Dnes/Tento týden/Později), checkbox=hotovo, `TaskFormDrawer` (termín+řešitel+poznámka),
+  filtr Moje/Všechny. Route `/admin/ukoly` + nav v railu.
+- **Vzdělávání (HOTOVO).** `education/EducationPage` — agregace hodin kurzů (`course.personId`)
+  napříč pěstouny vůči limitu (24/24/18 h z CARE_TYPES), „pod plánem" + progres bary, proklik na
+  rodinu. Route `/admin/vzdelavani` + nav v railu.
+- **Mapa v profilu (HOTOVO).** Tab „Mapa" v detailu rodiny (`FamilyMapTab`). PRIVACY: adresa se
+  nikam neodesílá automaticky — mapa (Nominatim geokód + vložený OpenStreetMap) se načte až na
+  klik „Zobrazit mapu"; „Otevřít v Mapách" je odkaz spouštěný uživatelem. Bez API klíče.
+- **Ostatní / instituce (HOTOVO).** NOVÁ top-level kolekce `institutions` + firestore.rules
+  (isStaff+sameOrg); `org/institutions.js` (typy OSPOD/soud/škola/lékař/jiné); stránka
+  `institutions/InstitutionsPage` (seskupení dle typu + hledání + CRUD) + `/admin/instituce`
+  + nav „Ostatní".
+- **Ověření:** lint (max-warnings 0) + build čisté; firestore.rules zkompilovány a nasazeny na dev.
+  ⚠️ Přihlášené proklikání neověřeno (dev i prod session odhlášené; heslo nezadávám). Datové
+  vrstvy jsou přímočaré a znovupoužívají ověřené služby.
+- **i18n nových desktop souborů (HOTOVO).** ~18 souborů převedeno na `t('dsk.<oblast>.<klíč>',
+  'český default')`; klíče se do `cs.json` NEpřidávají — default v kódu je zdroj pravdy i bezpečná
+  síť (jediný jazyk cs; 2. jazyk = naplnit z defaultů). Číselníky dle výjimky CLAUDE.md nezměněny.
+- **Zbývá:** mobil má i nadále natvrdo cs (budoucí sweep); rollout workspace vzoru na kalendář/tým.
+
+## 2026-07-13 — Desktop: profesionální case-management workspace + moduly na desktopu
+
+Zadání: „ať vše funguje i na desktopu a desktop vypadá o mnoho profesionálněji." Dosud všechny
+nové moduly (chat, dokumenty, externí účastníci, notifikace) žily jen v mobilní vrstvě
+(`src/mobile/`, render <1024px); na širokém desktopu je uživatel neviděl. Zvolený směr
+(potvrzeno uživatelem): **case-management workspace** — třípanel sidebar │ master seznam │ detail.
+
+- **Sbalitelný levý rail (2026-07-13 v2, nasazeno dev+prod).** `AdminSidebar` je nově
+  sbalitelný: výchozí = úzký **64px ikonový rail** (jen ikony + tooltip, aktivní levý proužek,
+  logo, dole toggle + Nastavení), rozbalení na 240px s popisky; stav v `localStorage`
+  (`dop.sidebar.collapsed`). Uvolňuje místo detailu profilu. Vzor = rail z desktopového
+  prototypu (`inspirace-pak-smazat/`). ⚠️ Přihlášený screenshot railu neověřen (dev i prod
+  session odhlášené; heslo nezadávám) — ověřeno lintem+buildem, deterministická layout změna.
+- **Workspace shell — HOTOVO, nasazeno dev+prod.** `AdminLayout` má `variant='workspace'`
+  (full-bleed, 100dvh−topbar). `workspace/FamiliesWorkspace.jsx` = master seznam rodin
+  (hledání, segment Aktivní/Archiv, přepínač *Moje/Celá organizace* pro KO, „+ Nová") +
+  `<Outlet>` detailu; na mobilu průchozí (jen `<Outlet>`, žádný fetch). `WorkspaceHome.jsx`
+  = uvítací pravý panel. Sidebar vizuálně dotažen (moduly + Nastavení dole), topbar zvonek
+  **napojen na reálnou službu notifications** (odznak, dropdown, „Označit vše", „Zobrazit vše").
+- **Detail rodiny = panel** s hero (avatar, jméno, stavy, kontakt, akce) + taby Osa/Pěstouni/
+  Respit/Sociální/Děti/**Chat**/**Dokumenty**. Chat i Dokumenty jsou nové desktopové moduly
+  (`FamilyChatTab`, `FamilyDocumentsTab`) — sdílí datovou vrstvu s mobilem (`useChatThread`,
+  `orgService`). Detail dokumentu + schvalovací workflow na desktopu (`documents/DocumentDetailPanel`
+  + `DocumentActionsBar` + `MarkdownView`).
+- **Externí účastníci na desktopu** — tab „Účastníci" v detailu dítěte (`participants/
+  ChildParticipantsTab`), detail s katalogem oprávnění (`ParticipantDetailPanel`) a drawer
+  pro necitlivá (1 krok) i citlivá (3-krokové schválení + platnost + časová okna,
+  `PermissionGrantDrawer`). Desktopová stránka Oznámení (`NotificationsPage`).
+- **Router** `/admin/terenni` přepojen na `FamiliesWorkspace` s `<Outlet>`; desktop varianty
+  doplněny do `Responsive` pro dokumenty/:docId, ucastnici/:epId a /oznameni. `KlicovaOsobaDashboard`
+  je tím nahrazen workspacem (zůstává v repu, není routován).
+- **Ověřeno:** lint (max-warnings 0) + build čisté; živý proklik na desktop viewportu (workspace,
+  chat, dokumenty+detail+workflow, dítě, účastníci, zvonek s reálnými daty, regrese Kalendáře);
+  adversariální review workflow (5 dimenzí, částečně přerušen session limitem) → 3 kosmetické
+  nálezy opraveny (i18n taby, inline style→Tailwind, sjednocení tabů dítěte na `<Tabs>`).
+- **Vědomě mobilní-only** (žádný desktop ekvivalent): měření času návštěvy `/navsteva`.
+- **Zbývá:** plná i18n nových desktop souborů (teď natvrdo `cs`, stejně jako mobil — dluh);
+  binární upload (Storage), reálné OCR, e-mailový příjem, A/V hovory — beze změny.
 
 ## 2026-07-06 — Program dokumenty/workflow/přihlášení (spec A–E) — průběžně
 
@@ -28,12 +112,6 @@ zpracovávat postupně, průběžně nasazovat na moje.doprovazeni.com **bez sch
   automatizovaně otestovat. SMS/WhatsApp = TODO (placené kanály).
 - **B. Chat — 4. kategorie „Pro OSPOD" + filtr kategorií — HOTOVO, nasazeno.** Cílení na
   skupiny/kanály/DM = zbývá.
-- **C. Dokumentový modul** (model, Storage, markdown editor, DOCX/PDF/obrázek náhled, verze) — ZBÝVÁ.
-- **D. Schvalovací workflow** (stavový automat Koncept→…→Uzavřeno, audit, schvalovatel+náhradník,
-  uzavření s výhradou) — ZBÝVÁ.
-- **E. Příjem dokumentů + časová osa + OCR** — ZBÝVÁ; e-mail ingest (`pestoun.jmeno@…`) a OCR
-  vyžadují backend (MX/parser, Vertex AI) — postaví se model+UI+simulace+seam, produkční
-  napojení = TODO (docs/INVENTAR.md).
 
 ## 2026-07-06 — Chat, notifikace a pěstounská PWA (nová vrstva systému)
 
@@ -156,113 +234,3 @@ dle svého uvážení"):
   Pozn. k ověřování: timeout `preview_screenshot` po startu čerstvého serveru bývá přechodný
   (první Vite dep-optimalizace) — `preview_snapshot` projde a druhý screenshot už také.
 
-## 2026-07-05 — Zpětná vazba v2 + Connecteam jako závazný vzor
-
-Pět bodů uživatele k Detailu rodiny + strategické rozhodnutí (bod 6):
-
-- **Naplánovat návštěvu FUNGUJE** — dřívější odskok na /kalendar nikam nevedl; teď sheet
-  přímo v hlavičce rodiny (`MobileFamilyHeader.jsx`) → `createEvent` typu `visit` s vazbou
-  na rodinu, KO a adresou; ověřeno end-to-end (událost viditelná v Kalendáři vč. tečky).
-- **Jedna řada přepínačů** — filtry Osy už nejsou druhá řada pillů; kompaktní pilulka
-  „Filtr" vpravo otevírá sheet (typ záznamu + dítě), aktivní filtr se propisuje do popisku.
-- **Hlavička bez trvalé adresy/telefonu** — místo kontaktní karty kruhové rychlé akce
-  (Zavolat = tel:, E-mail = mailto:, Mapa = adresa v mapách, Naplánovat); chybějící údaj
-  akci ztlumí. Vzor iOS Kontakty/Connecteam.
-- **Zámek polí ZRUŠEN** (rozhodnutí uživatele „jen to zdržuje") — useEditLock.js a
-  LockBanner smazány ze všech sheetů.
-- **Jedno FAB se speed-dial menu** (`NativeFab.jsx`, vzor Things) — scrim + pojmenované
-  akce „Zahájit návštěvu"/„Nový záznam"; dvě FAB nad sebou zrušena.
-- **Connecteam = závazný vzor ~90 %** (PWA i desktop): 56 screenshotů analyzováno 5 agenty,
-  výstup v `docs/design/connecteam-analyza-2026-07-05.md` (top vzory + obrazovka po
-  obrazovce co přenést). Existující kód není překážka.
-
-## 2026-07-05 — UI redesign v3: konec kroužení kolem designu
-
-**Zadání:** „celé to předělej" — UI působilo nekonzistentně (upatlaně) a místy zeleně/teal,
-přestože tokeny říkaly modrá. Příčiny a řešení:
-
-- **Kořenová příčina „zelené":** 25 obrazovek (SuperAdmin, OrgDetail, Login, všechny Child*
-  taby/modály…) stále používalo LEGACY Amie tokeny `primary-600` = **teal #1A6B64** + `stone-*`.
-  Hromadně převedeno na `brand-*/ink-*/danger-*` (Connecteam modrá). Druhá příčina: dlouho
-  běžící Vite dev server drží zastaralou Tailwind JIT cache po změně tokenů — „ověřovací"
-  screenshoty ukazovaly starý teal i po opravě configu. **Po změně tailwind.config.js VŽDY
-  restart dev serveru.**
-- **DESIGN.md §12** — nová ZÁVAZNÁ mobilní spec v3: jediná typo škála (10/12/13/15/17/22/56),
-  radius jen 18/10/pill, barvy jen `native.*` (+ tinty /10 a /15), žádná zelená, žádné stíny,
-  komponenty výhradně ze `src/mobile/ui/`.
-- **`src/mobile/ui/NativeBits.jsx`** — sdílené `SectionLabel`/`NativeChip`/`NativeEmptyState`/
-  `StatTile` (+ `NATIVE_EVENT_BORDER`: návštěva na mobilu modrý proužek, ne zelený shift-visit);
-  lokální kopie z pěti obrazovek smazány. `NativeButton` secondary = tint výplň (ne outline),
-  `NativeSegmented` varianty primary/filter (konec dvou řad plných pillů na Ose).
-- Obrazovky sjednoceny dle §12: Home (tinty místo raw blue/orange-50, empty s radou), Rodiny
-  (vložená grouped karta + zaoblený search), Kalendář (nový header měsíc+rok, šipky po
-  stranách), Detail rodiny (NativeChip stavy, „Naplánovat"), Osa (filtr variant, Připnuté jako
-  sekce, empty s radou), Tým (grouped karta, stavové chipy), Respit (sdílený StatTile 28px).
-- Ověřeno živě na čerstvém serveru (390 px: Rodiny/Detail/Osa/Kalendář/Timer/Home/Login;
-  1280 px: OrgAdmin dashboard) — modrá #007AFF všude, `npm run build`+`lint` čisté, nasazeno
-  na doprovazeni-dev. Pozn.: subagenti nedostupní (session limit), audit proveden v hlavní smyčce.
-
-## 2026-07-03 — Krok 3: Obrazovka Dnes
-
-**Zadání:** nová domovská obrazovka pro `klicova_osoba` na `/` (DESIGN.md §6.1) — agenda dne,
-NE dashboard s KPI dlaždicemi/grafy. Pozdrav+datum, dnešní program, "Čeká na vás" (rodiny bez
-návštěvy >45 dní), nejbližší dva dny.
-
-- **Routing (zásadní změna):** `/` už NENÍ index route staršího `RequireAuth`+`Layout.jsx`
-  (Sekce A sidebar) — přesunuto na VLASTNÍ top-level route group se stejným `AdminLayout`
-  shellem jako zbytek `/admin/*` (topbar, ne stará sidebar), gated `RequireOrgRole
-  allowed={['klicova_osoba']}`. Důvod: kdyby `/` zůstalo pod starým `Layout`, klíčová osoba by
-  na své nové domovské stránce viděla legacy MVP sidebar (odkazy na 8řádkové stub stránky
-  `/pestouni`, `/deti`…), ne skutečnou B2B navigaci. `IndexRedirect` (starý komponent pro index
-  route) smazán — jeho roli teď dělá `RequireOrgRole` samo (fallback pro roli mimo `allowed`
-  pole = `homePathForRole(role)`).
-- `orgAuth.js` — nová `homePathForRole(role)`: `klicova_osoba` → `/` (Dnes), ostatní role beze
-  změny (`dashboardPathForRole` zůstává platná, jen přestala být VÝCHOZÍ landing page — pořád
-  se používá např. jako cíl "zobrazit vše" u sekce Čeká na vás → `/admin/terenni`). Použito v
-  `Login.jsx` (přesměrování po loginu) a `router.jsx` (`RequireOrgRole`, `RegisterRoute`).
-- `src/services/org/timeline.js` — `createTimelineEntry` nově zapisuje `foster_families.
-  lastVisitAt` v JEDNOM `writeBatch` VŽDY, když `type === 'visit'` (CLAUDE.md: denormalizovaná
-  pole aktualizovat v batch se změnou, která je vyvolala — `lastVisitAt` je v pravidle přímo
-  jmenovaný příklad). Poznámka: v appce zatím NEEXISTUJE UI cesta k založení timeline záznamu
-  typu `visit` (jen `note` — "Záznam v terénu/capture" je budoucí ⬜ funkce) — hook je tedy
-  připravený do budoucna, ověřen jen nepřímo (testovací `lastVisitAt` v seedu je zapsané přímo,
-  ne přes tuto cestu, viz níže).
-- `src/services/org/events.js` — nová `listEventsForAssignee(organizationId, uid, {from,to})`
-  (na rozdíl od `listEventsInRange` filtruje navíc `assignedTo`) + nový composite index
-  (`assignedTo`+`start`) v `firestore.indexes.json`, nasazeno na dev.
-- `src/modules/admin/TodayPage.jsx` + `useTodayPage.js` (nové) — max 25 rodin/KO (CLAUDE.md)
-  → řazení/filtrování "Čeká na vás" klidně na klientovi, žádný další index/stránkování potřeba.
-  Barva levého proužku dle typu události (`visit`=zelená/family, `meeting`=primary, `deadline`=
-  terakota, `education`=amber) a dle stáří návštěvy (>60 dní = terakota `entity-crisis`, 45–60
-  = amber, nikdy nenavštíveno = amber). Vokativ jména ("Jano" z "Jana") záměrně neřešen (1. pád).
-- i18n: nový namespace `today.*` v `cs.json`, plurál `daysAgo_one/_few/_other`.
-- Seed (`scripts/dev-seed.mjs`, `scripts/seed-calendar-events.mjs`): Rodina Kučerová dostala
-  testovací `lastVisitAt` 65 dní zpět (terakota), Rodina Nováková 50 dní zpět (amber), ostatní
-  bez pole (nikdy nenavštíveno); první rodina KAŽDÉ organizace dostala kalendářní návštěvu NA
-  DNES, druhá NA ZÍTRA — pokrývá všechny 3 scénáře ze zadání (den s událostmi/bez/stará návštěva)
-  napříč 3 demo KO účty, aniž by bylo nutné cokoli ručně překlikávat.
-
-**Ověřeno živě v Preview** (po dobuildění Firestore composite indexu, ~2,5 min): `demo.ko.jih.1`
-(dnešní návštěva Rodiny Kučerová v 13:00 se zelenou entity-family barvou, "Čeká na vás" s
-terakotovou `#C2410C` barvou a textem "Návštěva před 65 dny"), `demo.ko.sever.1` (dnešní událost
-+ amber `#FBBF24` u Nováková/50 dní i Svobodová/"Zatím žádná návštěva"), `demo.ko.sever.2`
-(prázdný den — "Dnes nemáte naplánované žádné události.", sekce "Nejbližší dny" → "Zítra" s
-návštěvou Dvořákové). `org_admin` (`demo.admin.jih`) po loginu i při přímé návštěvě `/` správně
-skončí na `/admin/organizace`, ne na obrazovce Dnes. Mobilní viewport (390×844) ověřen přes
-`scrollWidth`/`getBoundingClientRect` (bez horizontálního přetečení, karty na plnou šířku,
-nadpis se zalamuje) — `preview_screenshot` v této session opakovaně timeoutoval (nesouvisející s
-kódem), ověření tedy funkční/strukturální, ne vizuální snímek. `npm run build`/`npm run lint`
-čisté po celou dobu.
-
-## 2026-07-02 — Velký úklid repozitáře (podle UKLID-PROMPT.md)
-
-Vanilla prototyp přesunut do `/legacy` (zamčený archiv, jen pro člověka). Nový `CLAUDE.md` +
-`DESIGN.md` (design systém „Přítomnost", soft/playful, Tailwind) nahradily starý handoff dokument
-(archivován do `docs/history-claude-md.md`). Tento soubor ořezán na ~200 řádků, starší záznamy
-přesunuty do `docs/history.md`. Následuje: extrakce doménové dokumentace do `docs/domain/`,
-`docs/INVENTAR.md`, přechod MUI → Tailwind, sjednocení PWA přes vite-plugin-pwa.
-
-*(Starší záznamy — Fáze 1 self-service, Fáze 2+3 obohacení entit, datový model dle vanilla
-prototypu, UI/UX úklid — přesunuty do docs/history.md.)*
-
----

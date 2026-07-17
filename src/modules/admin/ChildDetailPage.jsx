@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 import Badge from '../../components/ui/Badge.jsx';
-import { cn } from '../../components/ui/cn.js';
+import Tabs from '../../components/ui/Tabs.jsx';
 import { careLabel } from '../../shared/domainConstants.js';
 import { getChild, getFoster } from '../../services/orgService.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -40,13 +40,14 @@ export default function ChildDetailPage() {
   const navigate = useNavigate();
 
   const TABS = [
-    { key: 'identita', label: t('child.detail.tabs.identita') },
-    { key: 'skola', label: t('child.detail.tabs.skola') },
-    { key: 'ospod', label: t('child.detail.tabs.ospod') },
-    { key: 'rodina', label: t('child.detail.tabs.rodina') },
-    { key: 'socialni', label: t('child.detail.tabs.socialni') },
-    { key: 'poznamky', label: t('child.detail.tabs.poznamky') },
-    { key: 'historie', label: t('child.detail.tabs.historie') },
+    { value: 'identita', label: t('child.detail.tabs.identita') },
+    { value: 'skola', label: t('child.detail.tabs.skola') },
+    { value: 'ospod', label: t('child.detail.tabs.ospod') },
+    { value: 'rodina', label: t('child.detail.tabs.rodina') },
+    { value: 'socialni', label: t('child.detail.tabs.socialni') },
+    { value: 'poznamky', label: t('child.detail.tabs.poznamky') },
+    { value: 'historie', label: t('child.detail.tabs.historie') },
+    { value: 'ucastnici', label: t('child.detail.tabs.ucastnici') },
   ];
 
   const [loading, setLoading] = useState(true);
@@ -79,7 +80,7 @@ export default function ChildDetailPage() {
   const canManage = !isReadOnlyManager(role);
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl px-6 py-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-start gap-3">
         <button
           type="button"
@@ -105,22 +106,8 @@ export default function ChildDetailPage() {
 
       {!loading && !error && child && (
         <>
-          <div className="mb-5 flex flex-nowrap gap-2 overflow-x-auto border-b border-border-subtle">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className={cn(
-                  'shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition duration-150',
-                  tab === t.key
-                    ? 'border-brand-600 text-brand-700'
-                    : 'border-transparent text-ink-500 hover:text-ink-700'
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="mb-5">
+            <Tabs items={TABS} value={tab} onChange={setTab} />
           </div>
 
           <ChildDetailTabs tab={tab} child={child} family={family} lists={lists} onLoadMore={loadMore} forms={forms} canManage={canManage} />

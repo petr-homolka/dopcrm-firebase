@@ -9,6 +9,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapPin, Phone, Mail, CalendarPlus } from 'lucide-react';
 import { careLabel } from '../../../shared/domainConstants.js';
 import { toDateInputValue } from '../../../shared/rcUtils.js';
@@ -32,11 +33,12 @@ function HeroChip({ children }) {
 }
 
 export default function MobileFamilyHeader({ family, familyId, canManage }) {
+  const { t } = useTranslation();
   const { currentUser, organizationId } = useAuthStore();
   const [planOpen, setPlanOpen] = useState(false);
   const [planSubmitting, setPlanSubmitting] = useState(false);
   const [planForm, setPlanForm] = useState(() => ({
-    title: 'Návštěva rodiny', date: toDateInputValue(new Date()), from: '09:00', to: '10:00',
+    title: t('m.famDetail.planDefaultTitle', 'Návštěva rodiny'), date: toDateInputValue(new Date()), from: '09:00', to: '10:00',
   }));
 
   async function handlePlanVisit() {
@@ -49,10 +51,10 @@ export default function MobileFamilyHeader({ family, familyId, canManage }) {
         assignedTo: currentUser.uid, fosterFamilyId: familyId, location: family?.address ?? '',
       });
       setPlanOpen(false);
-      toast.info(`Návštěva naplánována na ${start.toLocaleDateString('cs-CZ')} v ${planForm.from}.`);
+      toast.info(t('m.famDetail.planSuccess', 'Návštěva naplánována na {{date}} v {{time}}.', { date: start.toLocaleDateString('cs-CZ'), time: planForm.from }));
     } catch (err) {
       console.error('[MobileFamilyHeader] Naplánování selhalo:', err);
-      toast.error(err.message ?? 'Naplánování se nezdařilo.');
+      toast.error(err.message ?? t('m.famDetail.planFailed', 'Naplánování se nezdařilo.'));
     } finally {
       setPlanSubmitting(false);
     }
@@ -71,28 +73,28 @@ export default function MobileFamilyHeader({ family, familyId, canManage }) {
       >
         <HeroAction
           icon={Phone}
-          label="Zavolat"
+          label={t('m.famDetail.actionCall', 'Zavolat')}
           href={family.contactPhone ? `tel:${family.contactPhone.replace(/\s/g, '')}` : undefined}
           disabled={!family.contactPhone}
         />
         <HeroAction
           icon={Mail}
-          label="E-mail"
+          label={t('m.famDetail.actionEmail', 'E-mail')}
           href={family.contactEmail ? `mailto:${family.contactEmail}` : undefined}
           disabled={!family.contactEmail}
         />
         <HeroAction
           icon={MapPin}
-          label="Mapa"
+          label={t('m.famDetail.actionMap', 'Mapa')}
           href={family.address ? `https://www.google.com/maps?q=${encodeURIComponent(family.address)}` : undefined}
           disabled={!family.address}
         />
-        {canManage && <HeroAction icon={CalendarPlus} label="Naplánovat" onClick={() => setPlanOpen(true)} />}
+        {canManage && <HeroAction icon={CalendarPlus} label={t('m.famDetail.actionPlan', 'Naplánovat')} onClick={() => setPlanOpen(true)} />}
       </NativeHero>
 
       {planOpen && (
         <NativeSheet
-          title="Naplánovat návštěvu"
+          title={t('m.famDetail.planSheetTitle', 'Naplánovat návštěvu')}
           onClose={() => !planSubmitting && setPlanOpen(false)}
           submitting={planSubmitting}
           footer={
@@ -100,21 +102,21 @@ export default function MobileFamilyHeader({ family, familyId, canManage }) {
               onClick={handlePlanVisit}
               disabled={planSubmitting || !planForm.title.trim() || !planForm.date || !planForm.from}
             >
-              {planSubmitting ? 'Ukládám…' : 'Naplánovat'}
+              {planSubmitting ? t('m.famDetail.saving', 'Ukládám…') : t('m.famDetail.actionPlan', 'Naplánovat')}
             </NativeButton>
           }
         >
           <NativeFormGroup>
-            <NativeFormRow label="Název">
+            <NativeFormRow label={t('m.famDetail.planTitleLabel', 'Název')}>
               <RowInput value={planForm.title} onChange={(e) => setPlanForm((f) => ({ ...f, title: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Datum">
+            <NativeFormRow label={t('m.famDetail.planDateLabel', 'Datum')}>
               <RowInput type="date" value={planForm.date} onChange={(e) => setPlanForm((f) => ({ ...f, date: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Od">
+            <NativeFormRow label={t('m.famDetail.planFromLabel', 'Od')}>
               <RowInput type="time" value={planForm.from} onChange={(e) => setPlanForm((f) => ({ ...f, from: e.target.value }))} />
             </NativeFormRow>
-            <NativeFormRow label="Do" isLast>
+            <NativeFormRow label={t('m.famDetail.planToLabel', 'Do')} isLast>
               <RowInput type="time" value={planForm.to} onChange={(e) => setPlanForm((f) => ({ ...f, to: e.target.value }))} />
             </NativeFormRow>
           </NativeFormGroup>

@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.js';
@@ -16,6 +17,7 @@ import NativeHero, { HeroBody } from '../ui/NativeHero.jsx';
 import { NativeGroupedList, NativeListRow } from '../ui/NativeListRow.jsx';
 
 export default function MobileProfileScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentUser, role } = useAuthStore();
   const name = currentUser?.displayName ?? currentUser?.email ?? '';
@@ -27,7 +29,7 @@ export default function MobileProfileScreen() {
 
   return (
     <div>
-      <MobileTopNav variant="hero" title="Profil" />
+      <MobileTopNav variant="hero" title={t('m.profile.title', 'Profil')} />
 
       <NativeHero
         title={name}
@@ -43,7 +45,7 @@ export default function MobileProfileScreen() {
           {currentUser?.email && (
             <div className="mb-5 rounded-native-card bg-native-surface px-4">
               <div className="flex items-center justify-between gap-4 py-3.5">
-                <span className="shrink-0 text-[15px] text-native-textMuted">E-mail</span>
+                <span className="shrink-0 text-[15px] text-native-textMuted">{t('m.profile.email', 'E-mail')}</span>
                 <a href={`mailto:${currentUser.email}`} className="min-w-0 flex-1 truncate text-right text-[15px] font-medium text-native-primary">
                   {currentUser.email}
                 </a>
@@ -55,7 +57,7 @@ export default function MobileProfileScreen() {
             <NativeListRow
               icon={Settings}
               iconBg="bg-native-textMuted"
-              label="Nastavení"
+              label={t('m.profile.settings', 'Nastavení')}
               onClick={() => navigate('/nastaveni')}
               isLast
             />
@@ -66,7 +68,7 @@ export default function MobileProfileScreen() {
               <NativeListRow
                 icon={LogOut}
                 iconBg="bg-native-danger"
-                label="Odhlásit se"
+                label={t('m.profile.signOut', 'Odhlásit se')}
                 onClick={handleSignOut}
                 danger
                 showChevron={false}

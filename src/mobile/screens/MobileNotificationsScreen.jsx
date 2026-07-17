@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Bell, MessageSquare, FileText, CalendarClock } from 'lucide-react';
 import { cn } from '../../components/ui/cn.js';
 import { listMyNotifications, markNotificationRead, markAllNotificationsRead } from '../../services/orgService.js';
@@ -22,6 +23,7 @@ function timeLabel(v) {
 }
 
 export default function MobileNotificationsScreen() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,18 +55,18 @@ export default function MobileNotificationsScreen() {
   return (
     <div>
       <MobileTopNav
-        title="Oznámení"
+        title={t('m.notif.title', 'Oznámení')}
         onBack={() => navigate(-1)}
         right={hasUnread ? (
-          <button type="button" onClick={markAll} className="text-[13px] font-medium text-native-primary">Označit vše</button>
+          <button type="button" onClick={markAll} className="text-[13px] font-medium text-native-primary">{t('m.notif.markAll', 'Označit vše')}</button>
         ) : null}
       />
 
-      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">Načítám…</p>}
+      {loading && <p className="py-16 text-center text-[15px] text-native-textMuted">{t('m.notif.loading', 'Načítám…')}</p>}
 
       {!loading && items.length === 0 && (
         <div className="mx-4 mt-6">
-          <NativeEmptyState icon={Bell} title="Žádná oznámení" description="Nové zprávy a upozornění se objeví tady." />
+          <NativeEmptyState icon={Bell} title={t('m.notif.emptyTitle', 'Žádná oznámení')} description={t('m.notif.emptyDesc', 'Nové zprávy a upozornění se objeví tady.')} />
         </div>
       )}
 

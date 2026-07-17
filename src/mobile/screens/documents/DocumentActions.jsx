@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../../store/authStore.js';
 import {
   sendToFosterReview, markFinal, sendToMgmtReview, mgmtApprove, mgmtReject,
@@ -25,6 +26,7 @@ const CLOSE_VARIANTS = {
 };
 
 export default function DocumentActions({ doc, familyId, isManagement, onChanged }) {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   const [busy, setBusy] = useState(false);
   const [sheet, setSheet] = useState(null); // 'mgmt' | 'close' | 'authority' | 'reject'
@@ -55,45 +57,45 @@ export default function DocumentActions({ doc, familyId, isManagement, onChanged
       {/* Fáze A */}
       {editable && (s === 'draft' || s === 'commented' || s === 'foster_review') && (
         <NativeButton onClick={() => run(() => sendToFosterReview(familyId, doc.id))} disabled={busy}>
-          Poslat pěstounovi ke schválení
+          {t('m.docs.sendToFoster', 'Poslat pěstounovi ke schválení')}
         </NativeButton>
       )}
       {editable && s !== 'final' && (
         <NativeButton variant="secondary" onClick={() => run(() => markFinal(familyId, doc.id))} disabled={busy}>
-          Označit jako Konečný
+          {t('m.docs.markFinal', 'Označit jako Konečný')}
         </NativeButton>
       )}
 
       {/* Fáze B */}
       {s === 'final' && (
-        <NativeButton onClick={openMgmt} disabled={busy}>Poslat vedení ke schválení</NativeButton>
+        <NativeButton onClick={openMgmt} disabled={busy}>{t('m.docs.sendToMgmt', 'Poslat vedení ke schválení')}</NativeButton>
       )}
       {s === 'mgmt_review' && isManagement && (
         <>
-          <NativeButton onClick={() => run(() => mgmtApprove(familyId, doc.id))} disabled={busy}>Schválit a uzavřít</NativeButton>
-          <NativeButton variant="secondary" onClick={() => setSheet('reject')} disabled={busy}>Neschválit</NativeButton>
+          <NativeButton onClick={() => run(() => mgmtApprove(familyId, doc.id))} disabled={busy}>{t('m.docs.approveAndClose', 'Schválit a uzavřít')}</NativeButton>
+          <NativeButton variant="secondary" onClick={() => setSheet('reject')} disabled={busy}>{t('m.docs.reject', 'Neschválit')}</NativeButton>
         </>
       )}
       {/* Uzavření s výhradou (vedení přímo) */}
       {isManagement && (s === 'final' || s === 'mgmt_review' || s === 'approved_foster') && (
-        <NativeButton variant="secondary" onClick={() => setSheet('close')} disabled={busy}>Uzavřít s výhradou…</NativeButton>
+        <NativeButton variant="secondary" onClick={() => setSheet('close')} disabled={busy}>{t('m.docs.closeWithReservation', 'Uzavřít s výhradou…')}</NativeButton>
       )}
 
       {/* Po uzavření */}
       {isClosedStatus(s) && (
         <>
-          <NativeButton onClick={() => setSheet('authority')} disabled={busy}>Odeslat na úřad</NativeButton>
-          <NativeButton variant="secondary" onClick={() => run(() => fileDocument(familyId, doc.id))} disabled={busy}>Uložit do spisu</NativeButton>
+          <NativeButton onClick={() => setSheet('authority')} disabled={busy}>{t('m.docs.sendToAuthority', 'Odeslat na úřad')}</NativeButton>
+          <NativeButton variant="secondary" onClick={() => run(() => fileDocument(familyId, doc.id))} disabled={busy}>{t('m.docs.fileDocument', 'Uložit do spisu')}</NativeButton>
         </>
       )}
 
       {sheet === 'mgmt' && (
-        <NativeSheet title="Poslat vedení" onClose={() => !busy && setSheet(null)} submitting={busy}
-          footer={<NativeButton onClick={() => run(() => sendToMgmtReview(familyId, doc.id, pick.approver))} disabled={busy || !pick.approver}>Odeslat</NativeButton>}>
+        <NativeSheet title={t('m.docs.sheetSendMgmtTitle', 'Poslat vedení')} onClose={() => !busy && setSheet(null)} submitting={busy}
+          footer={<NativeButton onClick={() => run(() => sendToMgmtReview(familyId, doc.id, pick.approver))} disabled={busy || !pick.approver}>{t('m.docs.send', 'Odeslat')}</NativeButton>}>
           <NativeFormGroup>
-            <NativeFormRow label="Schvalovatel" isLast>
+            <NativeFormRow label={t('m.docs.approverLabel', 'Schvalovatel')} isLast>
               <RowSelect value={pick.approver} onChange={(e) => setPick((p) => ({ ...p, approver: e.target.value }))}>
-                <option value="">Vyberte…</option>
+                <option value="">{t('m.docs.selectOption', 'Vyberte…')}</option>
                 {approvers.map((u) => <option key={u.id} value={u.id}>{u.displayName ?? u.email}</option>)}
               </RowSelect>
             </NativeFormRow>
@@ -102,21 +104,21 @@ export default function DocumentActions({ doc, familyId, isManagement, onChanged
       )}
 
       {sheet === 'reject' && (
-        <NativeSheet title="Neschválit" onClose={() => !busy && setSheet(null)} submitting={busy}
-          footer={<NativeButton onClick={() => run(() => mgmtReject(familyId, doc.id, pick.note))} disabled={busy}>Vrátit k přepracování</NativeButton>}>
+        <NativeSheet title={t('m.docs.rejectTitle', 'Neschválit')} onClose={() => !busy && setSheet(null)} submitting={busy}
+          footer={<NativeButton onClick={() => run(() => mgmtReject(familyId, doc.id, pick.note))} disabled={busy}>{t('m.docs.returnForRework', 'Vrátit k přepracování')}</NativeButton>}>
           <NativeFormGroup>
-            <NativeFormRow label="Důvod" isLast stacked>
-              <RowTextarea rows={3} value={pick.note} onChange={(e) => setPick((p) => ({ ...p, note: e.target.value }))} placeholder="Co je potřeba upravit…" />
+            <NativeFormRow label={t('m.docs.reasonLabel', 'Důvod')} isLast stacked>
+              <RowTextarea rows={3} value={pick.note} onChange={(e) => setPick((p) => ({ ...p, note: e.target.value }))} placeholder={t('m.docs.reasonPlaceholder', 'Co je potřeba upravit…')} />
             </NativeFormRow>
           </NativeFormGroup>
         </NativeSheet>
       )}
 
       {sheet === 'close' && (
-        <NativeSheet title="Uzavřít s výhradou" onClose={() => !busy && setSheet(null)} submitting={busy}
-          footer={<NativeButton onClick={() => run(() => closeWithReservation(familyId, doc.id, pick.variant))} disabled={busy}>Uzavřít</NativeButton>}>
+        <NativeSheet title={t('m.docs.closeSheetTitle', 'Uzavřít s výhradou')} onClose={() => !busy && setSheet(null)} submitting={busy}
+          footer={<NativeButton onClick={() => run(() => closeWithReservation(familyId, doc.id, pick.variant))} disabled={busy}>{t('m.docs.close', 'Uzavřít')}</NativeButton>}>
           <NativeFormGroup>
-            <NativeFormRow label="Způsob" isLast>
+            <NativeFormRow label={t('m.docs.variantLabel', 'Způsob')} isLast>
               <RowSelect value={pick.variant} onChange={(e) => setPick((p) => ({ ...p, variant: e.target.value }))}>
                 {Object.entries(CLOSE_VARIANTS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </RowSelect>
@@ -126,13 +128,13 @@ export default function DocumentActions({ doc, familyId, isManagement, onChanged
       )}
 
       {sheet === 'authority' && (
-        <NativeSheet title="Odeslat na úřad" onClose={() => !busy && setSheet(null)} submitting={busy}
-          footer={<NativeButton onClick={() => run(() => sendToAuthority(familyId, doc.id, pick.authority))} disabled={busy}>Odeslat</NativeButton>}>
+        <NativeSheet title={t('m.docs.sendToAuthorityTitle', 'Odeslat na úřad')} onClose={() => !busy && setSheet(null)} submitting={busy}
+          footer={<NativeButton onClick={() => run(() => sendToAuthority(familyId, doc.id, pick.authority))} disabled={busy}>{t('m.docs.send', 'Odeslat')}</NativeButton>}>
           <NativeFormGroup>
-            <NativeFormRow label="Komu" isLast>
+            <NativeFormRow label={t('m.docs.toWhomLabel', 'Komu')} isLast>
               <RowSelect value={pick.authority} onChange={(e) => setPick((p) => ({ ...p, authority: e.target.value }))}>
                 <option value="OSPOD">OSPOD</option>
-                <option value="Soud">Soud</option>
+                <option value="Soud">{t('m.docs.court', 'Soud')}</option>
               </RowSelect>
             </NativeFormRow>
           </NativeFormGroup>

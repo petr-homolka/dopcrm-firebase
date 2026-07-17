@@ -110,21 +110,21 @@ export default function MobileHomeScreen() {
       <div className="mt-5 flex gap-3 px-4">
         <HomeTile
           icon={Timer}
-          label="Zahájit návštěvu"
+          label={t('m.home.startVisit', 'Zahájit návštěvu')}
           tintClass="bg-native-primary/10 text-native-primary"
           onClick={() => setVisitPickerOpen(true)}
         />
         <HomeTile
           icon={CalendarPlus}
-          label="Naplánovat návštěvu"
+          label={t('m.home.planVisit', 'Naplánovat návštěvu')}
           tintClass="bg-native-primary/10 text-native-primary"
           onClick={() => navigate('/kalendar')}
         />
       </div>
 
-      <SectionLabel className="px-4">Dnešní program</SectionLabel>
+      <SectionLabel className="px-4">{t('m.home.todayProgram', 'Dnešní program')}</SectionLabel>
       {todayEvents.length === 0 ? (
-        <p className="px-4 text-[15px] text-native-textMuted">Dnes nemáte naplánované žádné události.</p>
+        <p className="px-4 text-[15px] text-native-textMuted">{t('m.home.noEventsToday', 'Dnes nemáte naplánované žádné události.')}</p>
       ) : (
         <div className="flex flex-col gap-2 px-4">
           {todayEvents.map((ev) => (
@@ -141,7 +141,7 @@ export default function MobileHomeScreen() {
 
       {waitingShown.length > 0 && (
         <>
-          <SectionLabel className="px-4">Čeká na vás</SectionLabel>
+          <SectionLabel className="px-4">{t('m.home.waitingForYou', 'Čeká na vás')}</SectionLabel>
           <div className="flex flex-col gap-2 px-4">
             {waitingShown.map(({ family, days }) => (
               <button
@@ -152,7 +152,7 @@ export default function MobileHomeScreen() {
               >
                 <span className="truncate text-[15px] font-medium text-native-text">{family.name}</span>
                 <span className="shrink-0 text-[13px] text-native-textMuted">
-                  {days === null ? 'nikdy navštíveno' : `před ${days} dny`}
+                  {days === null ? t('m.home.neverVisited', 'nikdy navštíveno') : t('m.home.daysAgo', 'před {{days}} dny', { days })}
                 </span>
               </button>
             ))}
@@ -164,16 +164,16 @@ export default function MobileHomeScreen() {
         <div className="mx-4 mt-4">
           <NativeEmptyState
             icon={ClipboardCheck}
-            title="Nic k vyřešení"
-            description="Až budou čekat naplánované návštěvy nebo rodiny bez nedávného kontaktu, objeví se tady."
+            title={t('m.home.nothingToSolve', 'Nic k vyřešení')}
+            description={t('m.home.nothingToSolveDesc', 'Až budou čekat naplánované návštěvy nebo rodiny bez nedávného kontaktu, objeví se tady.')}
           />
         </div>
       )}
 
       {visitPickerOpen && (
-        <NativeSheet title="U koho jste na návštěvě?" onClose={() => setVisitPickerOpen(false)}>
+        <NativeSheet title={t('m.home.visitPickerTitle', 'U koho jste na návštěvě?')} onClose={() => setVisitPickerOpen(false)}>
           {families.length === 0 ? (
-            <p className="py-4 text-center text-[15px] text-native-textMuted">Nemáte přiřazené žádné rodiny.</p>
+            <p className="py-4 text-center text-[15px] text-native-textMuted">{t('m.home.noAssignedFamilies', 'Nemáte přiřazené žádné rodiny.')}</p>
           ) : (
             <div className="overflow-hidden rounded-native-card bg-native-bg">
               {families.map((f, i) => (

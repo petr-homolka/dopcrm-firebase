@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Timer, Users, Pencil, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore.js';
@@ -21,6 +22,7 @@ import NativeButton from '../../ui/NativeButton.jsx';
 import { NativeChip } from '../../ui/NativeBits.jsx';
 
 export default function MobileEventDetailSheet({ event, onClose, onEdit, onChanged }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { role, currentUser, organizationId } = useAuthStore();
   const [familyName, setFamilyName] = useState('');
@@ -38,7 +40,7 @@ export default function MobileEventDetailSheet({ event, onClose, onEdit, onChang
   // („Úterý 7. Července"), což je v češtině špatně.
   const rawDate = start.toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' });
   const dateLabel = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
-  const timeLabel = event.allDay ? 'Celý den' : `${formatTime(event.start)} – ${formatTime(event.end ?? event.start)}`;
+  const timeLabel = event.allDay ? t('m.event.allDay', 'Celý den') : `${formatTime(event.start)} – ${formatTime(event.end ?? event.start)}`;
 
   async function handleDelete() {
     if (!confirmDelete) {
@@ -48,23 +50,23 @@ export default function MobileEventDetailSheet({ event, onClose, onEdit, onChang
     setDeleting(true);
     try {
       await deleteEvent(organizationId, event.id);
-      toast.info('Událost smazána.');
+      toast.info(t('m.event.deletedToast', 'Událost smazána.'));
       onChanged();
     } catch (err) {
       console.error('[MobileEventDetailSheet] Smazání selhalo:', err);
-      toast.error(err.message ?? 'Smazání se nezdařilo.');
+      toast.error(err.message ?? t('m.event.deleteFailed', 'Smazání se nezdařilo.'));
       setDeleting(false);
     }
   }
 
   return (
-    <NativeSheet title="Událost" onClose={() => !deleting && onClose()} submitting={deleting}>
+    <NativeSheet title={t('m.event.detailTitle', 'Událost')} onClose={() => !deleting && onClose()} submitting={deleting}>
       <div className="rounded-native-card bg-native-bg p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-native-textMuted">
             {event.typeLabel ?? eventTypeLabel(event.type)}
           </p>
-          {event.published === false && <NativeChip tone="warning">Koncept</NativeChip>}
+          {event.published === false && <NativeChip tone="warning">{t('m.event.draftChip', 'Koncept')}</NativeChip>}
         </div>
         <p className="mt-1 text-[17px] font-semibold text-native-text">{event.title}</p>
         <p className="mt-0.5 text-[15px] text-native-text">{dateLabel}</p>
@@ -82,23 +84,23 @@ export default function MobileEventDetailSheet({ event, onClose, onEdit, onChang
           <NativeButton
             onClick={() => navigate(`/admin/terenni/${event.fosterFamilyId}/navsteva`, { state: { familyName } })}
           >
-            <Timer size={18} strokeWidth={2.25} /> Zahájit návštěvu
+            <Timer size={18} strokeWidth={2.25} /> {t('m.event.startVisit', 'Zahájit návštěvu')}
           </NativeButton>
         )}
         {event.fosterFamilyId && (
           <NativeButton variant="secondary" onClick={() => navigate(`/admin/terenni/${event.fosterFamilyId}`)}>
-            <Users size={18} strokeWidth={2.25} /> Otevřít kartu rodiny
+            <Users size={18} strokeWidth={2.25} /> {t('m.event.openFamily', 'Otevřít kartu rodiny')}
           </NativeButton>
         )}
         {editable && (
           <NativeButton variant="secondary" onClick={onEdit}>
-            <Pencil size={18} strokeWidth={2.25} /> Upravit
+            <Pencil size={18} strokeWidth={2.25} /> {t('m.common.edit', 'Upravit')}
           </NativeButton>
         )}
         {editable && (
           <NativeButton variant="danger" onClick={handleDelete} disabled={deleting}>
             <Trash2 size={18} strokeWidth={2.25} />
-            {deleting ? 'Mažu…' : confirmDelete ? 'Opravdu smazat?' : 'Smazat'}
+            {deleting ? t('m.common.deleting', 'Mažu…') : confirmDelete ? t('m.event.confirmDelete', 'Opravdu smazat?') : t('m.common.delete', 'Smazat')}
           </NativeButton>
         )}
       </div>

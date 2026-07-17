@@ -15,6 +15,7 @@ import ChildOspodCourtTab from './ChildOspodCourtTab.jsx';
 import ChildFamilyTab from './ChildFamilyTab.jsx';
 import ChildSocialSpaceTab from './ChildSocialSpaceTab.jsx';
 import { ChildNotesTab, ChildHistoryTab } from './ChildNotesHistoryTab.jsx';
+import ChildParticipantsTab from './participants/ChildParticipantsTab.jsx';
 
 export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore, forms, canManage = true }) {
   const { submitting, submitError } = forms;
@@ -166,6 +167,10 @@ export default function ChildDetailTabs({ tab, child, family, lists, onLoadMore,
         onLoadMore={() => onLoadMore('history')}
       />
     );
+  }
+
+  if (tab === 'ucastnici') {
+    return <ChildParticipantsTab child={child} canManage={canManage} />;
   }
 
   return null;
